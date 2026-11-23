@@ -123,3 +123,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.22 로컬 개발 서버 실행 환경 마련과 README 실행 안내 (계획에 없는 새 ID) | [T0.22-local-dev-setup.md](T0.22-local-dev-setup.md) | 공통, 문서 | jarrod | 병합됨 (팀원 검토 없이) |
 | T16.1 리눅스 네이티브 라우터: 라우터 CLI 형식에 Linux를 넣고 `ip`·`sysctl` 명령 (계획에 없는 새 ID. 제안서 linux-native-router.md의 첫 단계) | [T16.1-linux-native-router.md](T16.1-linux-native-router.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이). `ip_forward` 기본값을 제안서의 보류에서 켜짐으로 정함 — 팀 확인 필요 |
 | T17.1 Tauri 데스크톱 껍데기: PING9을 .app·.dmg로 만든다 (계획에 없는 새 ID) | [T17.1-tauri-desktop-shell.md](T17.1-tauri-desktop-shell.md) | 화면, 배포 | jarrod | 병합됨 (팀원 검토 없이). Windows exe와 서명은 T17.2~T17.3 — 팀 확인 필요 |
+| T17.2 배포 디렉터리와 버전 관리: dmg를 deploy/에 모은다 (계획에 없는 새 ID. T17.1의 예고 번호가 밀림) | [T17.2-desktop-release-dir.md](T17.2-desktop-release-dir.md) | 배포 | jarrod | 병합됨 (팀원 검토 없이) |

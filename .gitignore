@@ -3,6 +3,8 @@ node_modules/
 dist/
 build/
 coverage/
+deploy/*
+!deploy/README.md
 *.tsbuildinfo
 .turbo/
 
