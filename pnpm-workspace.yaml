@@ -35,6 +35,9 @@ catalog:
   # 공통
   zod: 4.6.7
 
+  # 데스크톱
+  "@tauri-apps/cli": 2.12.5 # Stack 표에 없음. T17.1 데스크톱 앱 껍데기
+
   # 서버
   hono: 4.13.16
   "@hono/node-server": 2.1.6
