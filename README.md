@@ -12,22 +12,50 @@
 
 ## 시작하기
 
-Node 24와 pnpm 12가 필요합니다.
+Node 24 (`>=24.19 <25`, `.nvmrc`는 24.22.2)와 pnpm 12.16.1이 필요합니다.
 
 ```bash
 corepack enable        # pnpm 명령을 켭니다. 권한 오류가 나면: npm install -g pnpm@12.16.1
 pnpm install
 pnpm check             # lint, 타입 검사, 테스트, 빌드를 차례로 실행
-pnpm dev               # 화면 개발 서버
+pnpm dev               # 화면 개발 서버 (http://localhost:5173, 점유 중이면 다음 포트)
+```
+
+시스템 기본 `node`가 24가 아닌 경우(예: Homebrew로 `node@24`를 keg-only로 설치한 Mac):
+
+```bash
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+pnpm dev
 ```
 
 ## 구조
 
+pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared`, `api → shared`뿐입니다.
+
 | 폴더 | 내용 |
 |---|---|
-| `packages/shared` | 엔진·화면·서버가 함께 쓰는 타입, 스키마, 예시 자료 |
+| `packages/shared` | 엔진·화면·서버가 함께 쓰는 타입, Zod 스키마, 예시 자료 |
 | `packages/engine` | 시뮬레이션 엔진. 브라우저와 Node의 기능을 쓰지 않는 순수 TypeScript |
 | `apps/web` | React 화면 |
 | `apps/api` | 인증과 저장을 맡는 서버 |
 
-의존 방향은 `web → engine → shared`, `web → shared`, `api → shared`뿐입니다.
+### `packages/engine/src/` 세부 역할
+
+| 폴더 | 역할 |
+|---|---|
+| `kernel/` | 장비 종류를 모르는 이산 사건 커널 (가상 시계 + 사건 큐) |
+| `devices/` | PC, Switch(VLAN 포워딩), Router(정적 라우팅·RIP·GRE/IPsec VPN) 모델 |
+| `protocols/` | ARP, IPv4 호스트, 전송 계층, iptables 필터 |
+| `cli/` | Cisco IOS 유사 CLI(Switch·Router), Linux·Windows PC 콘솔, VyOS CLI |
+| `reducer/` | Document 변경 명령 처리기. 불변, 거부 시 무변경 |
+| `simulator.ts` | web과 engine의 유일한 경계. `load`/`dispatch`/`console`/`getSnapshot`/`subscribe` |
+
+### `apps/web/src/` 세부 역할
+
+| 폴더 | 역할 |
+|---|---|
+| `components/` | 캔버스, 터미널 창, 속성·링크 패널, 패킷 카드 등 화면 부품 |
+| `replay/` | ping·경로 교환 재생의 단계·타임라인 계산 |
+| `terminal/` | 터미널 상태, 키 처리, 명령 큐, ping 출력 간격 |
+| `format/`, `messages/` | 포트·주소·케이블 표시 문자열과 사용자 메시지 |
+| `app.tsx` | 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
