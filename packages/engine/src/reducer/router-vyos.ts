@@ -5,7 +5,7 @@ import { findRouter, withRouterConfig } from "./router-common";
 export const setCliStyle: CommandHandler<"router/set-cli-style"> = (document, command) => {
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
-  if (command.style !== "ios" && command.style !== "vyos") return { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: "cliStyle" }) };
+  if (!["ios", "vyos", "linux"].includes(command.style)) return { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: "cliStyle" }) };
   return withRouterConfig(document, found.device, { ...found.device.config, cliStyle: command.style,
     ...(command.style === "vyos" ? { vpnMode: undefined } : {}),
     ...(command.style === "ios" ? { vyos: undefined } : {}) });

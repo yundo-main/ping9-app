@@ -16,6 +16,7 @@ import type { PcFiles } from "./cli/pc";
 import { splitWords } from "./cli/ios/parse";
 import { runIptables } from "./cli/pc/iptables-run";
 import { ROUTER_COMMANDS } from "./cli/router";
+import { LINUX_ROUTER_COMMANDS } from "./cli/router/linux-commands";
 import { vyosExec, vyosPrompt, vyosHelp, vyosComplete } from "./cli/vyos/console";
 import { SWITCH_COMMANDS } from "./cli/switch";
 
@@ -54,6 +55,7 @@ function pcUnknownCommand(lines: readonly ConsoleLine[], text: string, os: OsKin
 }
 
 function definitionsFor(device: Device): readonly CommandDefinition[] | undefined {
+  if (device.kind === "router" && device.config.cliStyle === "linux") return LINUX_ROUTER_COMMANDS;
   return device.kind === "pc" ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
 }
 
@@ -69,6 +71,8 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
     const device = findDevice();
     if (device === undefined) return ">";
     if (device.kind === "router" && device.config.cliStyle === "vyos") return vyosPrompt(device, env);
+    // 리눅스 네이티브 라우터는 root 셸 프롬프트 (T16.1)
+    if (device.kind === "router" && device.config.cliStyle === "linux") return `root@${device.name}:~#`;
     // PC에는 모드가 없고 OS마다 프롬프트가 다르다 (Windows `PC1 User>`, Linux `user@PC2 ~ $`, T0.19)
     if (device.kind === "pc") return pcPrompt(device, filesOf(device));
     return definitionsFor(device) === undefined ? `${device.name}>` : iosPrompt(device, env);
@@ -144,6 +148,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
         const executed = iosExec(text, device, definitions, env);
         // iosExec의 프롬프트는 IOS 모드의 것이다. PC는 실행 뒤의 문서로 OS별 프롬프트를 다시 만든다
         if (device.kind === "pc") return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
+        if (device.kind === "router" && device.config.cliStyle === "linux") return { lines: executed.lines, prompt: prompt() };
         return executed;
       }
 

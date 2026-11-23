@@ -315,6 +315,8 @@ export interface DropParamsByReason {
   VLAN_INACTIVE: { readonly device: DeviceRef; readonly port: string; readonly vlan: number };
   /** 일치하는 경로가 없음 */
   NO_ROUTE: { readonly device: DeviceRef; readonly targetIp: string };
+  /** 리눅스 라우터의 net.ipv4.ip_forward가 꺼져 있어 지나가는 패킷을 전달하지 않음 (T16.1) */
+  IP_FORWARD_DISABLED: { readonly device: DeviceRef };
   /** TTL이 0이 됨 */
   TTL_EXPIRED: { readonly device: DeviceRef };
   /** RIP를 보낸 IP가 받은 인터페이스의 네트워크가 아님 (T11.2.2) */
@@ -351,6 +353,7 @@ const DROP_REASON_SET = {
   TRUNK_NOT_ALLOWED: true,
   VLAN_INACTIVE: true,
   NO_ROUTE: true,
+  IP_FORWARD_DISABLED: true,
   TTL_EXPIRED: true,
   RIP_SOURCE_NOT_ON_LINK: true,
   FIREWALL_BLOCKED: true,

@@ -9,7 +9,9 @@ import type {
 } from "./document";
 
 export type Command =
-  | { readonly type: "router/set-cli-style"; readonly deviceId: string; readonly style: "ios" | "vyos" }
+  | { readonly type: "router/set-cli-style"; readonly deviceId: string; readonly style: "ios" | "vyos" | "linux" }
+  // 리눅스 라우터의 `net.ipv4.ip_forward` (T16.1). false면 지나가는 패킷을 전달하지 않는다
+  | { readonly type: "router/set-ip-forward"; readonly deviceId: string; readonly enabled: boolean }
   | { readonly type: "router/commit-vyos"; readonly deviceId: string; readonly config: RouterConfig }
   | { readonly type: "router/set-vpn-mode"; readonly deviceId: string; readonly mode: VpnMode | null }
   | { readonly type: "ipsec/set"; readonly deviceId: string; readonly name: string; readonly config: IpsecProfileConfig }
@@ -74,6 +76,7 @@ export type CommandOf<T extends CommandType> = Extract<Command, { readonly type:
 // Command를 추가하고 여기에 빠뜨리면 타입 오류가 난다
 const COMMAND_TYPE_SET = {
   "router/set-cli-style": true,
+  "router/set-ip-forward": true,
   "router/commit-vyos": true,
   "router/set-vpn-mode": true,
   "ipsec/set": true,

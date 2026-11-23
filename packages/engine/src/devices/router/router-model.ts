@@ -140,6 +140,12 @@ export class RouterModel implements DeviceModel {
       }
       return;
     }
+    // 리눅스의 net.ipv4.ip_forward가 꺼져 있으면 자기 것이 아닌 패킷은 경로 조회 없이 버린다 (T16.1)
+    if (device.config.ipForward === false) {
+      ctx.record({ frame, deviceId: device.id, inPort: port, layer: "L3", action: "drop", parentSeq: received,
+        reason: { code: "IP_FORWARD_DISABLED", params: { device: ref } } });
+      return;
+    }
     const decision = this.#decision(ipv4.destinationIp);
     if (ipv4.ttl <= 1 || decision === null) {
       const droppedFrame = ipv4.ttl <= 1 ? ctx.updateFrame(frame, { ...frame.snapshot, ipv4: { ...ipv4, ttl: 0 } }) : frame;

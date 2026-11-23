@@ -40,6 +40,8 @@ export function normalizeStaticRoute(route: StaticRoute): StaticRoute {
 export function normalizeRouterConfig(config: RouterConfig): RouterConfig {
   return {
     ...(config.cliStyle === undefined ? {} : { cliStyle: config.cliStyle }),
+    // 기본값(전달함)은 저장하지 않는다
+    ...(config.ipForward === false ? { ipForward: false } : {}),
     ...(config.vyos === undefined ? {} : { vyos: config.vyos }),
     ...(config.vpnMode === undefined ? {} : { vpnMode: config.vpnMode }),
     interfaces: Object.fromEntries(PORT_NAMES.router.map(port => {
