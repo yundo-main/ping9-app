@@ -189,11 +189,13 @@ export const VPN_MODES = ["off", "gre", "ipsec"] as const;
 export type VpnMode = (typeof VPN_MODES)[number];
 
 export interface RouterConfig {
-  readonly cliStyle?: "ios" | "vyos";
+  readonly cliStyle?: "ios" | "vyos" | "linux";
   /** 적용된 VyOS 지원 설정. candidate는 저장하지 않는다. */
   readonly vyos?: Readonly<Record<string, string>>;
   /** 생략하면 기존 터널/정책 설정을 따른다. off는 명시적으로 일반 라우팅을 선택한다. */
   readonly vpnMode?: VpnMode;
+  /** 리눅스 라우터의 `net.ipv4.ip_forward` (T16.1). 생략하면 켜져 있다 */
+  readonly ipForward?: boolean;
   readonly interfaces: Readonly<Record<string, RouterInterfaceConfig>>;
   readonly staticRoutes: readonly StaticRoute[];
   /** 없으면 RIP를 쓰지 않음. `router rip`로 생기고 `no router rip`로 사라진다 (T11.2.1) */

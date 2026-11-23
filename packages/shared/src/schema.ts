@@ -68,7 +68,8 @@ const ripConfigSchema = z.object({
 });
 
 const routerConfigSchema = z.object({
-  cliStyle: z.enum(["ios", "vyos"]).optional(),
+  cliStyle: z.enum(["ios", "vyos", "linux"]).optional(),
+  ipForward: z.boolean().optional(),
   vyos: z.record(z.string().max(256), shortString).refine(value => Object.keys(value).length <= 512).optional(),
   vpnMode: z.enum(VPN_MODES).optional(),
   interfaces: z.record(shortString, routerInterfaceConfigSchema),

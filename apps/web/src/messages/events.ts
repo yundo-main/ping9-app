@@ -64,6 +64,7 @@ export const EVENT_TEXT: { readonly [C in ReasonCode]: (params: ReasonParamsByCo
   TRUNK_NOT_ALLOWED: ({ port, vlan }) => `VLAN ${withSubject(vlan)} ${p(port)} trunk 허용 목록에 없어 버림`,
   VLAN_INACTIVE: ({ port, vlan }) => `${p(port)}의 VLAN ${withSubject(vlan)} 없어 버림`,
   NO_ROUTE: ({ targetIp }) => `${targetIp}로 가는 경로가 없어 버림`,
+  IP_FORWARD_DISABLED: () => "ip_forward가 꺼져 있어 전달하지 않고 버림",
   TTL_EXPIRED: () => "TTL이 0이 되어 버림",
   RIP_SOURCE_NOT_ON_LINK: ({ sourceIp }) => `${sourceIp}의 RIP가 다른 네트워크에서 와서 버림`,
   FIREWALL_BLOCKED: ({ chain, target, rule }) =>
@@ -98,6 +99,7 @@ export const CAUSE_TEXT: { readonly [R in DropReason]: (params: DropParamsByReas
   TRUNK_NOT_ALLOWED: (q) => ({ text: `${dev(q)}의 ${p(q.port)} trunk가 VLAN ${q.vlan} 프레임을 허용하지 않아 버렸어요`, fix: `${dev(q)}에서 허용 목록에 더하세요:`, command: `switchport trunk allowed vlan add ${q.vlan}` }),
   VLAN_INACTIVE: (q) => ({ text: `${dev(q)}에 VLAN ${withSubject(q.vlan)} 없어 ${p(q.port)}가 통신할 수 없어요`, fix: `${dev(q)}에서 VLAN을 만드세요:`, command: `vlan ${q.vlan}` }),
   NO_ROUTE: (q) => ({ text: `${dev(q)}에 ${q.targetIp}로 가는 경로가 없어요`, fix: `${dev(q)}에서 경로를 더하세요:`, command: "ip route <네트워크> <마스크> <다음 주소>" }),
+  IP_FORWARD_DISABLED: (q) => ({ text: `${dev(q)}의 net.ipv4.ip_forward가 꺼져 있어 지나가는 패킷을 버렸어요`, fix: "리눅스 콘솔에서 켜세요:", command: "sysctl net.ipv4.ip_forward=1" }),
   TTL_EXPIRED: (q) => ({ text: `${dev(q)}에서 TTL이 0이 됐어요. 경로가 고리처럼 돌고 있어요`, fix: "Router들의 라우팅 표를 확인하세요" }),
   RIP_SOURCE_NOT_ON_LINK: (q) => ({ text: `${dev(q)}가 다른 네트워크에서 온 RIP(${q.sourceIp})를 버렸어요`, fix: "양쪽 인터페이스의 IP가 같은 네트워크인지 확인하세요" }),
   FIREWALL_BLOCKED: (q) => ({

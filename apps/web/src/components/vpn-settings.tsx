@@ -25,11 +25,13 @@ export function VpnSettings({ device, onDispatch }: {
   return <section className="vpn-settings" aria-label="VPN 설정">
     <label className="vpn-note" htmlFor={`${id}-style`}>라우터 CLI 형식</label>
     <select id={`${id}-style`} value={device.config.cliStyle ?? "ios"} onChange={event => {
-      const result = onDispatch({ type: "router/set-cli-style", deviceId: device.id, style: event.target.value === "vyos" ? "vyos" : "ios" });
+      const style = event.target.value === "vyos" ? "vyos" : event.target.value === "linux" ? "linux" : "ios";
+      const result = onDispatch({ type: "router/set-cli-style", deviceId: device.id, style });
       setError(result.ok ? null : result.error);
     }}>
       <option value="ios">IOS · 기존 명령어</option>
       <option value="vyos">VyOS 1.4 · VPN 실습</option>
+      <option value="linux">Linux · ip/sysctl 명령어</option>
     </select>
     <div className="vpn-note">형식 변경 시 입력 중인 임시 설정을 비워요.</div>
     {device.config.cliStyle === "vyos" ? <div className="vpn-help" role="status">
