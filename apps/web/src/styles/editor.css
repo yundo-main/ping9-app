@@ -86,6 +86,9 @@ button { font: inherit; cursor: pointer; }
 .tool.device-tool:not(:disabled) { cursor: grab; touch-action: none; }
 .tool.device-tool:not(:disabled):active { cursor: grabbing; }
 .placement-preview { pointer-events: none; opacity: .65; }
+/* 장비 목록의 네모 버튼은 작게 (T0.23). 케이블 도구 버튼은 그대로 */
+.tool.device-tool { gap: 4px; padding: 6px 4px; font-size: 11px; }
+.tool.device-tool svg { width: 20px; height: 20px; }
 .device-tool svg { pointer-events: none; }
 .palette-note { font-size: 11px; line-height: 1.4; text-align: center; color: var(--navy-60); }
 /* 목록에서 끌어 온 새 장비를 장비 목록에 다시 놓으면 취소된다 (T0.12). 끄는 동안 안내를 바꾸고, 목록 위에 오면 표시한다 */
