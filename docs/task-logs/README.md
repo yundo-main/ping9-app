@@ -136,3 +136,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.29 저장소 정리: `.specify`·`docs/superpowers`·미사용 아이콘 삭제, 옛 원격 브랜치 24개 제거 (계획에 없는 새 ID) | [T0.29-repo-cleanup.md](T0.29-repo-cleanup.md) | 인프라 | jarrod | main 직접 커밋 |
 | T0.30 앱 도움말 창: 상단 막대 `?` 버튼과 사용법 대화상자 (계획에 없는 새 ID) | [T0.30-help-dialog.md](T0.30-help-dialog.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.31 앱 아이콘을 완전한 펭귄으로 교체 (계획에 없는 새 ID) | [T0.31-app-icon-penguin.md](T0.31-app-icon-penguin.md) | 배포 | jarrod | main 직접 커밋 |
+| T17.5 데스크톱 앱의 내보내기: 웹뷰에 없는 다운로드를 dialog+fs 플러그인 저장 창으로 (계획에 없는 새 ID) | [T17.5-desktop-export-save.md](T17.5-desktop-export-save.md) | 배포, 화면 | jarrod | main 직접 커밋 |

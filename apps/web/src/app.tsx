@@ -496,7 +496,7 @@ export function App() {
   // 지금 Document를 파일로 받는다 (T7.1.1). 장비가 없어도 받는다
   const exportTopology = () => {
     const file = exportFile(topologyName, simulator.getSnapshot().document);
-    downloadText(file.fileName, file.text);
+    void downloadText(file.fileName, file.text);
   };
 
   // 고른 파일을 검증하고, 캔버스에 장비가 있으면 바꿀지 묻는다 (T7.1.2). 실패하면 지금 캔버스는 그대로

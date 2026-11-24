@@ -27,17 +27,30 @@ export function exportFile(name: string, document: TopologyDocument): { readonly
   return { fileName: exportFileName(name), text: `${JSON.stringify(content, null, 2)}\n` };
 }
 
-/** 브라우저가 파일로 받게 한다 */
-export function downloadText(fileName: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  window.document.body.append(link);
-  link.click();
-  link.remove();
-  // 받기가 시작된 뒤에 놓는다. 바로 놓으면 받지 못하는 브라우저가 있다
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+/**
+ * 파일로 받게 한다. 브라우저에서는 `<a download>`를 누른다.
+ * Tauri 데스크톱 웹뷰에는 다운로드가 없어, 저장 창을 열어 고른 자리에 쓴다 (T17.5).
+ */
+export async function downloadText(fileName: string, text: string): Promise<void> {
+  if (!("__TAURI_INTERNALS__" in window)) {
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    window.document.body.append(link);
+    link.click();
+    link.remove();
+    // 받기가 시작된 뒤에 놓는다. 바로 놓으면 받지 못하는 브라우저가 있다
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
+  const [{ save }, { writeTextFile }] = await Promise.all([
+    import("@tauri-apps/plugin-dialog"),
+    import("@tauri-apps/plugin-fs"),
+  ]);
+  const path = await save({ defaultPath: fileName });
+  // 저장 창에서 취소하면 null — 아무것도 쓰지 않는다
+  if (path !== null) await writeTextFile(path, text);
 }
 
 /** 가져오기에 필요한 파일의 부분. 브라우저의 `File`이 맞는다 */
