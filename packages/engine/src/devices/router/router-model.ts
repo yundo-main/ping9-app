@@ -1,5 +1,5 @@
 import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, isIcmpError, isSameNetwork, isTunnelName, routerInterfaces, greEnabled } from "@ping9/shared";
-import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatTranslationView, Reason, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
+import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -14,7 +14,12 @@ import { lookupRoute, routingTable, tunnelStates } from "./routing";
 import type { RouteDecision, RoutingEntry } from "./routing";
 import { IpsecModule } from "./ipsec";
 
+/** linux·vyos 스타일 라우터가 직접 만드는 패킷의 TTL */
 export const ROUTER_TTL = 64;
+
+/** 라우터가 직접 만드는 패킷의 TTL. ios(기본 콘솔)는 시스코처럼 255, linux·vyos는 64다 (T16.2) */
+export const routerTtlOf = (cliStyle: RouterConfig["cliStyle"]): number =>
+  cliStyle === "linux" || cliStyle === "vyos" ? ROUTER_TTL : 255;
 
 /** NAT 바인딩의 유휴 한계 (T16.2). 이 시간(마이크로초, 300초) 동안 패킷이 없으면 지운다 */
 export const NAT_IDLE_US = 300_000_000;
@@ -163,7 +168,7 @@ export class RouterModel implements DeviceModel {
           reason: { code: "ICMP_ECHO_REQUEST_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp } } });
         const decision = this.#decision(ipv4.sourceIp);
         if (decision !== null) this.#send(ctx, decision, {
-          sourceIp: ipv4.destinationIp, destinationIp: ipv4.sourceIp, ttl: ROUTER_TTL,
+          sourceIp: ipv4.destinationIp, destinationIp: ipv4.sourceIp, ttl: this.#ttl(),
         }, { type: "echo-reply", sequence: icmp.sequence }, "reply", request);
       } else if (isIcmpError(icmp)) {
         if (icmp.original.sourceIp !== ipv4.destinationIp || icmp.original.sequence !== icmp.sequence) return;
@@ -395,7 +400,7 @@ export class RouterModel implements DeviceModel {
     const result = this.#ipsec.protect(name, ipv4, icmp, ctx.now());
     if (!result.ok) { this.#rejectIpsec(ctx, inner, name, result.detail, parentSeq); return; }
     const outer = ctx.updateFrame(inner, { ethernet: inner.snapshot.ethernet,
-      ipv4: { sourceIp: source.ip, destinationIp: profile.peer!, ttl: ROUTER_TTL, protocol: 50 }, esp: result.value });
+      ipv4: { sourceIp: source.ip, destinationIp: profile.peer!, ttl: this.#ttl(), protocol: 50 }, esp: result.value });
     const protectedSeq = ctx.record({ frame: outer, deviceId: device.id, layer: "IPSEC", action: "create", reason: {
       code: "IPSEC_PROTECTED", params: { device: deviceRef(device), profile: name, peer: profile.peer!, spi: result.value.spi, sequence: result.value.sequence },
     }, ...(parentSeq === undefined ? {} : { parentSeq }) });
@@ -433,7 +438,7 @@ export class RouterModel implements DeviceModel {
       this.#rejectGre(ctx, inner, "터널 미설정, underlay 재귀 경로 또는 중첩/미지원 payload", parentSeq); return;
     }
     const outer = ctx.updateFrame(inner, { ethernet: inner.snapshot.ethernet,
-      ipv4: { sourceIp: source.ip, destinationIp: tunnel.destination!, ttl: ROUTER_TTL, protocol: 47 },
+      ipv4: { sourceIp: source.ip, destinationIp: tunnel.destination!, ttl: this.#ttl(), protocol: 47 },
       gre: { version: 0, protocolType: 2048, payload: { ipv4, icmp } },
     });
     const wrapped = ctx.record({ frame: outer, deviceId: device.id, layer: "GRE", action: "create", reason: {
@@ -487,7 +492,7 @@ export class RouterModel implements DeviceModel {
       // 원래 출발지가 자신이면 ICMP 오류를 로컬 전달한다. 자기 주소를 ARP로 조회하거나 링크로 내보내지 않는다.
       const frame = ctx.createFrame({
         ethernet: { sourceMac: portMac(device, localPort), destinationMac: portMac(device, localPort) },
-        ipv4: { sourceIp: ipv4.sourceIp, destinationIp: ipv4.sourceIp, ttl: ROUTER_TTL }, icmp: message,
+        ipv4: { sourceIp: ipv4.sourceIp, destinationIp: ipv4.sourceIp, ttl: this.#ttl() }, icmp: message,
       });
       const params = { device: deviceRef(device), sourceIp: ipv4.sourceIp, targetIp: ipv4.sourceIp, error: type };
       const sent = ctx.record({ frame, deviceId: device.id, layer: "ICMP", action: "reply", parentSeq,
@@ -499,7 +504,7 @@ export class RouterModel implements DeviceModel {
     const decision = this.#decision(ipv4.sourceIp);
     if (decision === null) return;
     this.#send(ctx, decision, {
-      sourceIp: this.#ipsec.sourceFor(ipv4.sourceIp) ?? routerInterfaces(this.#device().config)[decision.port]!.ip!, destinationIp: ipv4.sourceIp, ttl: ROUTER_TTL,
+      sourceIp: this.#ipsec.sourceFor(ipv4.sourceIp) ?? routerInterfaces(this.#device().config)[decision.port]!.ip!, destinationIp: ipv4.sourceIp, ttl: this.#ttl(),
     }, message, "reply", parentSeq);
   }
 
@@ -515,8 +520,11 @@ export class RouterModel implements DeviceModel {
 
   repliesReceived(): readonly number[] { return [...this.#replies]; }
 
+  /** 이 라우터가 직접 만드는 패킷의 TTL — 콘솔 스타일에 따른다 (T16.2) */
+  #ttl(): number { return routerTtlOf(this.#device().config.cliStyle); }
+
   /** echo 요청을 보낸다. `ttl`은 traceroute가 hop마다 정한다 (T11.4.1) */
-  sendEcho(ctx: SimContext, targetIp: string, sequence: number, ttl = ROUTER_TTL): void {
+  sendEcho(ctx: SimContext, targetIp: string, sequence: number, ttl = this.#ttl()): void {
     const device = this.#device(); const decision = this.#decision(targetIp);
     if (decision === null) {
       const port = PORT_NAMES.router[0];

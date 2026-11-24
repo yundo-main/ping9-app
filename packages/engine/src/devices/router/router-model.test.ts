@@ -49,9 +49,21 @@ describe("Router 실제 패킷 전달", () => {
     const sim = open();
     for (const target of ["192.168.1.1", "192.168.2.1"]) {
       const { result, trace } = await ping(sim, LAB.pc1, target);
-      expect(trace.result.status).toBe("success"); expect(text(result)).toContain("TTL=64");
+      expect(trace.result.status).toBe("success"); expect(text(result)).toContain("TTL=255");
       expect(trace.events.some(event => event.deviceId === LAB.r1 && event.reason.code === "ICMP_ECHO_REPLY_SENT")).toBe(true);
     }
+  });
+
+  test("라우터가 만드는 패킷의 TTL은 콘솔 스타일에 따른다: ios(기본) 255, linux 64", async () => {
+    const sim = open();
+    // 기본(ios) 콘솔은 시스코처럼 255
+    expect(text((await ping(sim, LAB.pc1, "192.168.1.1")).result)).toContain("TTL=255");
+    // linux 스타일로 바꾸면 리눅스처럼 64
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "linux" }).ok).toBe(true);
+    expect(text((await ping(sim, LAB.pc1, "192.168.1.1")).result)).toContain("TTL=64");
+    // vyos도 리눅스 기반이라 64
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "vyos" }).ok).toBe(true);
+    expect(text((await ping(sim, LAB.pc1, "192.168.1.1")).result)).toContain("TTL=64");
   });
 
   test("Router 두 대의 정적 경로로 양방향 ping하고 응답 TTL은 126이다", async () => {

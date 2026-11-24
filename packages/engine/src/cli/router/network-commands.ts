@@ -1,5 +1,5 @@
 import type { ConsoleLine } from "@ping9/shared";
-import { ROUTER_TTL } from "../../devices/router/router-model";
+import { routerTtlOf } from "../../devices/router/router-model";
 import { defineCommand, param } from "../ios";
 import type { CommandDefinition } from "../ios";
 import { tableLines } from "../ios/table";
@@ -15,7 +15,7 @@ export const ROUTER_NETWORK_COMMANDS: readonly CommandDefinition[] = [
       if (context.device.kind !== "router" || context.runtime === undefined) return {};
       const target = String(args.ip);
       if (target.startsWith("127.") || Object.values(context.device.config.interfaces).some(iface => iface.adminUp && iface.ip === target)) {
-        return { lines: loopbackPingLines("windows", target, 4, ROUTER_TTL) };
+        return { lines: loopbackPingLines("windows", target, 4, routerTtlOf(context.device.config.cliStyle)) };
       }
       const result = context.runtime.ping({ deviceId: context.device.id, targetIp: target, count: 4, stopOnUnsent: false });
       if (!result.ok) return { lines: [{ kind: "error", ...result.error }] };

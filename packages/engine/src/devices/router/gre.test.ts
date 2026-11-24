@@ -42,7 +42,7 @@ describe("GRE는 실제 underlay를 통과한다", () => {
     expect(configOf(sim, LAB.isp).staticRoutes).toEqual([]);
     const transit = trace.events.filter(event => event.deviceId === LAB.isp && event.reason.code === "IPV4_FORWARDED");
     expect(transit).toHaveLength(2);
-    expect(transit[0]!.frame).toMatchObject({ ipv4: { sourceIp: "10.0.13.1", destinationIp: "10.0.23.2", ttl: 63, protocol: 47 },
+    expect(transit[0]!.frame).toMatchObject({ ipv4: { sourceIp: "10.0.13.1", destinationIp: "10.0.23.2", ttl: 254, protocol: 47 },
       gre: { version: 0, protocolType: 2048, payload: { ipv4: { sourceIp: "192.168.1.10", destinationIp: "192.168.2.10", ttl: 127 } } } });
     expect(transit[0]!.frame.icmp).toBeUndefined();
     expect(trace.events.filter(event => event.reason.code === "GRE_ENCAPSULATED")).toHaveLength(2);

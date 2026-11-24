@@ -89,7 +89,8 @@ describe("라우터 ICMP 오류", () => {
     expect(trace.events.filter(event => event.reason.code === "ICMP_ERROR_SENT")).toHaveLength(1);
     const expired = trace.events.find(event => event.reason.code === "TTL_EXPIRED")!;
     expect(expired.frame.icmp?.type).toBe("destination-unreachable");
-    expect(trace.events.length).toBeLessThan(500);
+    // 오류 패킷도 TTL이 다하면 멈춘다 (ios 스타일 라우터의 오류 TTL은 255라 순환도 그만큼 길다)
+    expect(trace.events.length).toBeLessThan(600);
   });
 
   test("Linux에는 오류 발생 라우터 IP와 실패 종류를 표시한다", async () => {
