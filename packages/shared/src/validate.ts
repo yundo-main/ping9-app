@@ -325,6 +325,9 @@ function checkLbConfig(
       if (backend.port < 1 || backend.port > 65535 || backend.weight < 1 || backend.weight > 100) {
         return shapeError(`${path}.frontends`);
       }
+      if (backend.pathPrefix !== undefined && !backend.pathPrefix.startsWith("/")) {
+        return errorInfo("CLI_INVALID_VALUE", { token: backend.pathPrefix });
+      }
     }
   }
   return null;

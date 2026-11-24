@@ -134,7 +134,7 @@ const lbConfigSchema = z.object({
   frontends: z.array(z.object({
     listenPort: integer,
     mode: z.enum(["tcp", "http"]),
-    backends: z.array(z.object({ ip: shortString, port: integer, weight: integer })),
+    backends: z.array(z.object({ ip: shortString, port: integer, weight: integer, pathPrefix: shortString.optional() })),
   })),
 });
 

@@ -498,6 +498,13 @@ export interface EventParamsByCode {
     readonly client: string;
     readonly backend: string;
   };
+  /** L7 프록시가 요청 경로로 백엔드를 골랐음 (T0.35). 클라이언트:포트 → 백엔드:포트 + 경로 */
+  L7_REQUEST_ROUTED: {
+    readonly device: DeviceRef;
+    readonly client: string;
+    readonly backend: string;
+    readonly path: string;
+  };
   /** 목적지를 모르거나 브로드캐스트여서 같은 VLAN의 다른 포트 모두로 보냄. 포트마다 이벤트 하나 */
   FRAME_FLOODED: {
     readonly device: DeviceRef;
@@ -585,6 +592,7 @@ const EVENT_CODE_SET = {
   FRAME_FORWARDED: true,
   HUB_FLOODED: true,
   LB_BACKEND_SELECTED: true,
+  L7_REQUEST_ROUTED: true,
   FRAME_FLOODED: true,
   TCP_SEGMENT_SENT: true,
   TCP_SEGMENT_RECEIVED: true,

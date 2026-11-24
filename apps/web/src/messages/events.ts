@@ -50,6 +50,8 @@ export const EVENT_TEXT: { readonly [C in ReasonCode]: (params: ReasonParamsByCo
     `${broadcast ? "브로드캐스트라" : "허브는 모든 곳으로 보내"} ${p(port)}로 내보냄`,
   LB_BACKEND_SELECTED: ({ client, backend }) =>
     `새 연결 ${client}을 백엔드 ${backend}로 보냄`,
+  L7_REQUEST_ROUTED: ({ client, backend, path }) =>
+    `요청 ${path}를 ${client}에서 받아 백엔드 ${backend}로 중계`,
   FRAME_FLOODED: ({ port, vlan, broadcast }) =>
     `${broadcast ? "브로드캐스트라" : "목적지를 몰라"} ${p(port)}로 내보냄 (VLAN ${vlan})`,
   TCP_SEGMENT_SENT: ({ targetIp, port, flags }) => `TCP ${TCP_FLAG_LABEL[flags]}을 ${targetIp}로 보냄 (포트 ${port})`,

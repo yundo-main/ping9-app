@@ -182,7 +182,7 @@ function showFrontends(_args: CommandArgs, context: CommandContext): CommandOutc
     lines: lb.config.frontends.flatMap(frontend => [
       text(`listen :${frontend.listenPort} mode ${frontend.mode}`),
       ...frontend.backends.map(backend =>
-        text(`    server ${backend.ip}:${backend.port} weight ${backend.weight}`)),
+        text(`    server ${backend.ip}:${backend.port} weight ${backend.weight}${backend.pathPrefix === undefined ? "" : ` path ${backend.pathPrefix}`}`)),
     ]),
   };
 }

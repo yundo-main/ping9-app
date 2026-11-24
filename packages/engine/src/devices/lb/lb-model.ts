@@ -5,7 +5,7 @@
 // RIP·터널·NAT 규칙은 없다. 구성은 매번 Document에서 읽고, 동적 상태(ARP·바인딩·RR 카운터)만 든다.
 
 import { BROADCAST_MAC, PORT_NAMES, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, isIcmpError, isSameNetwork } from "@ping9/shared";
-import type { DeviceView, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, LbBindingView, LbDevice, Reason, TopologyDocument } from "@ping9/shared";
+import type { ApplicationData, DeviceView, EventCode, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, LbBindingView, LbDevice, Reason, TcpFlags, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { deviceRef, findDevice, isAdminUp, portLink, portMac } from "../../topology";
@@ -31,6 +31,21 @@ interface LbBinding {
   readonly backendPort: number;
 }
 
+/** L7 프록시 연결 하나. 클라이언트 다리가 먼저 맺히고, 요청이 오면 백엔드 다리를 연다 (T0.35) */
+interface L7Conn {
+  readonly clientIp: string;
+  readonly clientPort: number;
+  readonly vipIp: string;
+  readonly vipPort: number;
+  /** 클라이언트가 보낸 요청 첫 줄 — 백엔드에 그대로 전달한다 */
+  message?: string;
+  /** 요청이 경로 규칙으로 고른 백엔드. 보내기 전에는 없다 */
+  backendIp?: string;
+  backendPort?: number;
+  /** 백엔드 다리에서 LB가 쓰는 출발 포트 */
+  lbPort?: number;
+}
+
 function lbIn(document: TopologyDocument, deviceId: string): LbDevice | undefined {
   const device = findDevice(document, deviceId);
   return device?.kind === "lb" ? device : undefined;
@@ -46,6 +61,13 @@ export class LbModel implements DeviceModel {
   readonly #byBackend = new Map<string, LbBinding>();
   /** 프런트엔드(listenPort)별 가중 라운드로빈 커서 */
   readonly #cursors = new Map<number, number>();
+  /** L7: 클라이언트 키(`cip:cport:vport`)로 찾는 연결 */
+  readonly #l7ByClient = new Map<string, L7Conn>();
+  /** L7: 백엔드 다리 키(`bip:bport:lbPort`)로 찾는 연결 */
+  readonly #l7ByBackend = new Map<string, L7Conn>();
+  /** L7 백엔드 다리의 출발 포트 번호와 경로 풀별 라운드로빈 커서 */
+  #l7NextPort = 41000;
+  readonly #l7Cursors = new Map<string, number>();
   readonly #replies = new Set<number>();
 
   constructor(deviceId: string, getDocument: () => TopologyDocument) {
@@ -142,7 +164,7 @@ export class LbModel implements DeviceModel {
           reason: { code: "ICMP_ECHO_REPLY_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp } } });
         this.#replies.add(icmp.sequence);
       } else if (icmp === undefined && tcp !== undefined) {
-        if (this.#accept(ctx, port, frame, ipv4, tcp.destinationPort, received)) return;
+        if (this.#handleTcp(ctx, port, frame, ipv4, tcp.destinationPort, received)) return;
         const closed = ctx.record({ frame, deviceId: device.id, inPort: port, parentSeq: received,
           layer: "TCP", action: "drop",
           reason: { code: "PORT_CLOSED", params: { device: ref, protocol: "tcp", port: tcp.destinationPort } } });
@@ -163,18 +185,146 @@ export class LbModel implements DeviceModel {
   }
 
   /**
+   * 내 주소로 온 TCP를 나눈다. L7 백엔드 다리의 응답, http 프런트엔드의 클라이언트 다리,
+   * 그리고 tcp 프런트엔드의 DNAT. 어느 것도 맞지 않으면 false → PORT_CLOSED
+   */
+  #handleTcp(ctx: SimContext, port: string, frame: Frame, ipv4: Ipv4Header, listenPort: number, parentSeq: number): boolean {
+    const tcp = frame.snapshot.tcp!;
+    const leg = this.#l7ByBackend.get(`${ipv4.sourceIp}:${tcp.sourcePort}:${tcp.destinationPort}`);
+    if (leg !== undefined) return this.#backendLeg(ctx, port, frame, ipv4, leg, parentSeq);
+    const frontend = this.#device().config.frontends.find(candidate => candidate.listenPort === listenPort);
+    if (frontend?.mode === "http") return this.#clientLeg(ctx, port, frame, ipv4, frontend.listenPort, parentSeq);
+    return this.#accept(ctx, port, frame, ipv4, listenPort, parentSeq);
+  }
+
+  /**
+   * L7 프록시의 클라이언트 다리 (T0.35). SYN에는 SYN-ACK으로 직접 답하고, 요청이 오면
+   * 경로 접두로 백엔드 풀을 좁혀 가중 라운드로빈으로 골라 백엔드 다리를 연다
+   */
+  #clientLeg(ctx: SimContext, port: string, frame: Frame, ipv4: Ipv4Header, vipPort: number, parentSeq: number): boolean {
+    const device = this.#device();
+    const ref = deviceRef(device);
+    const tcp = frame.snapshot.tcp!;
+    const application = frame.snapshot.application;
+    const clientKey = `${ipv4.sourceIp}:${tcp.sourcePort}:${vipPort}`;
+    const received = ctx.record({
+      frame, deviceId: device.id, inPort: port, parentSeq, layer: application === undefined ? "TCP" : "APP",
+      action: "receive",
+      reason: application === undefined
+        ? { code: "TCP_SEGMENT_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp, port: vipPort, flags: tcp.flags } }
+        : { code: "SERVICE_REQUEST_RECEIVED", params: { device: ref, service: application.service, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp, port: vipPort, message: application.message } },
+    });
+
+    if (tcp.flags === "SYN") {
+      this.#l7ByClient.set(clientKey, { clientIp: ipv4.sourceIp, clientPort: tcp.sourcePort, vipIp: ipv4.destinationIp, vipPort });
+      this.#sendSegment(ctx, ipv4.destinationIp, ipv4.sourceIp,
+        { tcp: { sourcePort: vipPort, destinationPort: tcp.sourcePort, flags: "SYN-ACK" } },
+        "TCP", "reply", { code: "TCP_SEGMENT_SENT", params: { device: ref, sourceIp: ipv4.destinationIp, targetIp: ipv4.sourceIp, port: vipPort, flags: "SYN-ACK" } }, received);
+      return true;
+    }
+    const conn = this.#l7ByClient.get(clientKey);
+    if (conn === undefined) return false;
+    if (tcp.flags === "ACK" || tcp.flags === "SYN-ACK") return true;
+    if (tcp.flags === "RST") { this.#l7ByClient.delete(clientKey); return true; }
+    if (application === undefined || conn.backendIp !== undefined) return true;
+
+    // 요청 왔다 — 경로 접두로 후보 풀을 좁히고 가중 라운드로빈으로 고른다
+    const frontend = device.config.frontends.find(candidate => candidate.listenPort === vipPort);
+    if (frontend === undefined) return true;
+    const path = application.message.split(/\s+/)[1] ?? "/";
+    const tagged = frontend.backends.filter(backend => backend.pathPrefix !== undefined && path.startsWith(backend.pathPrefix));
+    const pool = tagged.length > 0 ? tagged : frontend.backends.filter(backend => backend.pathPrefix === undefined);
+    if (pool.length === 0) {
+      // 맞는 백엔드가 없다 — HAProxy처럼 503으로 답한다
+      this.#sendSegment(ctx, conn.vipIp, conn.clientIp,
+        { tcp: { sourcePort: vipPort, destinationPort: conn.clientPort, flags: "PSH-ACK" },
+          application: { service: application.service, message: "503 Service Unavailable" } },
+        "APP", "reply", { code: "SERVICE_RESPONSE_SENT", params: {
+          device: ref, service: application.service, sourceIp: conn.vipIp, targetIp: conn.clientIp, port: vipPort,
+          message: "503 Service Unavailable" } }, received);
+      return true;
+    }
+    const expanded = pool.flatMap((backend, index) => Array<number>(backend.weight).fill(index));
+    const cursorKey = `${vipPort}|${tagged[0]?.pathPrefix ?? ""}`;
+    const cursor = this.#l7Cursors.get(cursorKey) ?? 0;
+    const backend = pool[expanded[cursor % expanded.length]!]!;
+    this.#l7Cursors.set(cursorKey, cursor + 1);
+
+    const lbPort = this.#l7NextPort++;
+    const routed: L7Conn = { ...conn, message: application.message, backendIp: backend.ip, backendPort: backend.port, lbPort };
+    this.#l7ByClient.set(clientKey, routed);
+    this.#l7ByBackend.set(`${backend.ip}:${backend.port}:${lbPort}`, routed);
+    ctx.record({
+      frame, deviceId: device.id, inPort: port, parentSeq: received, layer: "APP", action: "forward",
+      reason: { code: "L7_REQUEST_ROUTED", params: {
+        device: ref, client: `${conn.clientIp}:${conn.clientPort}`,
+        backend: `${backend.ip}:${backend.port}`, path } },
+    });
+    // 백엔드 다리를 연다 — 백엔드는 LB의 나가는 인터페이스 IP를 출발지로 본다
+    const decision = this.#decision(backend.ip);
+    const srcIp = decision === null ? undefined : device.config.interfaces[decision.port]?.ip;
+    if (decision === null || srcIp === undefined) return true;
+    this.#sendSegment(ctx, srcIp, backend.ip,
+      { tcp: { sourcePort: lbPort, destinationPort: backend.port, flags: "SYN" } },
+      "TCP", "create", { code: "TCP_SEGMENT_SENT", params: { device: ref, sourceIp: srcIp, targetIp: backend.ip, port: backend.port, flags: "SYN" } }, received);
+    return true;
+  }
+
+  /**
+   * L7 백엔드 다리의 응답. SYN-ACK에는 ACK와 요청을 이어 보내고,
+   * 응답은 클라이언트에게 VIP 주소로 되돌려 보낸다
+   */
+  #backendLeg(ctx: SimContext, port: string, frame: Frame, ipv4: Ipv4Header, conn: L7Conn, parentSeq: number): boolean {
+    const device = this.#device();
+    const ref = deviceRef(device);
+    const tcp = frame.snapshot.tcp!;
+    const application = frame.snapshot.application;
+    const srcIp = ipv4.destinationIp;
+    const received = ctx.record({
+      frame, deviceId: device.id, inPort: port, parentSeq, layer: application === undefined ? "TCP" : "APP",
+      action: "receive",
+      reason: application === undefined
+        ? { code: "TCP_SEGMENT_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: srcIp, port: tcp.destinationPort, flags: tcp.flags } }
+        : { code: "SERVICE_RESPONSE_RECEIVED", params: { device: ref, service: application.service, sourceIp: ipv4.sourceIp, targetIp: srcIp, port: tcp.destinationPort, message: application.message } },
+    });
+
+    if (tcp.flags === "SYN-ACK") {
+      const layers = (flags: TcpFlags) => ({ tcp: { sourcePort: tcp.destinationPort, destinationPort: tcp.sourcePort, flags } });
+      this.#sendSegment(ctx, srcIp, ipv4.sourceIp, layers("ACK"), "TCP", "create",
+        { code: "TCP_SEGMENT_SENT", params: { device: ref, sourceIp: srcIp, targetIp: ipv4.sourceIp, port: tcp.sourcePort, flags: "ACK" } }, received);
+      if (conn.message !== undefined) {
+        this.#sendSegment(ctx, srcIp, ipv4.sourceIp,
+          { ...layers("PSH-ACK"), application: { service: "http", message: conn.message } },
+          "APP", "create", { code: "SERVICE_REQUEST_SENT", params: {
+            device: ref, service: "http", sourceIp: srcIp, targetIp: ipv4.sourceIp, port: tcp.sourcePort,
+            message: conn.message } }, received);
+      }
+      return true;
+    }
+    if (tcp.flags === "ACK") return true;
+    if (application === undefined) return true;
+    // 백엔드의 응답 — 클라이언트에게 VIP 주소로 되돌린다
+    this.#sendSegment(ctx, conn.vipIp, conn.clientIp,
+      { tcp: { sourcePort: conn.vipPort, destinationPort: conn.clientPort, flags: "PSH-ACK" }, application },
+      "APP", "reply", { code: "SERVICE_RESPONSE_SENT", params: {
+        device: ref, service: application.service, sourceIp: conn.vipIp, targetIp: conn.clientIp, port: conn.vipPort,
+        message: application.message } }, received);
+    return true;
+  }
+
+  /**
    * 새 TCP 연결을 프런트엔드에 맞춘다. SYN이면 가중 라운드로빈으로 백엔드를 골라 바인딩을 만들고
    * 목적지를 재작성해 전달한다. 맞는 프런트엔드가 없으면 false를 돌려 PORT_CLOSED로 간다
    */
   #accept(ctx: SimContext, port: string, frame: Frame, ipv4: Ipv4Header, listenPort: number, parentSeq: number): boolean {
     const device = this.#device();
     const frontend = device.config.frontends.find(candidate => candidate.listenPort === listenPort);
-    if (frontend === undefined || frontend.mode !== "tcp" || tcpFlagsOf(frame) !== "SYN") return false;
-    if (frontend.backends.length === 0) return false;
-
     const clientKey = `${ipv4.sourceIp}:${frame.snapshot.tcp!.sourcePort}`;
     let binding = this.#byClient.get(clientKey);
+    // 바인딩이 있으면 같은 연결의 뒤 세그먼트(ACK, 요청)도 백엔드로 간다
     if (binding === undefined) {
+      if (frontend === undefined || frontend.mode !== "tcp" || tcpFlagsOf(frame) !== "SYN") return false;
+      if (frontend.backends.length === 0) return false;
       // 가중 라운드로빈: weight만큼 벌인 목록을 순서대로 돈다
       const expanded = frontend.backends.flatMap((backend, index) => Array<number>(backend.weight).fill(index));
       const cursor = this.#cursors.get(listenPort) ?? 0;
@@ -229,6 +379,36 @@ export class LbModel implements DeviceModel {
   routingTable(): ReturnType<typeof routingTable> {
     const device = this.#device();
     return routingTable(device.config, portViewsOf(this.#getDocument(), device));
+  }
+
+  /**
+   * L7 프록시가 직접 만드는 세그먼트를 보낸다. 경로를 조회해 다음 홉으로 ARP한다.
+   * 경로가 없으면 조용히 놓는다 — 연결은 응답 없이 타임아웃으로 끝난다
+   */
+  #sendSegment(
+    ctx: SimContext, sourceIp: string, targetIp: string,
+    layers: { readonly tcp?: { readonly sourcePort: number; readonly destinationPort: number; readonly flags: TcpFlags };
+      readonly application?: ApplicationData },
+    layer: "TCP" | "APP", action: "create" | "reply", reason: Reason<EventCode>, parentSeq?: number,
+  ): void {
+    const decision = this.#decision(targetIp);
+    const device = this.#device();
+    if (decision === null) return;
+    const { port, nextHop } = decision;
+    const ipv4: Ipv4Header = { sourceIp, destinationIp: targetIp, ttl: TTL };
+    const pending: PendingSend = {
+      build: (destinationMac): FrameSnapshot => ({
+        ethernet: { sourceMac: portMac(device, port), destinationMac }, ipv4, ...layers,
+      }),
+      onSend: (context, frame, cause) => {
+        const linkId = portLink(this.#getDocument(), { deviceId: device.id, port })?.linkId;
+        context.record({
+          frame, deviceId: device.id, outPort: port, ...(linkId === undefined ? {} : { linkId }),
+          ...(cause === undefined ? {} : { parentSeq: cause }), layer, action, reason,
+        });
+      },
+    };
+    this.#arp(port).send(ctx, port, nextHop, pending, parentSeq);
   }
 
   /** 나가는 패킷을 다음 홉의 MAC으로 싸서 보낸다 */
@@ -297,6 +477,9 @@ export class LbModel implements DeviceModel {
     this.#byClient.clear();
     this.#byBackend.clear();
     this.#cursors.clear();
+    this.#l7ByClient.clear();
+    this.#l7ByBackend.clear();
+    this.#l7Cursors.clear();
     this.#replies.clear();
   }
 
@@ -335,6 +518,9 @@ export class LbModel implements DeviceModel {
       this.#byClient.clear();
       this.#byBackend.clear();
       this.#cursors.clear();
+      this.#l7ByClient.clear();
+      this.#l7ByBackend.clear();
+      this.#l7Cursors.clear();
     }
     this.startRun();
   }
@@ -349,10 +535,17 @@ export class LbModel implements DeviceModel {
     }));
     return {
       kind: "lb", ports, interfaces,
-      bindings: [...this.#byClient.values()].map((binding): LbBindingView => ({
-        clientIp: binding.clientIp, clientPort: binding.clientPort, vipPort: binding.vipPort,
-        backendIp: binding.backendIp, backendPort: binding.backendPort,
-      })),
+      bindings: [
+        ...[...this.#byClient.values()].map((binding): LbBindingView => ({
+          clientIp: binding.clientIp, clientPort: binding.clientPort, vipPort: binding.vipPort,
+          backendIp: binding.backendIp, backendPort: binding.backendPort,
+        })),
+        ...[...this.#l7ByClient.values()].flatMap((conn): LbBindingView[] =>
+          conn.backendIp === undefined || conn.backendPort === undefined ? [] : [{
+            clientIp: conn.clientIp, clientPort: conn.clientPort, vipPort: conn.vipPort,
+            backendIp: conn.backendIp, backendPort: conn.backendPort,
+          }]),
+      ],
     };
   }
 }

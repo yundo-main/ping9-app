@@ -417,6 +417,8 @@ export interface LbBackend {
   readonly port: number;
   /** 가중 라운드로빈의 비율. 1 이상 */
   readonly weight: number;
+  /** http 모드: 요청 경로가 이 접두로 시작할 때만 이 백엔드가 후보다 (HAProxy의 path_beg, T0.35) */
+  readonly pathPrefix?: string;
 }
 
 export interface LbFrontend {
