@@ -16,6 +16,9 @@ import { IpsecModule } from "./ipsec";
 
 export const ROUTER_TTL = 64;
 
+/** NAT 바인딩의 유휴 한계 (T16.2). 이 시간(마이크로초, 300초) 동안 패킷이 없으면 지운다 */
+export const NAT_IDLE_US = 300_000_000;
+
 /** NAT 변환 한 건 (T16.2). inside 호스트의 논리 포트가 outside 인터페이스의 natPort로 바뀐다 */
 interface NatBinding {
   readonly protocol: "tcp" | "udp" | "icmp";
@@ -27,6 +30,8 @@ interface NatBinding {
   readonly peerPort: number;
   /** outside 인터페이스 IP에서 쓰는 논리 포트. ICMP는 sequence를 그대로 쓴다 */
   readonly natPort: number;
+  /** 마지막으로 이 바인딩을 쓴 시각. 유휴가 NAT_IDLE_US를 넘으면 지운다 */
+  lastSeen: number;
 }
 
 function routerIn(document: TopologyDocument, id: string): RouterDevice | undefined {
@@ -210,6 +215,7 @@ export class RouterModel implements DeviceModel {
     { readonly ipv4: Ipv4Header; readonly icmp: IcmpMessage | undefined; readonly frame: Frame; readonly seq: number } | undefined {
     const iface = device.config.interfaces[port];
     if (iface?.nat !== "outside") return undefined;
+    this.#natSweep();
     const { tcp, udp } = frame.snapshot;
     // 정적 대응은 인터페이스 주소가 아닌 바깥 주소로도 온다 — 바인딩보다 먼저 본다
     const statik = (device.config.natStatics ?? []).find(entry => entry.outsideIp === ipv4.destinationIp);
@@ -246,6 +252,7 @@ export class RouterModel implements DeviceModel {
       }
     }
     if (binding === undefined) return undefined;
+    binding.lastSeen = this.#now();
     const layers = transportLayersOf(frame.snapshot);
     const snapshot: FrameSnapshot = {
       ...frame.snapshot,
@@ -264,6 +271,17 @@ export class RouterModel implements DeviceModel {
     return { ipv4: { ...ipv4, destinationIp: binding.insideIp }, icmp: newIcmp, frame: next, seq };
   }
 
+  /** 유휴가 NAT_IDLE_US를 넘은 바인딩을 세 색인에서 함께 지운다. 변환 경로마다 부른다 */
+  #natSweep(): void {
+    const cutoff = this.#now() - NAT_IDLE_US;
+    for (const [key, binding] of this.#natInside) {
+      if (binding.lastSeen >= cutoff) continue;
+      this.#natInside.delete(key);
+      this.#natOutside.delete(`${binding.protocol}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`);
+      this.#natLoose.delete(`${binding.protocol}:${binding.peerIp}:${binding.peerPort}`);
+    }
+  }
+
   /**
    * SNAT (T16.2). `nat outside`인 포트로 나가는 패킷은 출발지를 그 인터페이스 IP로, 논리 포트를
    * 새 natPort로 바꾸고 바인딩을 남긴다. 라우터 자기 주소에서 온 패킷은 바꾸지 않는다.
@@ -274,6 +292,7 @@ export class RouterModel implements DeviceModel {
     if (iface?.nat !== "outside" || iface.ip === undefined || !iface.adminUp) return undefined;
     const ownIps = new Set(Object.values(routerInterfaces(device.config)).map(candidate => candidate.ip));
     if (ownIps.has(ipv4.sourceIp)) return undefined;
+    this.#natSweep();
     const { tcp, udp } = frame.snapshot;
     // 정적 대응: 출발지가 static의 안쪽 주소면 바깥 주소로 바꾼다. 포트는 그대로 두고 바인딩도 남기지 않는다
     const statik = (device.config.natStatics ?? []).find(entry => entry.insideIp === ipv4.sourceIp);
@@ -298,11 +317,12 @@ export class RouterModel implements DeviceModel {
     let binding = this.#natInside.get(insideKey);
     if (binding === undefined) {
       const natPort = protocol === "icmp" ? insidePort : this.#natNextPort++;
-      binding = { protocol, insideIp: ipv4.sourceIp, insidePort, peerIp: ipv4.destinationIp, peerPort, natPort };
+      binding = { protocol, insideIp: ipv4.sourceIp, insidePort, peerIp: ipv4.destinationIp, peerPort, natPort, lastSeen: 0 };
       this.#natInside.set(insideKey, binding);
       this.#natOutside.set(`${protocol}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`, binding);
       this.#natLoose.set(`${protocol}:${binding.peerIp}:${binding.peerPort}`, binding);
     }
+    binding.lastSeen = this.#now();
     const layers = transportLayersOf(frame.snapshot);
     const snapshot: FrameSnapshot = {
       ...frame.snapshot,
