@@ -64,7 +64,7 @@ describe("Server를 고른 PC", () => {
     expect(html).toContain('class="icon icon-pc icon-os-server"');
     expect(html).toContain("PC1, PC, Server, 콘솔 열기");
     const icon = renderToString(<DeviceIcon kind="pc" os="server" />);
-    expect(icon).toContain('class="igloo-server"');
+    expect(icon).toContain('class="rack-server"');
     expect(icon).not.toMatch(/igloo-(linux|windows)/);
   });
 });

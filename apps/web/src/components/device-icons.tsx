@@ -14,7 +14,7 @@ const LINE = { strokeLinecap: "round", strokeLinejoin: "round" } as const;
  * 이글루. OS마다 창과 문이 다르다 (T0.7). 작게 그려도 구분되도록 모양으로 나눈다.
  * - Linux: 둥근 문과 그 위의 검은 터미널 간판(`>_`)
  * - Windows: 큰 유리창(제목 줄이 있는 앱 창 모양)과 넓은 네모 문
- * - Server: 문 위에 불빛이 켜진 장비 선반 (T0.20). 임시 그림이다
+ * - Server: 이글루가 아니라 세워 둔 랙(`Rack`)으로 완전히 다른 실루엣이다 (T0.23)
  * - OS 없음: T0.6의 원래 그림(둥근 문과 노란 작은 창). OS를 고르기 전인 장비 목록이 쓴다
  */
 function Igloo({ os }: { readonly os: PcOsChoice | undefined }) {
@@ -35,15 +35,6 @@ function Igloo({ os }: { readonly os: PcOsChoice | undefined }) {
           <path d="M13 25.5v-3.5a3 3 0 0 1 6 0v3.5Z" fill={blue} />
           <rect x="20" y="18.2" width="3.2" height="2.5" rx="0.7" fill="#F5C36B" stroke={blue} strokeWidth="0.7" />
         </>
-      ) : os === "server" ? (
-        <g className="igloo-server">
-          <path d="M13 25.5v-2.9a3 3 0 0 1 6 0v2.9Z" fill={blue} />
-          <rect x="11" y="14.6" width="10" height="5.8" rx="0.9" fill="#0E1A38" />
-          <path d="M11 17.5h10" fill="none" stroke="#3A4A78" strokeWidth="0.5" />
-          <circle cx="12.6" cy="16.05" r="0.5" fill="#6FE3A1" />
-          <circle cx="12.6" cy="18.95" r="0.5" fill="#6FE3A1" />
-          <path d="M14.6 16.05h4.8M14.6 18.95h4.8" fill="none" stroke="#7FD3F7" strokeWidth="0.55" {...LINE} />
-        </g>
       ) : os === "linux" ? (
         <g className="igloo-linux">
           <path d="M13 25.5v-2.9a3 3 0 0 1 6 0v2.9Z" fill={blue} />
@@ -158,6 +149,26 @@ export function FilterBadge({ state }: { readonly state: ShieldState }) {
 }
 
 /**
+ * 서버(종류가 Server인 PC). 세워 둔 랙 — 이글루(집)와 실루엣이 완전히 다르다 (T0.23).
+ * 세 층의 검은 서랍에 초록 불빛이 켜져 있다. 작게 그려도 PC와 바로 구분되도록 둥근 지붕이 없다.
+ */
+function Rack() {
+  const blue = "#1A5FA8";
+  return (
+    <g className="rack-server">
+      <rect x="9.5" y="5.5" width="13" height="21" rx="1.6" fill="#E6F0FB" stroke={blue} strokeWidth="1.1" {...LINE} />
+      {[8.6, 13.9, 19.2].map((y) => (
+        <g key={y}>
+          <rect x="11.3" y={y} width="9.4" height="3.1" rx="0.7" fill="#0E1A38" />
+          <circle cx="12.7" cy={y + 1.55} r="0.55" fill="#6FE3A1" />
+          <path d={`M14.4 ${y + 1.55}h4.8`} stroke="#7FD3F7" strokeWidth="0.55" {...LINE} />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/**
  * `os`는 PC에만 쓴다 (T0.7). 캔버스는 `osOf`로 늘 넘긴다.
  * 넘기지 않으면 OS가 없는 원래 이글루다 (장비 목록).
  * `filtering`: 필터 규칙을 건 서버다. 방패 배지를 단다 (T0.21)
@@ -168,7 +179,7 @@ export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   const osClass = kind === "pc" && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? <Igloo os={os} /> : kind === "switch" ? <Signpost /> : <GateOpen />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "switch" ? <Signpost /> : <GateOpen />}
       {kind === "pc" && filtering && <FilterBadge state="idle" />}
     </svg>
   );

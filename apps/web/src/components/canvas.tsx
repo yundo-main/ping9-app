@@ -711,11 +711,11 @@ export function Canvas({
                 kind={device.kind}
                 // 필터 규칙을 건 서버는 방패 배지를 단다 (T0.21)
                 {...(device.kind === "pc" ? { os: osChoiceOf(device.config), filtering: hasActiveFilter(device.config) } : {})}
-                // 56에서 50으로 줄였다. 바닥선(그림의 25.8/32 높이)은 제자리라 이름과의 간격이 그대로다
-                x={15}
-                y={3}
-                width={50}
-                height={50}
+                // 50에서 30으로 줄였다 (3/5). 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
+                x={25}
+                y={23}
+                width={30}
+                height={30}
               />
 
             </g>
@@ -735,8 +735,8 @@ export function Canvas({
             return position === undefined ? [] : [{ x: position.x - HALF_WIDTH, y: position.y - ABOVE, width: CARD_WIDTH, height: CARD_HEIGHT }];
           })} />
         {paletteDragKind !== null && cursor !== null && (
-          <g className="placement-preview" transform={`translate(${cursor.x - 28},${cursor.y - 28})`}>
-            <DeviceIcon kind={paletteDragKind} width={56} height={56} />
+          <g className="placement-preview" transform={`translate(${cursor.x - 17},${cursor.y - 17})`}>
+            <DeviceIcon kind={paletteDragKind} width={34} height={34} />
           </g>
         )}
         {/* 장비 이름·PC IP는 맨 위 */}

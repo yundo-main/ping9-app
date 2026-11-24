@@ -27,6 +27,15 @@ test("OS마다 이글루의 창과 문이 다르다: Linux는 터미널 간판, 
   expect(windows).not.toContain("igloo-linux");
 });
 
+test("Server는 이글루가 아니라 세워 둔 랙이다 — 실루엣으로 PC와 구분된다 (T0.23)", () => {
+  const server = renderToString(<DeviceIcon kind="pc" os="server" />);
+  const pc = renderToString(<DeviceIcon kind="pc" os="windows" />);
+
+  expect(server).toContain('class="rack-server"');
+  expect(server).not.toContain("A11 11 0 0 1"); // 이글루의 둥근 지붕이 없다
+  expect(pc).not.toContain("rack-server");
+});
+
 test("OS를 주지 않으면 원래 이글루(노란 작은 창)다. 장비 목록이 쓴다", () => {
   const plain = renderToString(<DeviceIcon kind="pc" />);
   expect(plain).toContain('fill="#F5C36B"');
