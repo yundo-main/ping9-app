@@ -32,8 +32,8 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   const full = deviceCount >= LIMITS.maxDevices;
   const [switchesOpen, setSwitchesOpen] = useState(false);
 
-  const tool = (kind: PaletteKind, label: string, sub = false): ReactNode => (
-    <button key={kind} type="button" className={sub ? "tool device-tool sub" : "tool device-tool"} aria-label={`${label} 추가`}
+  const tool = (kind: PaletteKind, label: string): ReactNode => (
+    <button key={kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
       title={`${label}를 캔버스로 끌어서 놓으세요`} disabled={full} draggable={false}
       onPointerDown={event => {
         if (event.button !== 0 || full) return;
@@ -49,16 +49,22 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       <h4>장비</h4>
       {tool("pc", "PC")}
       {tool("server", "Server")}
-      {/* 스위치는 한 버튼으로 묶고 눌러 종류를 고른다 — L2, L3, L4·7(LB) (T0.39) */}
-      <button type="button" className="tool group-tool" aria-label="Switch 종류" aria-expanded={switchesOpen}
-        title="눌러 스위치 종류를 고르세요" disabled={full}
-        onClick={() => setSwitchesOpen(open => !open)}>
-        <DeviceIcon kind="switch" hideLayerBadge />Switch
-        <span className="group-caret" aria-hidden="true">{switchesOpen ? "▾" : "▸"}</span>
-      </button>
-      {switchesOpen && tool("switch", "L2 Switch", true)}
-      {switchesOpen && tool("l3switch", "L3 Switch", true)}
-      {switchesOpen && tool("lb", "LB", true)}
+      {/* 스위치는 한 버튼으로 묶는다. 누르면 옆에 뜨는 플라이아웃에서 고른다 — 목록 크기는 안 변한다 (T0.39) */}
+      <div className="tool-group">
+        <button type="button" className="tool group-tool" aria-label="Switch 종류" aria-expanded={switchesOpen}
+          title="눌러 스위치 종류를 고르세요" disabled={full}
+          onClick={() => setSwitchesOpen(open => !open)}>
+          <DeviceIcon kind="switch" hideLayerBadge />Switch
+          <span className="group-caret" aria-hidden="true">{switchesOpen ? "◂" : "▸"}</span>
+        </button>
+        {switchesOpen && (
+          <div className="switch-flyout" role="group" aria-label="스위치 종류">
+            {tool("switch", "L2 Switch")}
+            {tool("l3switch", "L3 Switch")}
+            {tool("lb", "LB")}
+          </div>
+        )}
+      </div>
       {tool("hub", "Hub")}
       {tool("router", "Router")}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>
