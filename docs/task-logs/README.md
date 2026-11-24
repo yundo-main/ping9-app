@@ -154,3 +154,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.46 서버에 HTTPS 서비스 추가: tcp/443, curl https://·systemctl·ss 지원 (계획에 없는 새 ID) | [T0.46-https-service.md](T0.46-https-service.md) | 엔진·화면 | jarrod | main 직접 커밋 |
 | T0.47 Help 메뉴에 PING9에 관하여 항목 추가 (계획에 없는 새 ID) | [T0.47-help-menu-about.md](T0.47-help-menu-about.md) | 앱 | jarrod | main 직접 커밋 |
 | T0.48 팔레트 버튼 마우스오버 툴팁: 장비별 설명·도구 쓰는 법 (계획에 없는 새 ID) | [T0.48-palette-tooltips.md](T0.48-palette-tooltips.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.49 파일 메뉴에 새 토폴로지(⌘N): 빈 문서로 초기화, 확인 대화상자 재사용 (계획에 없는 새 ID) | [T0.49-new-topology-menu.md](T0.49-new-topology-menu.md) | 앱·화면 | jarrod | main 직접 커밋 |

@@ -9,6 +9,9 @@ pub fn run() {
     .setup(|app| {
       // 파일 메뉴 — 화면의 가져오기/내보내기와 같은 동작을 메뉴 이벤트로 웹뷰에 보낸다 (T0.40)
       let menu = Menu::default(app.handle())?;
+      let new = MenuItemBuilder::with_id("menu-new", "새 토폴로지")
+        .accelerator("CmdOrCtrl+N")
+        .build(app)?;
       let import = MenuItemBuilder::with_id("menu-import", "가져오기…")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
@@ -49,11 +52,13 @@ pub fn run() {
       match file {
         Some(sub) => {
           sub.append(&PredefinedMenuItem::separator(app)?)?;
+          sub.append(&new)?;
           sub.append(&import)?;
           sub.append(&export)?;
         }
         None => {
           let sub = SubmenuBuilder::new(app, "파일")
+            .item(&new)
             .item(&import)
             .item(&export)
             .build()?;
@@ -73,7 +78,7 @@ pub fn run() {
     })
     .on_menu_event(|app, event| {
       match event.id().as_ref() {
-        "menu-import" | "menu-export" | "menu-about" => {
+        "menu-new" | "menu-import" | "menu-export" | "menu-about" => {
           let _ = app.emit(event.id().as_ref(), ());
         }
         // Help 메뉴의 복사본은 앱 메뉴 항목과 같은 이벤트로 변환한다

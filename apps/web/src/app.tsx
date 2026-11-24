@@ -1,7 +1,7 @@
 // 편집기 화면. 배치는 화면 시안을 따른다: 상단 막대, 왼쪽 장비 목록, 가운데 캔버스, 오른쪽 속성 패널.
 // 화면이 가진 상태는 선택, 열린 터미널, 터미널의 화면 기록뿐이다. 나머지는 engine의 스냅샷에서 읽는다 (AD-4).
 
-import { errorInfo, osOf, pingRoundKind, shortPortName } from "@ping9/shared";
+import { EMPTY_DOCUMENT, errorInfo, osOf, pingRoundKind, shortPortName } from "@ping9/shared";
 import type { ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
 import type { PaletteKind } from "./canvas-interaction";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
@@ -56,7 +56,8 @@ const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "L2 Switch" | "
 const TERMINAL_Z = 20;
 /** 가져올 파일을 고르고 바꾸기를 묻는 중인 것 (T7.1.2) */
 interface PendingImport {
-  readonly fileName: string;
+  /** 파일에서 왔으면 그 이름, 새 토폴로지면 null (대화상자 문구가 달라진다) */
+  readonly fileName: string | null;
   readonly name: string;
   readonly document: TopologyDocument;
 }
@@ -604,9 +605,16 @@ export function App() {
     setBoxSel(EMPTY_SEL); setMultiAsk(false);
   };
 
+  // 파일 메뉴의 새 토폴로지 (T0.49). 장비가 있으면 바꿀지 묻는 절차는 가져오기와 같다
+  const newTopology = () => {
+    const pending: PendingImport = { fileName: null, name: TOPOLOGY_NAME, document: EMPTY_DOCUMENT };
+    if (needsReplaceConfirm(simulator.getSnapshot().document)) setImportAsk(pending);
+    else replaceTopology(pending);
+  };
+
   // 데스크톱 앱의 파일 메뉴(가져오기/내보내기)가 보내는 이벤트를 같은 절차에 연결한다 (T0.40)
-  const menuActions = useRef({ doExport: exportTopology, doImport: importTopology });
-  useEffect(() => { menuActions.current = { doExport: exportTopology, doImport: importTopology }; });
+  const menuActions = useRef({ doExport: exportTopology, doImport: importTopology, doNew: newTopology });
+  useEffect(() => { menuActions.current = { doExport: exportTopology, doImport: importTopology, doNew: newTopology }; });
   useEffect(() => {
     if (!("__TAURI_INTERNALS__" in window)) return;
     let off: (() => void) | undefined;
@@ -618,7 +626,8 @@ export function App() {
       });
       const b = await listen("menu-export", () => menuActions.current.doExport());
       const c = await listen("menu-about", () => setAboutOpen(true));
-      off = () => { a(); b(); c(); };
+      const d = await listen("menu-new", () => menuActions.current.doNew());
+      off = () => { a(); b(); c(); d(); };
     });
     return () => off?.();
   }, []);
@@ -751,7 +760,7 @@ export function App() {
       {importAsk !== null && (
         <ConfirmDialog title="지금 토폴로지를 바꿀까요?" confirmLabel="바꾸기"
           onConfirm={() => replaceTopology(importAsk)} onCancel={() => setImportAsk(null)}>
-          <p>"{importAsk.fileName}" 파일을 열면 지금 캔버스의 장비와 케이블이 사라져요.</p>
+          <p>{importAsk.fileName === null ? "새 토폴로지를 만들면" : `"${importAsk.fileName}" 파일을 열면`} 지금 캔버스의 장비와 케이블이 사라져요.</p>
           <p>먼저 <b>⤓ 내보내기</b>로 받아 둘 수 있어요.</p>
         </ConfirmDialog>
       )}
