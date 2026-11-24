@@ -18,9 +18,9 @@ const broken = {
 };
 
 describe("clampSideWidth", () => {
-  test("270 ~ 560 안으로 맞추고 정수로", () => {
-    expect([SIDE_DEFAULT, SIDE_MIN, SIDE_MAX]).toEqual([270, 270, 560]);
-    expect(clampSideWidth(100)).toBe(270);
+  test("200 ~ 560 안으로 맞추고 정수로", () => {
+    expect([SIDE_DEFAULT, SIDE_MIN, SIDE_MAX]).toEqual([270, 200, 560]);
+    expect(clampSideWidth(100)).toBe(200);
     expect(clampSideWidth(900)).toBe(560);
     expect(clampSideWidth(400.6)).toBe(401);
   });
@@ -36,7 +36,7 @@ describe("readSideWidth", () => {
   test("기억한 폭을 읽고, 범위 밖이면 맞춘다", () => {
     expect(readSideWidth(memoryStorage({ [SIDE_STORAGE_KEY]: "420" }))).toBe(420);
     expect(readSideWidth(memoryStorage({ [SIDE_STORAGE_KEY]: "9999" }))).toBe(560);
-    expect(readSideWidth(memoryStorage({ [SIDE_STORAGE_KEY]: "0" }))).toBe(270);
+    expect(readSideWidth(memoryStorage({ [SIDE_STORAGE_KEY]: "0" }))).toBe(200);
   });
 
   test("숫자가 아니면 처음 폭", () => {
@@ -60,12 +60,12 @@ describe("keyedSideWidth", () => {
     expect(keyedSideWidth(300, "ArrowLeft", false)).toBe(310);
     expect(keyedSideWidth(300, "ArrowRight", false)).toBe(290);
     expect(keyedSideWidth(300, "ArrowLeft", true)).toBe(340);
-    expect(keyedSideWidth(275, "ArrowRight", true)).toBe(270);
+    expect(keyedSideWidth(275, "ArrowRight", true)).toBe(235);
   });
 
   test("Home은 가장 넓게, End는 가장 좁게, 다른 키는 무시", () => {
     expect(keyedSideWidth(300, "Home", false)).toBe(560);
-    expect(keyedSideWidth(300, "End", false)).toBe(270);
+    expect(keyedSideWidth(300, "End", false)).toBe(200);
     expect(keyedSideWidth(300, "Enter", false)).toBeUndefined();
   });
 });

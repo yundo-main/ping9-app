@@ -7,7 +7,7 @@ import type { KeyboardEvent, PointerEvent } from "react";
 import { browserStorage } from "../mode";
 
 export const SIDE_DEFAULT = 270;
-export const SIDE_MIN = 270;
+export const SIDE_MIN = 200;
 export const SIDE_MAX = 560;
 export const SIDE_STORAGE_KEY = "ping9.sideWidth";
 
@@ -22,7 +22,8 @@ export function clampSideWidth(width: number): number {
 export function readSideWidth(storage: WidthStorage | undefined): number {
   try {
     const saved = storage?.getItem(SIDE_STORAGE_KEY);
-    const width = saved === null || saved === undefined ? Number.NaN : Number(saved);
+    // 빈 문자열은 Number()가 0으로 읽으므로 "없음"으로 본다
+    const width = saved === null || saved === undefined || saved.trim() === "" ? Number.NaN : Number(saved);
     return Number.isFinite(width) ? clampSideWidth(width) : SIDE_DEFAULT;
   } catch {
     return SIDE_DEFAULT;
