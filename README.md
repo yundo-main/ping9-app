@@ -1,6 +1,6 @@
 # PING9
 
-웹 브라우저에서 네트워크 장비(PC, Switch, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다.
+데스크톱 앱(Tauri)에서 네트워크 장비(PC, Switch, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. `pnpm dev`로 웹 화면 개발도 가능합니다.
 
 | 내용 | 위치 |
 |---|---|
@@ -30,14 +30,13 @@ pnpm dev
 
 ## 구조
 
-pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared`, `api → shared`뿐입니다.
+pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared`뿐입니다.
 
 | 폴더 | 내용 |
 |---|---|
-| `packages/shared` | 엔진·화면·서버가 함께 쓰는 타입, Zod 스키마, 예시 자료 |
+| `packages/shared` | 엔진·화면이 함께 쓰는 타입, Zod 스키마, 예시 자료 |
 | `packages/engine` | 시뮬레이션 엔진. 브라우저와 Node의 기능을 쓰지 않는 순수 TypeScript |
-| `apps/web` | React 화면 |
-| `apps/api` | 인증과 저장을 맡는 서버 |
+| `apps/web` | React 화면 + Tauri 데스크톱 껍데기 (`src-tauri/`) |
 
 ### `packages/engine/src/` 세부 역할
 
@@ -59,3 +58,13 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `terminal/` | 터미널 상태, 키 처리, 명령 큐, ping 출력 간격 |
 | `format/`, `messages/` | 포트·주소·케이블 표시 문자열과 사용자 메시지 |
 | `app.tsx` | 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
+
+### Contributors
+
+Original project: [TL-cg11/PING9](https://github.com/TL-cg11/PING9) — web-based network simulator
+- SDY
+- yysong1249
+- ssunyoung2
+
+Forked and ported to a desktop app (Tauri — Windows & macOS)
+- jarrod kim
