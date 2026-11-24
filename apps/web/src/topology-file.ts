@@ -53,6 +53,21 @@ export async function downloadText(fileName: string, text: string): Promise<void
   if (path !== null) await writeTextFile(path, text);
 }
 
+/**
+ * 데스크톱 파일 메뉴의 "가져오기"가 쓰는 열기 창. 고른 파일을 `File`로 돌려준다. 취소하면 null (T0.40).
+ * 브라우저에는 메뉴가 없어 Tauri에서만 부른다
+ */
+export async function pickImportFile(): Promise<File | null> {
+  const [{ open }, { readTextFile }] = await Promise.all([
+    import("@tauri-apps/plugin-dialog"),
+    import("@tauri-apps/plugin-fs"),
+  ]);
+  const path = await open({ filters: [{ name: "PING9 토폴로지", extensions: ["json"] }] });
+  if (path === null || Array.isArray(path)) return null;
+  const text = await readTextFile(path);
+  return new File([text], path.split("/").pop() ?? "topology.ping9.json");
+}
+
 /** 가져오기에 필요한 파일의 부분. 브라우저의 `File`이 맞는다 */
 export interface ImportFile {
   readonly size: number;

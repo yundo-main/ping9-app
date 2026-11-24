@@ -33,7 +33,7 @@ import type { Mode } from "./mode";
 import { exchangeTimeline, previewTimeline } from "./replay/timeline";
 import { BROWSER_TIME, createSimClock } from "./sim-clock";
 import { TOPOLOGY_NAME, simulator, useSnapshot } from "./simulator";
-import { downloadText, exportFile, needsReplaceConfirm, readImportFile } from "./topology-file";
+import { downloadText, exportFile, needsReplaceConfirm, pickImportFile, readImportFile } from "./topology-file";
 import { createCommandQueue } from "./terminal/command-queue";
 import { completed, historyStep, initialTerminal, refreshPrompts, runLinePaced, showCandidates, showHelp } from "./terminal/terminal-state";
 import type { TerminalState } from "./terminal/terminal-state";
@@ -531,6 +531,24 @@ export function App() {
     setActionError(null); setConnectionMessage(null);
     setPickedTrace(null); setLastPlayed(null); setSelectedSeq(null); setSeenTrace(null);
   };
+
+  // 데스크톱 앱의 파일 메뉴(가져오기/내보내기)가 보내는 이벤트를 같은 절차에 연결한다 (T0.40)
+  const menuActions = useRef({ doExport: exportTopology, doImport: importTopology });
+  useEffect(() => { menuActions.current = { doExport: exportTopology, doImport: importTopology }; });
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    let off: (() => void) | undefined;
+    void import("@tauri-apps/api/event").then(async ({ listen }) => {
+      const a = await listen("menu-import", () => {
+        void pickImportFile().then(file => {
+          if (file !== null) return menuActions.current.doImport(file);
+        });
+      });
+      const b = await listen("menu-export", () => menuActions.current.doExport());
+      off = () => { a(); b(); };
+    });
+    return () => off?.();
+  }, []);
 
   return (
     <div className={`app mode-${mode}`}>
