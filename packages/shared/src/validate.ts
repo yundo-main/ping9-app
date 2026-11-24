@@ -4,7 +4,7 @@
 
 import { errorInfo } from "./codes";
 import type { ErrorInfo } from "./codes";
-import { isPortName } from "./document";
+import { isPortName, isSviName, sviVlan } from "./document";
 import type { DeviceKind, TopologyDocument } from "./document";
 import { TOPOLOGY_EXPORT_KIND } from "./export-file";
 import { checkPcFilter } from "./firewall-config";
@@ -118,9 +118,10 @@ function checkServerConfig(
   return checkPcServices(config, path) ?? checkPcFilter(deviceId, config) ?? checkHostAddress(config, path);
 }
 
-function checkSwitchConfig(
+function checkSwitchLikeConfig(
   deviceId: string,
-  config: Extract<ParsedDevice, { kind: "switch" }>["config"],
+  config: { readonly vlans: readonly { id: number; name: string }[]; readonly ports: Readonly<Record<string, { accessVlan?: number; allowedVlans?: readonly (readonly [number, number])[] }>> },
+  kind: "switch" | "l3switch",
   path: string,
 ): ErrorInfo | null {
   if (config.vlans.length > LIMITS.maxVlansPerSwitch) {
@@ -136,8 +137,8 @@ function checkSwitchConfig(
   }
 
   for (const [port, portConfig] of Object.entries(config.ports)) {
-    if (!isPortName("switch", port)) {
-      return errorInfo("UNKNOWN_PORT", { deviceId, kind: "switch", port });
+    if (!isPortName(kind, port)) {
+      return errorInfo("UNKNOWN_PORT", { deviceId, kind, port });
     }
     if (portConfig.accessVlan !== undefined) {
       const error = checkVlanId(portConfig.accessVlan);
@@ -156,6 +157,60 @@ function checkSwitchConfig(
       if (error) return error;
       if (start > end) return shapeError(`${path}.ports.${port}.allowedVlans`);
     }
+  }
+  return null;
+}
+
+/**
+ * L3 Switch 구성 검사 (T0.33). VLAN·포트 검사는 스위치와 같고,
+ * 인터페이스는 키가 SVI(`Vlan<id>`)이거나 `routed` 포트 이름이어야 한다
+ */
+function checkL3SwitchConfig(
+  deviceId: string,
+  config: Extract<ParsedDevice, { kind: "l3switch" }>["config"],
+  path: string,
+): ErrorInfo | null {
+  const switchError = checkSwitchLikeConfig(deviceId, config, "l3switch", path);
+  if (switchError !== null) return switchError;
+
+  for (const [name, iface] of Object.entries(config.interfaces)) {
+    if (isSviName(name)) {
+      const vlan = sviVlan(name);
+      if (vlan === null) return shapeError(`${path}.interfaces.${name}`);
+      const error = checkVlanId(vlan);
+      if (error !== null) return error;
+    } else if (!isPortName("l3switch", name) || config.ports[name]?.routed !== true) {
+      return errorInfo("UNKNOWN_PORT", { deviceId, kind: "l3switch", port: name });
+    }
+    if ((iface.ip === undefined) !== (iface.mask === undefined)) {
+      return shapeError(`${path}.interfaces.${name}`);
+    }
+    if (iface.ip !== undefined && iface.mask !== undefined) {
+      const error = checkInterfaceAddress(iface.ip, iface.mask);
+      if (error !== null) return error;
+    }
+  }
+
+  for (const [name, iface] of Object.entries(config.interfaces)) {
+    if (iface.ip !== undefined && iface.mask !== undefined) {
+      const overlap = checkRouterInterfaceOverlap(deviceId, name, iface.ip, iface.mask, config.interfaces);
+      if (overlap !== null) return overlap;
+    }
+  }
+
+  if (config.staticRoutes.length > LIMITS.maxStaticRoutesPerRouter) {
+    return errorInfo("LIMIT_EXCEEDED", {
+      limit: "staticRoutes",
+      max: LIMITS.maxStaticRoutesPerRouter,
+    });
+  }
+  for (const route of config.staticRoutes) {
+    const error = checkStaticRoute(deviceId, route, config.interfaces);
+    if (error !== null) return error;
+  }
+  if (config.rip !== undefined) {
+    const error = checkRipConfig(deviceId, config.rip);
+    if (error !== null) return error;
   }
   return null;
 }
@@ -212,7 +267,9 @@ function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null
     case "server":
       return checkServerConfig(device.id, device.config, path);
     case "switch":
-      return checkSwitchConfig(device.id, device.config, path);
+      return checkSwitchLikeConfig(device.id, device.config, "switch", path);
+    case "l3switch":
+      return checkL3SwitchConfig(device.id, device.config, path);
     case "router":
       return checkRouterConfig(device.id, device.config, path);
     case "hub":

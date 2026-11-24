@@ -24,6 +24,7 @@ import { setPcOs } from "./reducer/pc-set-os";
 import { addServerDnsRecord, removeServerDnsRecord, setServerService } from "./reducer/server-services";
 import { setServerIp } from "./reducer/server-set-ip";
 import { setServerOs } from "./reducer/server-set-os";
+import { createSvi, removeSvi, setIpRouting, setRouted } from "./reducer/l3switch";
 import { clearRouterInterfaceIp, setRouterInterfaceIp } from "./reducer/router-interface-ip";
 import { addRipNetwork, disableRip, enableRip, removeRipNetwork, setRipPassive } from "./reducer/router-rip";
 import { addRoute, removeRoute } from "./reducer/router-route";
@@ -77,6 +78,10 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "server/add-dns-record": addServerDnsRecord,
   "server/remove-dns-record": removeServerDnsRecord,
   "interface/set-admin": setInterfaceAdmin,
+  "l3switch/svi": createSvi,
+  "l3switch/remove-svi": removeSvi,
+  "l3switch/set-routed": setRouted,
+  "l3switch/set-ip-routing": setIpRouting,
   "interface/set-ip": setRouterInterfaceIp,
   "interface/clear-ip": clearRouterInterfaceIp,
   "interface/set-nat": setInterfaceNat,

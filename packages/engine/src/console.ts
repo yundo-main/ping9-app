@@ -16,6 +16,7 @@ import { initialFiles, parseEcho, pcCommandsFor, pcPrompt, runEcho, unknownComma
 import type { PcFiles } from "./cli/pc";
 import { splitWords } from "./cli/ios/parse";
 import { ROUTER_COMMANDS } from "./cli/router";
+import { L3SWITCH_COMMANDS } from "./cli/l3switch";
 import { LINUX_ROUTER_COMMANDS } from "./cli/router/linux-commands";
 import { vyosExec, vyosPrompt, vyosHelp, vyosComplete } from "./cli/vyos/console";
 import { SWITCH_COMMANDS } from "./cli/switch";
@@ -38,6 +39,7 @@ export interface ConsolePort {
 const DEFINITIONS_BY_KIND: Partial<Record<Exclude<DeviceKind, "pc" | "server">, readonly CommandDefinition[]>> = {
   router: ROUTER_COMMANDS,
   switch: SWITCH_COMMANDS,
+  l3switch: L3SWITCH_COMMANDS,
 };
 
 /**

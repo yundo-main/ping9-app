@@ -16,7 +16,7 @@ import { SwitchMacTable, SwitchVlanList } from "./switch-inspector";
 import { SwitchPortTag, trunkAllowedText } from "./switch-port-tag";
 import { VpnSettings } from "./vpn-settings";
 
-const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub" };
+const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch" };
 
 /** 링크 반대쪽 장비의 이름. 링크가 없으면 undefined */
 function peerName(document: TopologyDocument, deviceId: string, port: PortView): string | undefined {
@@ -78,7 +78,7 @@ export function Inspector({
   }
 
   const linked = view.ports.filter((port) => port.linkId !== undefined).length;
-  const rip = device.kind === "router" ? ripSummaryFor(device, snapshot.traces) : undefined;
+  const rip = device.kind === "router" || device.kind === "l3switch" ? ripSummaryFor(device, snapshot.traces) : undefined;
   const changes = rip === undefined ? [] :
     (routeChangesOf(rip.id) ?? []).filter((change) => change.device.deviceId === device.id);
 
@@ -96,6 +96,7 @@ export function Inspector({
       {isServerDevice(device) &&
         <ServerServices key={`services ${device.id}`} device={device} onDispatch={onDispatch} />}
       {device.kind === "switch" && <SwitchVlanList config={device.config} />}
+      {device.kind === "l3switch" && <SwitchVlanList config={device.config} />}
       {device.kind === "router" && <VpnSettings key={device.id} device={device} onDispatch={onDispatch} />}
 
       <h4>{device.kind === "switch" ? "포트" : "인터페이스"}</h4>
@@ -106,9 +107,13 @@ export function Inspector({
           {device.kind === "router" && <span className="port-state">{port.status}</span>}
           {device.kind === "router" && device.config.interfaces[port.name]?.nat !== undefined &&
             <span className="port-state">nat {device.config.interfaces[port.name]?.nat}</span>}
-          {device.kind === "switch" && <SwitchPortTag config={device.config} port={port.name} />}
+          {(device.kind === "switch" || (device.kind === "l3switch" && device.config.ports[port.name]?.routed !== true)) &&
+            <SwitchPortTag config={device.config} port={port.name} />}
+          {device.kind === "l3switch" && device.config.ports[port.name]?.routed === true &&
+            <span className="port-state">routed</span>}
           <span className="ip">
-            {(device.kind === "switch" ? trunkAllowedText(device.config, port.name) : undefined) ??
+            {(device.kind === "switch" || (device.kind === "l3switch" && device.config.ports[port.name]?.routed !== true)
+              ? trunkAllowedText(device.config, port.name) : undefined) ??
               peerName(document, device.id, port) ??
               "연결 없음"}
           </span>
@@ -144,7 +149,16 @@ export function Inspector({
       </>}
 
       {view.kind === "switch" && <SwitchMacTable view={view} />}
-      {view.kind === "router" && <RouterRoutingTable view={view} changes={changes} />}
+      {view.kind === "l3switch" && view.interfaces.length > 0 && <>
+        <h4>L3 인터페이스</h4>
+        {view.interfaces.map(iface => <div key={iface.name} className="if-row">
+          <span className={iface.status === "up" ? "dot" : "dot off"} />
+          {iface.name}<span className="port-state">{iface.status}</span>
+          <span className="ip">{iface.ip ?? "IP 없음"}</span>
+        </div>)}
+      </>}
+      {view.kind === "l3switch" && <SwitchMacTable view={view} />}
+      {(view.kind === "router" || view.kind === "l3switch") && <RouterRoutingTable view={view} changes={changes} />}
       {device.kind === "server" && <FilterRules filter={filterOf(device.config)} />}
       {rip !== undefined && <RouteExchange document={document} summary={rip} changes={changes} onPlay={onPlayExchange} />}
 

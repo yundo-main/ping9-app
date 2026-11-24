@@ -1,4 +1,5 @@
 import { errorInfo } from "@ping9/shared";
+import type { DeviceKind } from "@ping9/shared";
 
 import { customParam, defineCommand, linesFromDispatch, param } from "../ios";
 import type { CommandDefinition, ParamValue } from "../ios";
@@ -11,9 +12,9 @@ const DISTANCE = customParam("distance", "Administrative distance (1-255)", (tex
 );
 
 // `ip route`, `ip route ... <AD>`, `no ip route`, `no ip route ... <AD>`
-export const ROUTER_ROUTE_COMMANDS: readonly CommandDefinition[] = ([false, true] as const).flatMap(remove =>
+export const routeCommands = (devices: readonly DeviceKind[]): readonly CommandDefinition[] => ([false, true] as const).flatMap(remove =>
   ([false, true] as const).map(withDistance => defineCommand({
-    modes: ["config"], devices: ["router"],
+    modes: ["config"], devices: [...devices],
     tokens: [...(remove ? ["no"] : []), "ip", "route", param("network", "ipv4", "Destination network"),
       param("mask", "mask", "Destination subnet mask"), param("nextHop", "ipv4", "Next-hop IPv4 address"),
       ...(withDistance ? [DISTANCE] : [])],
@@ -26,3 +27,5 @@ export const ROUTER_ROUTE_COMMANDS: readonly CommandDefinition[] = ([false, true
       ...(withDistance ? { distance: Number(args.distance) } : {}),
     })) }),
   })));
+
+export const ROUTER_ROUTE_COMMANDS: readonly CommandDefinition[] = routeCommands(["router"]);

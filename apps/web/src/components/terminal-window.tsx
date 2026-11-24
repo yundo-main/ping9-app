@@ -52,7 +52,7 @@ export function TerminalWindow({
   onMove,
 }: {
   readonly deviceName: string;
-  readonly kindLabel: "PC" | "Server" | "Switch" | "Router" | "Hub";
+  readonly kindLabel: "PC" | "Server" | "Switch" | "Router" | "Hub" | "L3 Switch";
   readonly state: TerminalState;
   /**
    * 출력이 이어지는 중 (ping 회차를 하나씩 보이는 중). 입력 줄을 숨긴다.

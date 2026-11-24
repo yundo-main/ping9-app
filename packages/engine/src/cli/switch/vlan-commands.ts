@@ -19,7 +19,7 @@ function showVlanBrief(context: CommandContext): CommandOutcome {
 export const VLAN_COMMANDS: readonly CommandDefinition[] = [
   defineCommand({
     modes: ["config"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["vlan", VLAN_ID],
     help: "Create a VLAN or enter its configuration mode",
     run: (args, context) => {
@@ -36,7 +36,7 @@ export const VLAN_COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     modes: ["config"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["no", "vlan", VLAN_ID],
     help: "Delete a VLAN",
     run: (args, context) => ({
@@ -47,7 +47,7 @@ export const VLAN_COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     modes: ["config-vlan"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["name", param("name", "word", "VLAN name")],
     help: "Set the name of this VLAN",
     run: (args, context) => {
@@ -62,14 +62,14 @@ export const VLAN_COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     modes: ["privileged"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["show", "vlan", "brief"],
     help: "Show VLANs and their access ports",
     run: (_args, context) => showVlanBrief(context),
   }),
   defineCommand({
     modes: ["privileged"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["show", "vlan"],
     help: "Show VLANs and their access ports",
     run: (_args, context) => showVlanBrief(context),

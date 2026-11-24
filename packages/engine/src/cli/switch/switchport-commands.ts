@@ -35,28 +35,28 @@ const VLAN_LIST = customParam("list", "VLAN list (for example 10,20-30), all or 
 export const SWITCHPORT_COMMANDS: readonly CommandDefinition[] = [
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["switchport", "mode", "access"],
     help: "Carry one VLAN without tags",
     run: setMode("access"),
   }),
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["switchport", "mode", "trunk"],
     help: "Carry several VLANs with tags",
     run: setMode("trunk"),
   }),
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["switchport", "access", "vlan", VLAN_ID],
     help: "Set the VLAN of this port when it is in access mode",
     run: (args, context) => setAccessVlan(context, Number(args.id)),
   }),
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["no", "switchport", "access", "vlan"],
     help: "Put this port back in VLAN 1",
     run: (_args, context) => setAccessVlan(context, DEFAULT_VLAN_ID),
@@ -64,7 +64,7 @@ export const SWITCHPORT_COMMANDS: readonly CommandDefinition[] = [
   // trunk 허용 목록 (T5.3.1, FR-33)
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["switchport", "trunk", "allowed", "vlan", VLAN_LIST],
     help: "Set the VLANs this port carries when it is in trunk mode",
     run: (args, context) => {
@@ -75,7 +75,7 @@ export const SWITCHPORT_COMMANDS: readonly CommandDefinition[] = [
   // 지금 목록에 더한다. show running-config가 긴 목록을 여러 줄로 나눠 쓸 때 이 형태를 쓴다
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["switchport", "trunk", "allowed", "vlan", "add", VLAN_LIST],
     help: "Add VLANs to the ones this port carries",
     run: (args, context) => {
@@ -89,7 +89,7 @@ export const SWITCHPORT_COMMANDS: readonly CommandDefinition[] = [
   }),
   defineCommand({
     modes: ["config-if"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["no", "switchport", "trunk", "allowed", "vlan"],
     help: "Carry every VLAN again",
     run: (_args, context) => setAllowedVlans(context, ALL_VLANS),

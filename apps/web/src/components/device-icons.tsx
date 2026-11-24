@@ -93,6 +93,25 @@ function Hub() {
   );
 }
 
+/** L3 스위치 (T0.33). L2 이정표에 IP 층을 그린다 — 가운데 막대 대신 위로 가는 화살표 */
+function L3Switch() {
+  const teal = "#0F766E";
+  const sign = { fill: "#E6F7F4", stroke: "#14B8A6", strokeWidth: 1, ...LINE } as const;
+  return (
+    <>
+      <ellipse cx="16" cy="27.6" rx="9.5" ry="1.8" fill="#DDF3EF" stroke="#14B8A6" strokeWidth="0.9" />
+      <path d="M16 9h9l2.6 2.6-2.6 2.6h-9Z" {...sign} />
+      <path d="M16 15.5H7.4l-2.6 2.6 2.6 2.6H16Z" {...sign} />
+      <path d="M16 22h7l2.4 2.4-2.4 2.4h-7Z" {...sign} />
+      <path d="M16 3v24.5" fill="none" stroke={teal} strokeWidth="1.6" {...LINE} />
+      <path d="M16 3.5l-2.2 3h4.4Z" fill={teal} />
+      <circle cx="19.2" cy="11.6" r="0.9" fill="#14B8A6" />
+      <circle cx="12.6" cy="18.1" r="0.9" fill="#14B8A6" />
+      <circle cx="19.2" cy="24.4" r="0.9" fill="#14B8A6" />
+    </>
+  );
+}
+
 /** 관문의 기둥과 지붕. 열린 문과 닫힌 문이 같이 쓴다 */
 function GateFrame() {
   const green = "#17725F";
@@ -199,7 +218,7 @@ export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : <GateOpen />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : <GateOpen />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

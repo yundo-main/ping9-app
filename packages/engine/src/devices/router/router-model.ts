@@ -10,7 +10,7 @@ import { portViewsOf } from "../../views";
 import { transmit } from "../link";
 import type { ConfigChange, DeviceModel } from "../model";
 import { RipModule } from "./rip";
-import { lookupRoute, routingTable, tunnelStates } from "./routing";
+import { connectedRoutes, lookupRoute, routingTable, tunnelStates } from "./routing";
 import type { RouteDecision, RoutingEntry } from "./routing";
 import { IpsecModule } from "./ipsec";
 
@@ -114,8 +114,15 @@ export class RouterModel implements DeviceModel {
     this.#ipsec = new IpsecModule(current);
     this.#rip = new RipModule({
       device: current,
-      document: getDocument,
-      ports: () => portViewsOf(getDocument(), current()),
+      rip: () => current().config.rip,
+      interfaces: () => connectedRoutes(current().config, portViewsOf(getDocument(), current()))
+        .flatMap(route => {
+          const ip = current().config.interfaces[route.port]?.ip;
+          return ip === undefined ? [] : [{ name: route.port, ip, network: route.network, mask: route.mask }];
+        }),
+      macOf: (port) => portMac(current(), port),
+      linkOf: (port) => portLink(getDocument(), { deviceId, port })?.linkId,
+      send: (ctx, port, frame, sent) => { transmit(ctx, getDocument(), { deviceId, port }, frame, sent); },
     });
     for (const port of PORT_NAMES.router) {
       this.#arps.set(port, new ArpModule({

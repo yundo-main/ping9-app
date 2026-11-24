@@ -3,7 +3,8 @@
 // 출처: docs/superpowers/specs/2026-11-05-switch-vlan-design.md 5.2절.
 
 import { LIMITS, SWITCHPORT_MODES, checkVlanId, defaultVlanName, errorInfo, switchVlans } from "@ping9/shared";
-import type { ErrorInfo, Notice, SwitchDevice, VlanRange } from "@ping9/shared";
+import type { ErrorInfo, Notice, VlanRange } from "@ping9/shared";
+import type { SwitchLikeDevice } from "./switch-common";
 
 import type { CommandHandler, ReduceResult } from "../reducer";
 import { checkSwitchPort, checkVlanIdValue, findSwitch, withSwitchPort } from "./switch-common";
@@ -33,7 +34,7 @@ export const setSwitchportMode: CommandHandler<"switchport/set-mode"> = (documen
 export const setSwitchportAccessVlan: CommandHandler<"switchport/set-access-vlan"> = (document, command) => {
   const found = findSwitch(document, command.deviceId);
   if (!found.ok) return found;
-  let device: SwitchDevice = found.device;
+  let device: SwitchLikeDevice = found.device;
 
   const portError = checkSwitchPort(device, command.port);
   if (portError !== null) return rejected(portError);
@@ -54,7 +55,7 @@ export const setSwitchportAccessVlan: CommandHandler<"switchport/set-access-vlan
         ...device.config,
         vlans: [...device.config.vlans, { id: command.vlanId, name: defaultVlanName(command.vlanId) }],
       },
-    };
+    } as SwitchLikeDevice;
     notices.push({
       code: "VLAN_AUTO_CREATED",
       params: { device: { deviceId: device.id, deviceName: device.name }, vlanId: command.vlanId },

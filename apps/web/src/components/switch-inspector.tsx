@@ -2,7 +2,7 @@
 // VLAN 목록과 소속 포트는 shared의 구성 읽기 함수로 읽는다. 화면이 기본값 규칙이나 소속을 직접 계산하지 않는다 (AD-7).
 
 import { shortPortName, switchVlans, vlanAccessPorts } from "@ping9/shared";
-import type { SwitchConfig, SwitchView } from "@ping9/shared";
+import type { SwitchConfig, SwitchView, L3SwitchView } from "@ping9/shared";
 
 import { formatPortList } from "../format/port-list";
 import { vlanColor } from "../format/vlan-color";
@@ -22,7 +22,7 @@ export function SwitchVlanList({ config }: { readonly config: SwitchConfig }) {
   );
 }
 
-export function SwitchMacTable({ view }: { readonly view: SwitchView }) {
+export function SwitchMacTable({ view }: { readonly view: SwitchView | L3SwitchView }) {
   return (
     <>
       <h4>MAC 주소 테이블</h4>

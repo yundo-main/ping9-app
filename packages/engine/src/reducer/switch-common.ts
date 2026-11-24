@@ -15,6 +15,8 @@ import {
 } from "@ping9/shared";
 import type {
   ErrorInfo,
+  L3SwitchConfig,
+  L3SwitchDevice,
   SwitchConfig,
   SwitchDevice,
   SwitchPortConfig,
@@ -23,8 +25,11 @@ import type {
 
 import { describeValue } from "../describe";
 
+/** VLAN·switchport 설정이 같은 모양인 장비 (T0.33: l3switch 포함) */
+export type SwitchLikeDevice = SwitchDevice | L3SwitchDevice;
+
 export type FoundSwitch =
-  | { readonly ok: true; readonly device: SwitchDevice }
+  | { readonly ok: true; readonly device: SwitchLikeDevice }
   | { readonly ok: false; readonly error: ErrorInfo };
 
 /** Command가 가리키는 Switch. 경계 밖에서 온 값일 수 있어 `deviceId`의 타입을 믿지 않는다 */
@@ -34,7 +39,7 @@ export function findSwitch(document: TopologyDocument, deviceId: unknown): Found
   if (device === undefined) {
     return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId: describeValue(deviceId) }) };
   }
-  if (device.kind !== "switch") {
+  if (device.kind !== "switch" && device.kind !== "l3switch") {
     return {
       ok: false,
       error: errorInfo("DEVICE_KIND_MISMATCH", { deviceId: device.id, expected: "switch", actual: device.kind }),
@@ -93,15 +98,28 @@ export function normalizeSwitchConfig(config: SwitchConfig): SwitchConfig {
 export function withSwitchConfig(
   document: TopologyDocument,
   deviceId: string,
-  config: SwitchConfig,
+  config: SwitchConfig | L3SwitchConfig,
 ): TopologyDocument {
   return {
     ...document,
-    devices: document.devices.map((device) =>
-      device.id === deviceId && device.kind === "switch"
-        ? { ...device, config: normalizeSwitchConfig(config) }
-        : device,
-    ),
+    devices: document.devices.map((device) => {
+      if (device.id !== deviceId) return device;
+      if (device.kind === "l3switch") {
+        // L2 부분(vlans·ports)만 스위치와 같이 정규화하고, L3 필드와 routed 표시는 그대로 둔다.
+        // 호출자가 넘긴 config는 {...device.config, ports} 식이라 L3 필드를 이미 담고 있다.
+        const l3config = config as L3SwitchConfig;
+        const { vlans, ports } = normalizeSwitchConfig({ vlans: l3config.vlans, ports: l3config.ports });
+        const merged: Record<string, L3SwitchConfig["ports"][string]> = {};
+        for (const [name, port] of Object.entries(ports)) {
+          merged[name] = l3config.ports[name]?.routed === true ? { ...port, routed: true } : port;
+        }
+        for (const [name, port] of Object.entries(l3config.ports)) {
+          if (port.routed === true && merged[name] === undefined) merged[name] = port;
+        }
+        return { ...device, config: { ...l3config, vlans, ports: merged } };
+      }
+      return device.kind === "switch" ? { ...device, config: normalizeSwitchConfig(config) } : device;
+    }),
   };
 }
 
@@ -114,16 +132,16 @@ export function checkVlanIdValue(value: unknown): ErrorInfo | null {
 }
 
 /** Command가 가리키는 Switch 포트의 이름이 맞는지. 전체 이름만 받는다 (줄임은 CLI가 푼다) */
-export function checkSwitchPort(device: SwitchDevice, port: unknown): ErrorInfo | null {
-  return typeof port === "string" && isPortName("switch", port)
+export function checkSwitchPort(device: SwitchLikeDevice, port: unknown): ErrorInfo | null {
+  return typeof port === "string" && isPortName(device.kind, port)
     ? null
-    : errorInfo("UNKNOWN_PORT", { deviceId: device.id, kind: "switch", port: describeValue(port) });
+    : errorInfo("UNKNOWN_PORT", { deviceId: device.id, kind: device.kind, port: describeValue(port) });
 }
 
 /** 포트 하나의 설정 일부를 바꾼 새 Document. 나머지 설정은 그대로 두고, 구성은 정규화해서 끼운다 */
 export function withSwitchPort(
   document: TopologyDocument,
-  device: SwitchDevice,
+  device: SwitchLikeDevice,
   port: string,
   change: Partial<SwitchPortConfig>,
 ): TopologyDocument {

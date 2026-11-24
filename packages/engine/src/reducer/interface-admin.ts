@@ -5,6 +5,7 @@ import { errorInfo, isPortName, isTunnelName } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
+import { findL3Switch, l3SetAdmin } from "./l3switch";
 import { checkSwitchPort, findSwitch, withSwitchPort } from "./switch-common";
 import { updateTunnel } from "./router-tunnel";
 
@@ -58,6 +59,8 @@ export const setInterfaceAdmin: CommandHandler<"interface/set-admin"> = (documen
       notices: [],
     };
   }
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3SetAdmin(document, l3.device, command);
   const found = findSwitch(document, command.deviceId);
   if (!found.ok) return found;
 

@@ -6,6 +6,7 @@ import type { Device, DeviceView, PortStatus, PortView, TopologyDocument } from 
 
 import { IpsecModule } from "./devices/router/ipsec";
 import { routingTable, tunnelStates } from "./devices/router/routing";
+import { l3InterfaceStates, l3RoutingTable } from "./devices/l3switch/l3-routing";
 import { findDevice, isAdminUp, portLink } from "./topology";
 import type { PortLink } from "./topology";
 
@@ -46,6 +47,13 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
         break;
       case "hub":
         views[device.id] = { kind: "hub", ports };
+        break;
+      case "l3switch":
+        views[device.id] = {
+          kind: "l3switch", ports, macTable: [], arpTable: [],
+          routingTable: l3RoutingTable(device.config, ports),
+          interfaces: l3InterfaceStates(device.config, ports),
+        };
         break;
       case "router":
         views[device.id] = { kind: "router", ports, arpTable: [], routingTable: routingTable(device.config, ports),

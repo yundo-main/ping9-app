@@ -112,6 +112,25 @@ export interface HubView {
   readonly ports: readonly PortView[];
 }
 
+/** L3 인터페이스(SVI 또는 라우티드 포트)의 표시용 값 (T0.33) */
+export interface L3InterfaceView {
+  readonly name: string;
+  readonly ip?: string;
+  readonly mask?: string;
+  /** SVI는 그 VLAN에 켜진 L2 포트가 있어야 up이다 */
+  readonly status: "up" | "admin-down" | "down";
+}
+
+/** L3 Switch의 표시용 값 (T0.33). 스위치의 MAC 표와 라우터의 ARP·라우팅 표를 둘 다 가진다 */
+export interface L3SwitchView {
+  readonly kind: "l3switch";
+  readonly ports: readonly PortView[];
+  readonly macTable: readonly MacTableEntryView[];
+  readonly arpTable: readonly ArpEntryView[];
+  readonly routingTable: readonly RouteEntryView[];
+  readonly interfaces: readonly L3InterfaceView[];
+}
+
 export interface GreTunnelView {
   readonly name: string;
   readonly status: "up" | "down" | "admin-down";
@@ -142,7 +161,7 @@ export interface RouterView {
 }
 
 /** 장비 종류로 구분되는 표시용 값. web은 표현(아이콘, 표의 열)에 한해서만 `kind`로 분기한다 */
-export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView;
+export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView | L3SwitchView;
 
 /** `Simulator.getSnapshot()`이 돌려주는 값. 변경 불가능한 단순 자료다 */
 export interface Snapshot {

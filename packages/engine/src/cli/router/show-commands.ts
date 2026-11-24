@@ -13,7 +13,7 @@ import { routerRunningConfigLines } from "./running-config";
 export function routesOf(context: CommandContext): readonly RouteEntryView[] {
   if (context.runtime !== undefined) return context.runtime.routingTable(context.device.id);
   const view = computeViews(context.document)[context.device.id];
-  return view?.kind === "router" ? view.routingTable : [];
+  return view?.kind === "router" || view?.kind === "l3switch" ? view.routingTable : [];
 }
 
 /**
@@ -25,7 +25,7 @@ const byAddress = (a: RouteEntryView, b: RouteEntryView) =>
   (parseIpv4(a.nextHop ?? "0.0.0.0")! - parseIpv4(b.nextHop ?? "0.0.0.0")!);
 
 /** `show ip route`와 `show ip route rip`처럼 출처를 고른 표 */
-function routeTableLines(routes: readonly RouteEntryView[]): string[] {
+export function routeTableLines(routes: readonly RouteEntryView[]): string[] {
   const rows = [...routes].sort(byAddress).map(route => [SOURCE_CODE[route.source],
     `${route.network}/${maskToPrefixLength(route.mask)}`, `${route.distance}/${route.metric}`,
     route.nextHop ?? "directly connected", route.port ?? ""]);

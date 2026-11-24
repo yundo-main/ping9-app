@@ -4,20 +4,22 @@
 // 포트 상태는 화면과 같은 계산(computeViews)으로 읽는다 (AD-7).
 
 import { shortPortName, switchPorts } from "@ping9/shared";
-import type { ConsoleLine, MacTableEntryView, SwitchDevice } from "@ping9/shared";
+import type { ConsoleLine, L3SwitchDevice, MacTableEntryView, SwitchDevice } from "@ping9/shared";
 
 import { computeViews } from "../../views";
 import { defineCommand } from "../ios";
 import type { CommandContext, CommandDefinition, CommandOutcome } from "../ios";
 import { tableLines } from "../ios/table";
+import { l3RunningConfigLines } from "../l3switch/running-config";
 import { runningConfigLines } from "./running-config";
 import { formatVlanList } from "./vlan-list";
 
 const asText = (lines: readonly string[]): ConsoleLine[] => lines.map((text) => ({ kind: "text", text }));
 
 /** Switch가 아닌 장비에서는 아무것도 내지 않는다 (정의의 `devices`가 이미 막는다) */
-function onSwitch(context: CommandContext, lines: (device: SwitchDevice) => readonly string[]): CommandOutcome {
-  return context.device.kind === "switch" ? { lines: asText(lines(context.device)) } : {};
+function onSwitch(context: CommandContext, lines: (device: SwitchDevice | L3SwitchDevice) => readonly string[]): CommandOutcome {
+  return context.device.kind === "switch" || context.device.kind === "l3switch"
+    ? { lines: asText(lines(context.device)) } : {};
 }
 
 function showInterfacesTrunk(context: CommandContext): CommandOutcome {
@@ -50,21 +52,23 @@ function showMacAddressTable(context: CommandContext): CommandOutcome {
 export const SHOW_COMMANDS: readonly CommandDefinition[] = [
   defineCommand({
     modes: ["privileged"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["show", "interfaces", "trunk"],
     help: "Show trunk ports and the VLANs they carry",
     run: (_args, context) => showInterfacesTrunk(context),
   }),
   defineCommand({
     modes: ["privileged"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["show", "running-config"],
     help: "Show the configuration as commands",
-    run: (_args, context) => onSwitch(context, runningConfigLines),
+    run: (_args, context) => context.device.kind === "l3switch"
+      ? { lines: asText(l3RunningConfigLines(context.device)) }
+      : onSwitch(context, (device) => device.kind === "switch" ? runningConfigLines(device) : []),
   }),
   defineCommand({
     modes: ["privileged"],
-    devices: ["switch"],
+    devices: ["switch", "l3switch"],
     tokens: ["show", "mac", "address-table"],
     help: "Show the MAC addresses this switch has learned",
     run: (_args, context) => showMacAddressTable(context),

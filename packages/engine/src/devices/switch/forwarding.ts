@@ -44,6 +44,10 @@ export interface ForwardInput {
   readonly now: number;
   readonly inPort: string;
   readonly frame: ForwardFrame;
+  /** L2에 쓰는 포트 목록. 없으면 PORT_NAMES.switch — L3 스위치는 라우티드 포트를 뺀다 (T0.33) */
+  readonly ports?: readonly string[];
+  /** 내 것으로 받을 유니캐스트 MAC. 목적지가 이 목록이면 전달 대신 `consumed`로 돌려준다 (T0.33) */
+  readonly consumeMacs?: readonly string[];
 }
 
 export interface ForwardOutput {
@@ -65,6 +69,8 @@ export interface ForwardResult {
   readonly ingressDrop?: SwitchDrop;
   /** 목적지가 받은 포트에 있어 내보내지 않음. 실패가 아닌 정상 동작이다 */
   readonly samePort?: true;
+  /** 목적지가 `consumeMacs`의 주소라 내 것으로 받았다. 학습·VLAN 분류는 끝난 상태다 (T0.33) */
+  readonly consumed?: true;
   /** 내보낼 포트. 포트 순번 오름차순 */
   readonly outputs: readonly ForwardOutput[];
   /** flooding에서 VLAN 때문에 빠진 켜진 포트 */
@@ -112,7 +118,7 @@ function classify(input: ForwardInput): { readonly vlan: number } | { readonly d
 }
 
 /** 이 포트가 그 VLAN의 프레임을 내보내는가. 내보내면 붙일 태그를, 아니면 빠진 사유를 돌려준다 */
-function egress(
+export function egress(
   config: SwitchConfig,
   portName: string,
   vlan: number,
@@ -171,6 +177,11 @@ export function switchForward(input: ForwardInput): ForwardResult {
 
   const base = { macTable: table, vlan, ...(learned !== undefined && { learned }) };
 
+  // 내 주소로 온 유니캐스트는 전달하지 않고 소비한다 (L3 스위치의 게이트웨이 MAC, T0.33)
+  if (input.consumeMacs?.includes(frame.destinationMac) === true) {
+    return { ...base, consumed: true, outputs: [], blocked: [] };
+  }
+
   // 목적지를 알고 그 포트가 켜져 있으면 그 포트 하나로 보낸다
   const target =
     frame.destinationMac === BROADCAST_MAC
@@ -186,7 +197,7 @@ export function switchForward(input: ForwardInput): ForwardResult {
   // flooding: 받은 포트를 뺀, 켜져 있고 그 VLAN에 속한 포트 전부
   const outputs: ForwardOutput[] = [];
   const blocked: SwitchDrop[] = [];
-  for (const port of PORT_NAMES.switch) {
+  for (const port of input.ports ?? PORT_NAMES.switch) {
     if (port === inPort || !isPortUp(port)) continue;
     const out = egress(config, port, vlan);
     if ("drop" in out) blocked.push(out.drop);

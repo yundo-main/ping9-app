@@ -79,6 +79,11 @@ export type Command =
   | { readonly type: "rip/add-network"; readonly deviceId: string; readonly network: string }
   | { readonly type: "rip/remove-network"; readonly deviceId: string; readonly network: string }
   | { readonly type: "rip/set-passive"; readonly deviceId: string; readonly port: string; readonly passive: boolean }
+  // L3 Switch 구성 (T0.33). SVI·라우티드 포트·ip routing 토글
+  | { readonly type: "l3switch/svi"; readonly deviceId: string; readonly vlan: number }
+  | { readonly type: "l3switch/remove-svi"; readonly deviceId: string; readonly name: string }
+  | { readonly type: "l3switch/set-routed"; readonly deviceId: string; readonly port: string; readonly routed: boolean }
+  | { readonly type: "l3switch/set-ip-routing"; readonly deviceId: string; readonly enabled: boolean }
   // 서버로 쓰는 PC의 필터 규칙 (T14.2.1, T0.21에서 Firewall 장비 대신 서버로). `os`가 `server`인 PC에만 쓴다.
   // `index`는 1부터 세는 규칙 번호다 (`iptables --line-numbers`)
   // add-rule: index가 없으면 끝에 붙이고(`-A`), 있으면 그 자리에 끼운다(`-I`)
@@ -141,6 +146,10 @@ const COMMAND_TYPE_SET = {
   "rip/add-network": true,
   "rip/remove-network": true,
   "rip/set-passive": true,
+  "l3switch/svi": true,
+  "l3switch/remove-svi": true,
+  "l3switch/set-routed": true,
+  "l3switch/set-ip-routing": true,
   "firewall/add-rule": true,
   "firewall/remove-rule": true,
   "firewall/flush-rules": true,

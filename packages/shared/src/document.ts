@@ -1,7 +1,7 @@
 // 저장되는 문서(Document)의 형태. 출처: docs/project-plan/03-system-design.md 3.4절 "Document 형태", AD-9.
 // 모든 값은 변경 불가능한 단순 JSON 자료다 (AD-16). 바꿀 때는 새 객체를 만든다.
 
-export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub"] as const;
+export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub", "l3switch"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
@@ -25,6 +25,16 @@ export const PORT_NAMES = {
     "GigabitEthernet0/3",
   ],
   hub: ["Port0", "Port1", "Port2", "Port3", "Port4", "Port5", "Port6", "Port7"],
+  l3switch: [
+    "FastEthernet0/1",
+    "FastEthernet0/2",
+    "FastEthernet0/3",
+    "FastEthernet0/4",
+    "FastEthernet0/5",
+    "FastEthernet0/6",
+    "FastEthernet0/7",
+    "FastEthernet0/8",
+  ],
 } as const satisfies Record<DeviceKind, readonly string[]>;
 
 /** 그 종류의 장비에 있는 포트 이름인지 */
@@ -122,6 +132,39 @@ export interface SwitchPortConfig {
 export interface SwitchConfig {
   readonly vlans: readonly Vlan[];
   readonly ports: Readonly<Record<string, SwitchPortConfig>>;
+}
+
+/**
+ * L3 Switch 포트 구성 (T0.33). `routed`는 `no switchport`로 만든 L3 포트다 —
+ * VLAN·MAC 학습에서 빠지고 `interfaces[이름]`의 IP로 라우팅한다
+ */
+export interface L3SwitchPortConfig extends SwitchPortConfig {
+  readonly routed?: boolean;
+}
+
+/** SVI 이름 (`interface vlan 10` → `Vlan10`). L3 인터페이스 키다 */
+export const SVI_PREFIX = "Vlan";
+export const isSviName = (name: string): boolean => /^Vlan\d+$/.test(name);
+export function sviVlan(name: string): number | null {
+  const match = /^Vlan(\d+)$/.exec(name);
+  return match === null ? null : Number(match[1]);
+}
+
+/**
+ * L3 Switch 구성 (T0.33). L2 부분(vlans·ports)은 Switch와 같고, L3 부분은
+ * `interfaces`의 키가 SVI(`Vlan10`) 또는 라우티드 포트 이름이다.
+ * `ipRouting`이 없으면 L3는 꺼져 있다 — SVI가 있어도 전달은 하지 않고 로컬 응답만 한다
+ */
+export interface L3SwitchConfig {
+  readonly vlans: readonly Vlan[];
+  readonly ports: Readonly<Record<string, L3SwitchPortConfig>>;
+  /** `ip routing`. 없으면 라우팅이 꺼져 있다 */
+  readonly ipRouting?: boolean;
+  /** L3 인터페이스. 키는 `Vlan<id>`(SVI) 또는 `routed: true`인 포트 이름 */
+  readonly interfaces: Readonly<Record<string, RouterInterfaceConfig>>;
+  readonly staticRoutes: readonly StaticRoute[];
+  /** 없으면 RIP를 쓰지 않음. `router rip`로 생기고 `no router rip`로 사라진다 */
+  readonly rip?: RipConfig;
 }
 
 export interface RouterInterfaceConfig {
@@ -357,7 +400,12 @@ export interface HubDevice extends DeviceBase {
   readonly config: HubConfig;
 }
 
-export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice;
+export interface L3SwitchDevice extends DeviceBase {
+  readonly kind: "l3switch";
+  readonly config: L3SwitchConfig;
+}
+
+export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice | L3SwitchDevice;
 
 /** PC 장비인지. 객체를 `PcDevice`로 좁힌다 */
 export function isPcDevice(device: Device | undefined): device is PcDevice {
@@ -372,6 +420,11 @@ export function isServerDevice(device: Device | undefined): device is ServerDevi
 /** Hub 장비인지. 객체를 `HubDevice`로 좁힌다 */
 export function isHubDevice(device: Device | undefined): device is HubDevice {
   return device !== undefined && device.kind === "hub";
+}
+
+/** L3 Switch 장비인지. 객체를 `L3SwitchDevice`로 좁힌다 */
+export function isL3SwitchDevice(device: Device | undefined): device is L3SwitchDevice {
+  return device !== undefined && device.kind === "l3switch";
 }
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */

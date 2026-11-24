@@ -40,6 +40,7 @@ export function isAdminUp(device: Device, port: string): boolean {
     case "server":
       return device.config.adminUp ?? true;
     case "switch":
+    case "l3switch":
       // 구성에 없는 포트는 기본값(켜짐)이다
       return device.config.ports[port]?.adminUp ?? true;
     case "router":

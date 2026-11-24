@@ -61,6 +61,8 @@ const switchConfigSchema = z.object({
 /** Hub은 설정 칸이 없다 — 관리 없는 장비 (T0.32) */
 const hubConfigSchema = z.object({});
 
+
+
 const routerInterfaceConfigSchema = z.object({
   adminUp: z.boolean(),
   ip: shortString.optional(),
@@ -115,6 +117,16 @@ const routerConfigSchema = z.object({
   })).optional(),
 });
 
+/** L3 Switch 구성 (T0.33). 포트에는 `routed`가 더 있고, 인터페이스 키는 SVI(`Vlan10`)나 라우티드 포트다 */
+const l3SwitchConfigSchema = z.object({
+  vlans: z.array(vlanSchema),
+  ports: z.record(shortString, switchPortConfigSchema.extend({ routed: z.boolean().optional() })),
+  ipRouting: z.boolean().optional(),
+  interfaces: z.record(shortString, routerInterfaceConfigSchema),
+  staticRoutes: z.array(staticRouteSchema),
+  rip: ripConfigSchema.optional(),
+});
+
 const firewallRuleSchema = z.object({
   protocol: z.enum(FIREWALL_PROTOCOLS).optional(),
   source: shortString.optional(),
@@ -143,6 +155,7 @@ const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("switch"), config: switchConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("router"), config: routerConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("hub"), config: hubConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("l3switch"), config: l3SwitchConfigSchema }),
 ]);
 
 const linkSchema = z.object({

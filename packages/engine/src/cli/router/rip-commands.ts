@@ -2,6 +2,7 @@
 // 구성만 바꾼다. 패킷을 주고받는 것은 T11.2.2. version 2, no auto-summary로 고정이다 (E11 결정 5).
 
 import { errorInfo } from "@ping9/shared";
+import type { DeviceKind } from "@ping9/shared";
 
 import { customParam, defineCommand, linesFromDispatch, param, resolvePortName } from "../ios";
 import type { CommandDefinition, ParamValue } from "../ios";
@@ -23,10 +24,10 @@ const VERSION = customParam("version", "RIP version (PING9 supports 2)", (text):
     : { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: text.slice(0, 64) }) },
 );
 
-const rip = (definition: Omit<CommandDefinition, "devices">): CommandDefinition =>
-  defineCommand({ ...definition, devices: ["router"] });
-
-export const ROUTER_RIP_COMMANDS: readonly CommandDefinition[] = [
+export const ripCommands = (devices: readonly DeviceKind[]): readonly CommandDefinition[] => {
+  const rip = (definition: Omit<CommandDefinition, "devices">): CommandDefinition =>
+    defineCommand({ ...definition, devices: [...devices] });
+  return [
   rip({
     modes: ["config"],
     tokens: ["router", "rip"],
@@ -94,4 +95,7 @@ export const ROUTER_RIP_COMMANDS: readonly CommandDefinition[] = [
     help: "Summarize routes at classful boundaries (not supported in PING9)",
     run: () => ({ lines: [{ kind: "error", ...errorInfo("RIP_AUTO_SUMMARY_UNSUPPORTED", {}) }] }),
   }),
-];
+  ];
+};
+
+export const ROUTER_RIP_COMMANDS: readonly CommandDefinition[] = ripCommands(["router"]);

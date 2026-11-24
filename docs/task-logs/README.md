@@ -138,3 +138,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.31 앱 아이콘을 완전한 펭귄으로 교체 (계획에 없는 새 ID) | [T0.31-app-icon-penguin.md](T0.31-app-icon-penguin.md) | 배포 | jarrod | main 직접 커밋 |
 | T17.5 데스크톱 앱의 내보내기: 웹뷰에 없는 다운로드를 dialog+fs 플러그인 저장 창으로 (계획에 없는 새 ID) | [T17.5-desktop-export-save.md](T17.5-desktop-export-save.md) | 배포, 화면 | jarrod | main 직접 커밋 |
 | T0.32 허브 장비: VLAN·MAC 표 없는 1계층 장비, 들어온 포트 외 모든 포트로 플러딩 (계획에 없는 새 ID) | [T0.32-hub-device.md](T0.32-hub-device.md) | 공통, 엔진, 화면 | jarrod | main 직접 커밋 |
+| T0.33 L3 스위치 장비: SVI(`interface vlan`)·라우티드 포트·ip route·RIP, L2+L3 한 상자 (계획에 없는 새 ID) | [T0.33-l3switch-device.md](T0.33-l3switch-device.md) | 공통, 엔진, 화면 | jarrod | main 직접 커밋 |

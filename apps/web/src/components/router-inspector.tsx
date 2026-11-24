@@ -2,7 +2,7 @@
 // 화면 시안: 설계안 폴더의 T11.5.1-시안1-패널.png
 
 import { maskToPrefixLength, parseIpv4, shortPortName } from "@ping9/shared";
-import type { RipRouteHop, RouteChangeView, RouteEntryView, RouterDevice, RouterView, TopologyDocument, TraceSummary } from "@ping9/shared";
+import type { RipRouteHop, RouteChangeView, RouteEntryView, RouterDevice, RouterView, TopologyDocument, TraceSummary, L3SwitchDevice, L3SwitchView } from "@ping9/shared";
 
 type RipSummary = Extract<TraceSummary, { kind: "rip" }>;
 
@@ -33,7 +33,7 @@ function changeTag(change: RouteChangeView | undefined): "새로" | "바뀜" | u
 }
 
 export function RouterRoutingTable({ view, changes }: {
-  readonly view: RouterView;
+  readonly view: RouterView | L3SwitchView;
   /** 마지막 경로 교환에서 이 Router의 바뀐 경로 */
   readonly changes: readonly RouteChangeView[];
 }) {
@@ -132,7 +132,7 @@ export function RouteExchange({ document, summary, changes, onPlay }: {
 }
 
 /** 이 Router가 RIP를 켰고 교환 요약이 목록에 남아 있을 때만 경로 교환 묶음을 보인다 */
-export function ripSummaryFor(device: RouterDevice, traces: readonly TraceSummary[]): RipSummary | undefined {
+export function ripSummaryFor(device: RouterDevice | L3SwitchDevice, traces: readonly TraceSummary[]): RipSummary | undefined {
   if (device.config.rip === undefined) return undefined;
   return traces.find((summary): summary is RipSummary => summary.kind === "rip");
 }

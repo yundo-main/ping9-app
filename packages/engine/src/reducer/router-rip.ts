@@ -6,6 +6,7 @@ import type { ErrorInfo, RipConfig, RouterDevice, TopologyDocument } from "@ping
 
 import { describeValue } from "../describe";
 import type { CommandHandler, ReduceResult } from "../reducer";
+import { findL3Switch, l3AddRipNetwork, l3DisableRip, l3EnableRip, l3RemoveRipNetwork, l3SetRipPassive } from "./l3switch";
 import { checkRouterPort, findRouter, withRouterConfig } from "./router-common";
 
 const unchanged = (document: TopologyDocument): ReduceResult => ({ ok: true, document, notices: [] });
@@ -35,6 +36,8 @@ function networkOf(value: unknown): { readonly ok: true; readonly network: strin
 }
 
 export const enableRip: CommandHandler<"rip/enable"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3EnableRip(document, l3.device);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   if (found.device.config.rip !== undefined) return unchanged(document);
@@ -42,6 +45,8 @@ export const enableRip: CommandHandler<"rip/enable"> = (document, command) => {
 };
 
 export const disableRip: CommandHandler<"rip/disable"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3DisableRip(document, l3.device);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   if (found.device.config.rip === undefined) return unchanged(document);
@@ -49,6 +54,8 @@ export const disableRip: CommandHandler<"rip/disable"> = (document, command) => 
 };
 
 export const addRipNetwork: CommandHandler<"rip/add-network"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3AddRipNetwork(document, command);
   const found = ripRouter(document, command.deviceId);
   if (!found.ok) return found;
   const parsed = networkOf(command.network);
@@ -62,6 +69,8 @@ export const addRipNetwork: CommandHandler<"rip/add-network"> = (document, comma
 };
 
 export const removeRipNetwork: CommandHandler<"rip/remove-network"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3RemoveRipNetwork(document, command);
   const found = ripRouter(document, command.deviceId);
   if (!found.ok) return found;
   const parsed = networkOf(command.network);
@@ -74,6 +83,8 @@ export const removeRipNetwork: CommandHandler<"rip/remove-network"> = (document,
 };
 
 export const setRipPassive: CommandHandler<"rip/set-passive"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3SetRipPassive(document, l3.device, command);
   const found = ripRouter(document, command.deviceId);
   if (!found.ok) return found;
   const { device, rip } = found;

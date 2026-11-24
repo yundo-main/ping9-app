@@ -3,10 +3,13 @@ import type { Notice } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
+import { findL3Switch, l3ClearInterfaceIp, l3SetInterfaceIp } from "./l3switch";
 import { checkRouterPort, findRouter, withRouterConfig } from "./router-common";
 import { updateTunnel } from "./router-tunnel";
 
 export const setRouterInterfaceIp: CommandHandler<"interface/set-ip"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3SetInterfaceIp(document, l3.device, command);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   const device = found.device;
@@ -43,6 +46,8 @@ export const setRouterInterfaceIp: CommandHandler<"interface/set-ip"> = (documen
 };
 
 export const clearRouterInterfaceIp: CommandHandler<"interface/clear-ip"> = (document, command) => {
+  const l3 = findL3Switch(document, command.deviceId);
+  if (l3.ok) return l3ClearInterfaceIp(document, l3.device, command);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   const device = found.device;

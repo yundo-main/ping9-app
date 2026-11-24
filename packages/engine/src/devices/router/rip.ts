@@ -6,12 +6,10 @@ import {
   classfulNetwork, DEFAULT_DISTANCE, isSameNetwork, parseIpv4, RIP_INFINITY, RIP_MAX_ENTRIES, RIP_MULTICAST_IP,
   RIP_MULTICAST_MAC, RIP_UDP_PORT,
 } from "@ping9/shared";
-import type { PortView, RipEntry, RipPacket, RouterDevice, TopologyDocument } from "@ping9/shared";
+import type { Device, RipConfig, RipEntry, RipPacket } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
-import { deviceRef, portLink, portMac } from "../../topology";
-import { transmit } from "../link";
-import { connectedRoutes } from "./routing";
+import { deviceRef } from "../../topology";
 import type { RoutingEntry } from "./routing";
 
 /** RIP 패킷은 Router를 넘어가지 않는다 */
@@ -24,11 +22,25 @@ const RIP_TTL = 1;
 export const RIP_UPDATE_DELAY_US = 30_000;
 const UPDATE_TIMER = "rip-update";
 
+/** RIP가 다는 L3 인터페이스. 라우터는 물리 포트 이름, L3 스위치는 SVI(`Vlan10`)나 라우티드 포트다 (T0.33) */
+export interface RipInterface {
+  readonly name: string;
+  readonly ip: string;
+  readonly network: string;
+  readonly mask: string;
+}
+
 export interface RipHost {
-  device(): RouterDevice;
-  document(): TopologyDocument;
-  /** 포트의 링크 상태 (computeViews) */
-  ports(): readonly PortView[];
+  device(): Device;
+  rip(): RipConfig | undefined;
+  /** RIP가 참여할 수 있는 켜진 L3 인터페이스 (직접 연결망만) */
+  interfaces(): readonly RipInterface[];
+  /** 인터페이스의 출발지 MAC */
+  macOf(iface: string): string;
+  /** 보낼 이벤트의 linkId. SVI처럼 링크가 하나로 정해지지 않으면 undefined */
+  linkOf(iface: string): string | undefined;
+  /** 만들어진 RIP 프레임을 그 인터페이스로 내보낸다 */
+  send(ctx: SimContext, iface: string, frame: Frame, parentSeq?: number): void;
 }
 
 const keyOf = (route: { readonly network: string; readonly mask: string }) => `${route.network}/${route.mask}`;
@@ -58,7 +70,7 @@ export class RipModule {
   /** 경로 교환의 시작: 배운 경로를 지우고 보낼 인터페이스마다 Request를 보낸다 */
   startExchange(ctx: SimContext): void {
     this.#routes.clear();
-    if (this.#host.device().config.rip === undefined) return;
+    if (this.#host.rip() === undefined) return;
     for (const port of this.#sendPorts()) {
       this.#send(ctx, port, { command: "request", entries: [] }, RIP_MULTICAST_MAC, RIP_MULTICAST_IP);
     }
@@ -73,35 +85,35 @@ export class RipModule {
     }
   }
 
-  /** RIP 프레임을 받았다. Router 모델이 IF_DOWN·NO_IP·MAC 확인을 마친 뒤에 부른다 */
-  onFrame(ctx: SimContext, port: string, frame: Frame): void {
+  /** RIP 프레임을 받았다. 장비 모델이 IF_DOWN·NO_IP·MAC 확인을 마치고 받은 인터페이스를 넘긴다 */
+  onFrame(ctx: SimContext, iface: string, frame: Frame): void {
     const device = this.#host.device();
     const ref = deviceRef(device);
     const { ipv4, rip, ethernet } = frame.snapshot;
     if (ipv4 === undefined || rip === undefined) return;
-    const local = this.#participating().find(route => route.port === port);
+    const local = this.#participating().find(route => route.port === iface);
     if (local === undefined) {
       // RIP를 켜지 않았거나 이 인터페이스가 `network`에 없다. 멀티캐스트 그룹에 없는 것과 같다
-      ctx.record({ frame, deviceId: device.id, inPort: port, layer: "RIP", action: "drop", reason: { code: "NOT_FOR_ME", params: { device: ref } } });
+      ctx.record({ frame, deviceId: device.id, inPort: iface, layer: "RIP", action: "drop", reason: { code: "NOT_FOR_ME", params: { device: ref } } });
       return;
     }
     if (!isSameNetwork(ipv4.sourceIp, local.network, local.mask)) {
-      ctx.record({ frame, deviceId: device.id, inPort: port, layer: "RIP", action: "drop",
-        reason: { code: "RIP_SOURCE_NOT_ON_LINK", params: { device: ref, port, sourceIp: ipv4.sourceIp } } });
+      ctx.record({ frame, deviceId: device.id, inPort: iface, layer: "RIP", action: "drop",
+        reason: { code: "RIP_SOURCE_NOT_ON_LINK", params: { device: ref, port: iface, sourceIp: ipv4.sourceIp } } });
       return;
     }
     if (rip.command === "request") {
-      const received = ctx.record({ frame, deviceId: device.id, inPort: port, layer: "RIP", action: "receive",
-        reason: { code: "RIP_REQUEST_RECEIVED", params: { device: ref, port, sourceIp: ipv4.sourceIp } } });
+      const received = ctx.record({ frame, deviceId: device.id, inPort: iface, layer: "RIP", action: "receive",
+        reason: { code: "RIP_REQUEST_RECEIVED", params: { device: ref, port: iface, sourceIp: ipv4.sourceIp } } });
       // passive 인터페이스는 듣기만 한다
-      if (!this.#sendPorts().includes(port)) return;
-      // 요청한 Router에게 바로 답한다. 받은 프레임의 MAC을 쓰므로 ARP는 하지 않는다
-      this.#sendEntries(ctx, port, this.#advertised(port), ethernet.sourceMac, ipv4.sourceIp, received);
+      if (!this.#sendPorts().includes(iface)) return;
+      // 요청한 쪽에게 바로 답한다. 받은 프레임의 MAC을 쓰므로 ARP는 하지 않는다
+      this.#sendEntries(ctx, iface, this.#advertised(iface), ethernet.sourceMac, ipv4.sourceIp, received);
       return;
     }
-    const received = ctx.record({ frame, deviceId: device.id, inPort: port, layer: "RIP", action: "receive",
-      reason: { code: "RIP_RESPONSE_RECEIVED", params: { device: ref, port, sourceIp: ipv4.sourceIp, routes: rip.entries.length } } });
-    const connected = connectedRoutes(device.config, this.#host.ports());
+    const received = ctx.record({ frame, deviceId: device.id, inPort: iface, layer: "RIP", action: "receive",
+      reason: { code: "RIP_RESPONSE_RECEIVED", params: { device: ref, port: iface, sourceIp: ipv4.sourceIp, routes: rip.entries.length } } });
+    const connected = this.#host.interfaces();
     const changed: RoutingEntry[] = [];
     let cause = received;
     for (const entry of rip.entries) {
@@ -111,14 +123,14 @@ export class RipModule {
         (known.nextHop === ipv4.sourceIp && entry.metric !== known.metric);
       if (!better) continue;
       const route: RoutingEntry = {
-        source: "rip", network: entry.network, mask: entry.mask, nextHop: ipv4.sourceIp, port,
+        source: "rip", network: entry.network, mask: entry.mask, nextHop: ipv4.sourceIp, port: iface,
         distance: DEFAULT_DISTANCE.rip, metric: entry.metric,
       };
       this.#routes.set(keyOf(route), route);
       changed.push(route);
-      cause = ctx.record({ frame, deviceId: device.id, inPort: port, layer: "RIP", action: "learn", parentSeq: received,
+      cause = ctx.record({ frame, deviceId: device.id, inPort: iface, layer: "RIP", action: "learn", parentSeq: received,
         reason: { code: known === undefined ? "RIP_ROUTE_LEARNED" : "RIP_ROUTE_CHANGED",
-          params: { device: ref, network: route.network, mask: route.mask, nextHop: ipv4.sourceIp, port, metric: entry.metric } } });
+          params: { device: ref, network: route.network, mask: route.mask, nextHop: ipv4.sourceIp, port: iface, metric: entry.metric } } });
     }
     if (changed.length === 0) return;
     // triggered update: 바뀐 경로만, 모든 보낼 인터페이스로 (split horizon)
@@ -130,18 +142,17 @@ export class RipModule {
 
   /** 켜져 있고 IP의 클래스풀 네트워크가 `network`에 있는 인터페이스의 직접 연결 경로 */
   #participating(): readonly RoutingEntry[] {
-    const device = this.#host.device();
-    const { rip } = device.config;
+    const rip = this.#host.rip();
     if (rip === undefined) return [];
-    return connectedRoutes(device.config, this.#host.ports()).filter(route => {
-      const ip = device.config.interfaces[route.port]?.ip;
-      return ip !== undefined && rip.networks.includes(classfulNetwork(ip) ?? "");
-    });
+    return this.#host.interfaces()
+      .filter(iface => rip.networks.includes(classfulNetwork(iface.ip) ?? ""))
+      .map(iface => ({ source: "connected" as const, network: iface.network, mask: iface.mask,
+        port: iface.name, distance: DEFAULT_DISTANCE.connected, metric: 0 }));
   }
 
   /** 참여 인터페이스 가운데 passive가 아닌 것. 포트 순서 */
   #sendPorts(): readonly string[] {
-    const passive = this.#host.device().config.rip?.passiveInterfaces ?? [];
+    const passive = this.#host.rip()?.passiveInterfaces ?? [];
     return this.#participating().map(route => route.port).filter(port => !passive.includes(port));
   }
 
@@ -163,24 +174,25 @@ export class RipModule {
     }
   }
 
-  #send(ctx: SimContext, port: string, rip: RipPacket, mac: string, ip: string, parentSeq?: number): void {
+  #send(ctx: SimContext, iface: string, rip: RipPacket, mac: string, ip: string, parentSeq?: number): void {
     const device = this.#host.device();
-    const document = this.#host.document();
+    const sourceIp = this.#host.interfaces().find(candidate => candidate.name === iface)?.ip;
+    if (sourceIp === undefined) return;
     const frame = ctx.createFrame({
-      ethernet: { sourceMac: portMac(device, port), destinationMac: mac },
-      ipv4: { sourceIp: device.config.interfaces[port]!.ip!, destinationIp: ip, ttl: RIP_TTL },
+      ethernet: { sourceMac: this.#host.macOf(iface), destinationMac: mac },
+      ipv4: { sourceIp, destinationIp: ip, ttl: RIP_TTL },
       udp: { sourcePort: RIP_UDP_PORT, destinationPort: RIP_UDP_PORT },
       rip,
     });
-    const linkId = portLink(document, { deviceId: device.id, port })?.linkId;
+    const linkId = this.#host.linkOf(iface);
     const ref = deviceRef(device);
     const sent = ctx.record({
-      frame, deviceId: device.id, outPort: port, ...(linkId === undefined ? {} : { linkId }),
+      frame, deviceId: device.id, outPort: iface, ...(linkId === undefined ? {} : { linkId }),
       ...(parentSeq === undefined ? {} : { parentSeq }), layer: "RIP", action: "create",
       reason: rip.command === "request"
-        ? { code: "RIP_REQUEST_SENT", params: { device: ref, port } }
-        : { code: "RIP_RESPONSE_SENT", params: { device: ref, port, routes: rip.entries.length } },
+        ? { code: "RIP_REQUEST_SENT", params: { device: ref, port: iface } }
+        : { code: "RIP_RESPONSE_SENT", params: { device: ref, port: iface, routes: rip.entries.length } },
     });
-    transmit(ctx, document, { deviceId: device.id, port }, frame, sent);
+    this.#host.send(ctx, iface, frame, sent);
   }
 }
