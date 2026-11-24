@@ -26,7 +26,7 @@ export interface SimControls {
   readonly onSpeed: (speed: Speed) => void;
 }
 
-export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange, sim, onHelp }: {
+export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange, sim, onHelp, onAbout }: {
   readonly name: string;
   /** 이름을 고친다 (T0.16). 없으면 이름을 글자로만 보인다 */
   readonly onRename?: ((name: string) => void) | undefined;
@@ -40,6 +40,8 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
   readonly sim?: SimControls | undefined;
   /** 도움말 창을 연다 (T0.30). 없으면 ? 버튼을 그리지 않는다 */
   readonly onHelp?: (() => void) | undefined;
+  /** PING9에 관하여 창을 연다 (T0.41). 없으면 i 버튼을 그리지 않는다 */
+  readonly onAbout?: (() => void) | undefined;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   return (
@@ -89,6 +91,9 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
             ))}
           </div>
         </div>
+      )}
+      {onAbout !== undefined && (
+        <button type="button" className="help-open" aria-label="PING9에 관하여" title="PING9에 관하여" onClick={onAbout}>i</button>
       )}
       {onHelp !== undefined && (
         <button type="button" className="help-open" aria-label="도움말" title="도움말" onClick={onHelp}>?</button>

@@ -555,7 +555,7 @@ export function App() {
   return (
     <div className={`app mode-${mode}`}>
       <TopBar name={topologyName} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
-        onHelp={() => setHelpOpen(true)}
+        onHelp={() => setHelpOpen(true)} onAbout={() => setAboutOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
