@@ -161,7 +161,24 @@ export interface RouterView {
 }
 
 /** 장비 종류로 구분되는 표시용 값. web은 표현(아이콘, 표의 열)에 한해서만 `kind`로 분기한다 */
-export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView | L3SwitchView;
+/** LB의 활성 연결 바인딩 (T0.34). 클라이언트↔백엔드 대응 하나 */
+export interface LbBindingView {
+  readonly clientIp: string;
+  readonly clientPort: number;
+  readonly vipPort: number;
+  readonly backendIp: string;
+  readonly backendPort: number;
+}
+
+/** LB의 표시용 값 (T0.34). 인터페이스 상태와 살아있는 바인딩 */
+export interface LbView {
+  readonly kind: "lb";
+  readonly ports: readonly PortView[];
+  readonly interfaces: readonly L3InterfaceView[];
+  readonly bindings: readonly LbBindingView[];
+}
+
+export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView | L3SwitchView | LbView;
 
 /** `Simulator.getSnapshot()`이 돌려주는 값. 변경 불가능한 단순 자료다 */
 export interface Snapshot {

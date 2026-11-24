@@ -127,6 +127,17 @@ const l3SwitchConfigSchema = z.object({
   rip: ripConfigSchema.optional(),
 });
 
+/** LB 구성 (T0.34). HAProxy의 listen 블록이 frontends다 */
+const lbConfigSchema = z.object({
+  interfaces: z.record(shortString, routerInterfaceConfigSchema),
+  staticRoutes: z.array(staticRouteSchema),
+  frontends: z.array(z.object({
+    listenPort: integer,
+    mode: z.enum(["tcp", "http"]),
+    backends: z.array(z.object({ ip: shortString, port: integer, weight: integer })),
+  })),
+});
+
 const firewallRuleSchema = z.object({
   protocol: z.enum(FIREWALL_PROTOCOLS).optional(),
   source: shortString.optional(),
@@ -156,6 +167,7 @@ const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("router"), config: routerConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("hub"), config: hubConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("l3switch"), config: l3SwitchConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("lb"), config: lbConfigSchema }),
 ]);
 
 const linkSchema = z.object({

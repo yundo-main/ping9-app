@@ -492,6 +492,12 @@ export interface EventParamsByCode {
     readonly port: string;
     readonly broadcast: boolean;
   };
+  /** LB가 새 연결의 백엔드를 골랐음 (T0.34). 클라이언트:포트 → 백엔드:포트 */
+  LB_BACKEND_SELECTED: {
+    readonly device: DeviceRef;
+    readonly client: string;
+    readonly backend: string;
+  };
   /** 목적지를 모르거나 브로드캐스트여서 같은 VLAN의 다른 포트 모두로 보냄. 포트마다 이벤트 하나 */
   FRAME_FLOODED: {
     readonly device: DeviceRef;
@@ -578,6 +584,7 @@ const EVENT_CODE_SET = {
   MAC_LEARNED: true,
   FRAME_FORWARDED: true,
   HUB_FLOODED: true,
+  LB_BACKEND_SELECTED: true,
   FRAME_FLOODED: true,
   TCP_SEGMENT_SENT: true,
   TCP_SEGMENT_RECEIVED: true,

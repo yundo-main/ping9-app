@@ -17,6 +17,7 @@ import type { PcFiles } from "./cli/pc";
 import { splitWords } from "./cli/ios/parse";
 import { ROUTER_COMMANDS } from "./cli/router";
 import { L3SWITCH_COMMANDS } from "./cli/l3switch";
+import { LB_COMMANDS } from "./cli/lb";
 import { LINUX_ROUTER_COMMANDS } from "./cli/router/linux-commands";
 import { vyosExec, vyosPrompt, vyosHelp, vyosComplete } from "./cli/vyos/console";
 import { SWITCH_COMMANDS } from "./cli/switch";
@@ -59,6 +60,7 @@ function pcUnknownCommand(lines: readonly ConsoleLine[], text: string, os: OsKin
 
 function definitionsFor(device: Device): readonly CommandDefinition[] | undefined {
   if (device.kind === "router" && device.config.cliStyle === "linux") return LINUX_ROUTER_COMMANDS;
+  if (device.kind === "lb") return LB_COMMANDS;
   if (device.kind === "server") return undefined; // Server는 server-console.ts의 독립 콘솔이 담당한다 (T0.25)
   return isPcDevice(device) ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
 }
@@ -77,6 +79,8 @@ function createMainConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePor
     if (device.kind === "router" && device.config.cliStyle === "vyos") return vyosPrompt(device, env);
     // 리눅스 네이티브 라우터는 root 셸 프롬프트 (T16.1)
     if (device.kind === "router" && device.config.cliStyle === "linux") return `root@${device.name}:~#`;
+    // LB는 리눅스 기반이라 항상 root 셸 프롬프트다 (T0.34)
+    if (device.kind === "lb") return `root@${device.name}:~#`;
     // PC에는 모드가 없고 OS마다 프롬프트가 다르다 (Windows `PC1 User>`, Linux `user@PC2 ~ $`, T0.19)
     if (isPcDevice(device)) return pcPrompt(device, filesOf(device));
     return definitionsFor(device) === undefined ? `${device.name}>` : iosPrompt(device, env);
@@ -141,7 +145,8 @@ function createMainConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePor
         const executed = iosExec(text, device, definitions, env);
         // iosExec의 프롬프트는 IOS 모드의 것이다. PC는 실행 뒤의 문서로 OS별 프롬프트를 다시 만든다
         if (isPcDevice(device)) return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
-        if (device.kind === "router" && device.config.cliStyle === "linux") return { lines: executed.lines, prompt: prompt() };
+        if (device.kind === "lb" || (device.kind === "router" && device.config.cliStyle === "linux"))
+          return { lines: executed.lines, prompt: prompt() };
         return executed;
       }
 

@@ -48,6 +48,8 @@ export const EVENT_TEXT: { readonly [C in ReasonCode]: (params: ReasonParamsByCo
   FRAME_FORWARDED: ({ port }) => `MAC 표를 보고 ${p(port)}로만 보냄`,
   HUB_FLOODED: ({ port, broadcast }) =>
     `${broadcast ? "브로드캐스트라" : "허브는 모든 곳으로 보내"} ${p(port)}로 내보냄`,
+  LB_BACKEND_SELECTED: ({ client, backend }) =>
+    `새 연결 ${client}을 백엔드 ${backend}로 보냄`,
   FRAME_FLOODED: ({ port, vlan, broadcast }) =>
     `${broadcast ? "브로드캐스트라" : "목적지를 몰라"} ${p(port)}로 내보냄 (VLAN ${vlan})`,
   TCP_SEGMENT_SENT: ({ targetIp, port, flags }) => `TCP ${TCP_FLAG_LABEL[flags]}을 ${targetIp}로 보냄 (포트 ${port})`,

@@ -20,6 +20,7 @@ import {
   checkDeviceName,
   checkTopologyName,
   checkGateway,
+  checkHostIpv4,
   checkInterfaceAddress,
   checkVlanId,
   checkVlanName,
@@ -272,9 +273,61 @@ function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null
       return checkL3SwitchConfig(device.id, device.config, path);
     case "router":
       return checkRouterConfig(device.id, device.config, path);
+    case "lb":
+      return checkLbConfig(device.id, device.config, path);
     case "hub":
       return null;
   }
+}
+
+/** LB 구성 검사 (T0.34). 인터페이스는 eth0/eth1만, 프런트엔드는 실제 주소·포트여야 한다 */
+function checkLbConfig(
+  deviceId: string,
+  config: Extract<ParsedDevice, { kind: "lb" }>["config"],
+  path: string,
+): ErrorInfo | null {
+  for (const [name, iface] of Object.entries(config.interfaces)) {
+    if (!isPortName("lb", name)) {
+      return errorInfo("UNKNOWN_PORT", { deviceId, kind: "lb", port: name });
+    }
+    if ((iface.ip === undefined) !== (iface.mask === undefined)) {
+      return shapeError(`${path}.interfaces.${name}`);
+    }
+    if (iface.ip !== undefined && iface.mask !== undefined) {
+      const error = checkInterfaceAddress(iface.ip, iface.mask);
+      if (error) return error;
+      const overlap = checkRouterInterfaceOverlap(deviceId, name, iface.ip, iface.mask, config.interfaces);
+      if (overlap !== null) return overlap;
+    }
+  }
+  if (config.staticRoutes.length > LIMITS.maxStaticRoutesPerRouter) {
+    return errorInfo("LIMIT_EXCEEDED", { limit: "staticRoutes", max: LIMITS.maxStaticRoutesPerRouter });
+  }
+  for (const route of config.staticRoutes) {
+    const error = checkStaticRoute(deviceId, route, config.interfaces);
+    if (error) return error;
+  }
+  if (config.frontends.length > LIMITS.maxLbFrontends) {
+    return errorInfo("LIMIT_EXCEEDED", { limit: "lbFrontends", max: LIMITS.maxLbFrontends });
+  }
+  const ports = new Set<number>();
+  for (const frontend of config.frontends) {
+    if (frontend.listenPort < 1 || frontend.listenPort > 65535) {
+      return errorInfo("CLI_INVALID_VALUE", { token: String(frontend.listenPort) });
+    }
+    if (ports.has(frontend.listenPort)) return shapeError(`${path}.frontends`);
+    ports.add(frontend.listenPort);
+    if (frontend.backends.length === 0 || frontend.backends.length > LIMITS.maxLbBackends) {
+      return errorInfo("LIMIT_EXCEEDED", { limit: "lbBackends", max: LIMITS.maxLbBackends });
+    }
+    for (const backend of frontend.backends) {
+      if (checkHostIpv4(backend.ip) !== null) return errorInfo("INVALID_IPV4", { value: backend.ip });
+      if (backend.port < 1 || backend.port > 65535 || backend.weight < 1 || backend.weight > 100) {
+        return shapeError(`${path}.frontends`);
+      }
+    }
+  }
+  return null;
 }
 
 /** 형태를 통과한 문서의 값, 참조, 유일성, 한도를 확인한다 */

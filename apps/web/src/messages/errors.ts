@@ -6,7 +6,7 @@ import type { DeviceKind, ErrorCode, ErrorInfo, ErrorParamsByCode, LimitName } f
 
 import { withSubject, withTopic } from "./particles";
 
-const KIND_NAMES: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch" };
+const KIND_NAMES: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB" };
 
 const LIMIT_MESSAGES: Readonly<Record<LimitName, (max: number) => string>> = {
   devices: (max) => `장비는 토폴로지 하나에 ${max}대까지 놓을 수 있어요`,
@@ -17,6 +17,8 @@ const LIMIT_MESSAGES: Readonly<Record<LimitName, (max: number) => string>> = {
   firewallRules: (max) => `필터 규칙은 체인 하나에 ${max}개까지 넣을 수 있어요`,
   vlans: (max) => `VLAN은 Switch 하나에 ${max}개까지 만들 수 있어요`,
   allowedVlanRanges: (max) => `trunk 허용 목록의 범위는 포트 하나에 ${max}개까지 쓸 수 있어요`,
+  lbFrontends: (max: number) => `프런트엔드는 최대 ${max}개`,
+  lbBackends: (max: number) => `백엔드는 프런트엔드당 최대 ${max}개`,
 };
 
 const FIREWALL_RULE_REASONS: Readonly<Record<ErrorParamsByCode["FIREWALL_RULE_INVALID"]["reason"], string>> = {

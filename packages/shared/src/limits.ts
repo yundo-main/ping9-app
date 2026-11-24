@@ -6,6 +6,9 @@ export const LIMITS = {
   maxLinks: 100,
   /** Router당 Static route 수 (SEC-15) */
   maxStaticRoutesPerRouter: 100,
+  /** LB 프런트엔드·백엔드 수 (T0.34) */
+  maxLbFrontends: 8,
+  maxLbBackends: 16,
   /** Router당 RIP `network` 수. 실제 IOS에는 한도가 없으나 문서 크기를 막는 다른 한도와 같은 취지 (T11.2.1) */
   maxRipNetworks: 16,
   /** 서버 하나의 DNS 이름 수 (T0.20). 문서에 수치가 없어 정함 */
@@ -47,7 +50,9 @@ export type LimitName =
   | "firewallRules"
   | "dnsRecords"
   | "vlans"
-  | "allowedVlanRanges";
+  | "allowedVlanRanges"
+  | "lbFrontends"
+  | "lbBackends";
 
 export const VLAN_ID_MIN = 1;
 export const VLAN_ID_MAX = 4094;

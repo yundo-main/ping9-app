@@ -15,7 +15,7 @@ import type { Device, DeviceKind, OsKind, PcOsChoice, Position, TopologyDocument
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
 
-const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "SW", router: "R", hub: "HUB", l3switch: "L3SW" };
+const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "SW", router: "R", hub: "HUB", l3switch: "L3SW", lb: "LB" };
 
 function nextName(document: TopologyDocument, kind: DeviceKind): string {
   const used = new Set(document.devices.map(device => device.name));
@@ -46,6 +46,10 @@ function newDevice(kind: DeviceKind, id: string, name: string, position: Positio
       return { ...base, kind, config: {} };
     case "l3switch":
       return { ...base, kind, config: { vlans: [{ id: DEFAULT_VLAN_ID, name: DEFAULT_VLAN_NAME }], ports: {}, interfaces: {}, staticRoutes: [] } };
+    case "lb":
+      return { ...base, kind, config: {
+        interfaces: Object.fromEntries(PORT_NAMES.lb.map(port => [port, { adminUp: false }])),
+        staticRoutes: [], frontends: [] } };
   }
 }
 

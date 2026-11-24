@@ -1,7 +1,7 @@
 // 저장되는 문서(Document)의 형태. 출처: docs/project-plan/03-system-design.md 3.4절 "Document 형태", AD-9.
 // 모든 값은 변경 불가능한 단순 JSON 자료다 (AD-16). 바꿀 때는 새 객체를 만든다.
 
-export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub", "l3switch"] as const;
+export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub", "l3switch", "lb"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
@@ -35,6 +35,8 @@ export const PORT_NAMES = {
     "FastEthernet0/7",
     "FastEthernet0/8",
   ],
+  // LB (T0.34). 리눅스 기반이라 포트 이름이 ethN이다
+  lb: ["eth0", "eth1"],
 } as const satisfies Record<DeviceKind, readonly string[]>;
 
 /** 그 종류의 장비에 있는 포트 이름인지 */
@@ -405,7 +407,37 @@ export interface L3SwitchDevice extends DeviceBase {
   readonly config: L3SwitchConfig;
 }
 
-export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice | L3SwitchDevice;
+/**
+ * LB(로드밸런서) 구성 (T0.34). HAProxy의 `listen` 블록이 `frontends`다 —
+ * 받는 TCP 포트와 보낼 백엔드 목록·가중치. DNAT 방식이라 백엔드의 응답도 LB를 거친다.
+ * L3 부분은 라우터와 같다: `interfaces`는 eth0/eth1별 IP, `staticRoutes`는 정적 경로.
+ */
+export interface LbBackend {
+  readonly ip: string;
+  readonly port: number;
+  /** 가중 라운드로빈의 비율. 1 이상 */
+  readonly weight: number;
+}
+
+export interface LbFrontend {
+  readonly listenPort: number;
+  /** `tcp`는 L4 전달, `http`는 L7 프록시 (T0.35) */
+  readonly mode: "tcp" | "http";
+  readonly backends: readonly LbBackend[];
+}
+
+export interface LbConfig {
+  readonly interfaces: Readonly<Record<string, RouterInterfaceConfig>>;
+  readonly staticRoutes: readonly StaticRoute[];
+  readonly frontends: readonly LbFrontend[];
+}
+
+export interface LbDevice extends DeviceBase {
+  readonly kind: "lb";
+  readonly config: LbConfig;
+}
+
+export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice | L3SwitchDevice | LbDevice;
 
 /** PC 장비인지. 객체를 `PcDevice`로 좁힌다 */
 export function isPcDevice(device: Device | undefined): device is PcDevice {
@@ -425,6 +457,11 @@ export function isHubDevice(device: Device | undefined): device is HubDevice {
 /** L3 Switch 장비인지. 객체를 `L3SwitchDevice`로 좁힌다 */
 export function isL3SwitchDevice(device: Device | undefined): device is L3SwitchDevice {
   return device !== undefined && device.kind === "l3switch";
+}
+
+/** LB 장비인지. 객체를 `LbDevice`로 좁힌다 */
+export function isLbDevice(device: Device | undefined): device is LbDevice {
+  return device !== undefined && device.kind === "lb";
 }
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */

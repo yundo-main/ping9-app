@@ -42,6 +42,7 @@ function usesIp(device: Device, ip: string): boolean {
     case "router":
       return Object.values(device.config.interfaces).some((iface) => iface.ip === ip);
     case "l3switch":
+    case "lb":
       return Object.values(device.config.interfaces).some((iface) => iface.ip === ip);
     case "switch":
     case "hub":

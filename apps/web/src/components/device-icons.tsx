@@ -112,6 +112,22 @@ function L3Switch() {
   );
 }
 
+/** LB (T0.34). 가운데 추 하나에서 세 갈래로 나뉘는 부하 분산 */
+function Lb() {
+  const c = "#7C3AED";
+  return (
+    <>
+      <ellipse cx="16" cy="27.6" rx="9.5" ry="1.8" fill="#EDE9FE" stroke="#8B5CF6" strokeWidth="0.9" />
+      <path d="M16 6v16" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="16" cy="6" r="2" fill="#EDE9FE" stroke={c} strokeWidth="1.2" />
+      <path d="M16 22 7 26M16 22l0 4.5M16 22l9 4" fill="none" stroke={c} strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="7" cy="26" r="1.8" fill="#EDE9FE" stroke={c} strokeWidth="1.1" />
+      <circle cx="16" cy="26.5" r="1.8" fill="#EDE9FE" stroke={c} strokeWidth="1.1" />
+      <circle cx="25" cy="26" r="1.8" fill="#EDE9FE" stroke={c} strokeWidth="1.1" />
+    </>
+  );
+}
+
 /** 관문의 기둥과 지붕. 열린 문과 닫힌 문이 같이 쓴다 */
 function GateFrame() {
   const green = "#17725F";
@@ -218,7 +234,7 @@ export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : <GateOpen />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : kind === "lb" ? <Lb /> : <GateOpen />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

@@ -5,8 +5,7 @@
 import type { ErrorInfo, Notice } from "./codes";
 import type {
   DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position,
-  RouterConfig, ServiceKind, SwitchportMode, VlanRange, VpnMode,
-} from "./document";
+  RouterConfig, ServiceKind, SwitchportMode, VlanRange, VpnMode, LbFrontend } from "./document";
 
 export type Command =
   | { readonly type: "router/set-cli-style"; readonly deviceId: string; readonly style: "ios" | "vyos" | "linux" }
@@ -84,6 +83,8 @@ export type Command =
   | { readonly type: "l3switch/remove-svi"; readonly deviceId: string; readonly name: string }
   | { readonly type: "l3switch/set-routed"; readonly deviceId: string; readonly port: string; readonly routed: boolean }
   | { readonly type: "l3switch/set-ip-routing"; readonly deviceId: string; readonly enabled: boolean }
+  // LB 프런트엔드 목록 통째 교체 (T0.34). Inspector가 편집한 목록을 한 번에 넣는다
+  | { readonly type: "lb/set-frontends"; readonly deviceId: string; readonly frontends: readonly LbFrontend[] }
   // 서버로 쓰는 PC의 필터 규칙 (T14.2.1, T0.21에서 Firewall 장비 대신 서버로). `os`가 `server`인 PC에만 쓴다.
   // `index`는 1부터 세는 규칙 번호다 (`iptables --line-numbers`)
   // add-rule: index가 없으면 끝에 붙이고(`-A`), 있으면 그 자리에 끼운다(`-I`)
@@ -150,6 +151,7 @@ const COMMAND_TYPE_SET = {
   "l3switch/remove-svi": true,
   "l3switch/set-routed": true,
   "l3switch/set-ip-routing": true,
+  "lb/set-frontends": true,
   "firewall/add-rule": true,
   "firewall/remove-rule": true,
   "firewall/flush-rules": true,

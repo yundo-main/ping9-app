@@ -55,6 +55,16 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
           interfaces: l3InterfaceStates(device.config, ports),
         };
         break;
+      case "lb":
+        views[device.id] = {
+          kind: "lb", ports, bindings: [],
+          interfaces: Object.entries(device.config.interfaces).map(([name, iface]) => ({
+            name, ip: iface.ip, mask: iface.mask,
+            status: !iface.adminUp ? "admin-down" as const
+              : ports.find(view => view.name === name)?.status === "up" ? "up" as const : "down" as const,
+          })),
+        };
+        break;
       case "router":
         views[device.id] = { kind: "router", ports, arpTable: [], routingTable: routingTable(device.config, ports),
           ...(device.config.ipsec === undefined ? {} : { ipsec: new IpsecModule(() => device).view(ports, 0) }),

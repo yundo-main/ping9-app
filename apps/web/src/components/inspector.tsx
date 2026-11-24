@@ -9,6 +9,7 @@ import panelPenguin from "../assets/panel-penguin.png";
 import { DeviceName } from "./device-name";
 import { FilterRules } from "./filter-rules";
 import { PcSettings } from "./pc-settings";
+import { LbSettings } from "./lb-settings";
 import { ripSummaryFor, RouteExchange, RouterRoutingTable } from "./router-inspector";
 import { ServerServices } from "./server-services";
 import { ServerSettings } from "./server-settings";
@@ -16,7 +17,7 @@ import { SwitchMacTable, SwitchVlanList } from "./switch-inspector";
 import { SwitchPortTag, trunkAllowedText } from "./switch-port-tag";
 import { VpnSettings } from "./vpn-settings";
 
-const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch" };
+const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB" };
 
 /** 링크 반대쪽 장비의 이름. 링크가 없으면 undefined */
 function peerName(document: TopologyDocument, deviceId: string, port: PortView): string | undefined {
@@ -98,6 +99,7 @@ export function Inspector({
       {device.kind === "switch" && <SwitchVlanList config={device.config} />}
       {device.kind === "l3switch" && <SwitchVlanList config={device.config} />}
       {device.kind === "router" && <VpnSettings key={device.id} device={device} onDispatch={onDispatch} />}
+      {device.kind === "lb" && <LbSettings key={device.id} device={device} onDispatch={onDispatch} />}
 
       <h4>{device.kind === "switch" ? "포트" : "인터페이스"}</h4>
       {view.ports.map((port) => (
@@ -148,6 +150,12 @@ export function Inspector({
         <div className="sub">교육용 시뮬레이션 · 실제 암호화/IKE 없음</div>
       </>}
 
+      {view.kind === "lb" && view.bindings.length > 0 && <>
+        <h4>활성 연결</h4>
+        {view.bindings.map(binding => <div key={`${binding.clientIp}:${binding.clientPort}`} className="if-row">
+          <span className="ip">{binding.clientIp}:{binding.clientPort} → {binding.backendIp}:{binding.backendPort}</span>
+        </div>)}
+      </>}
       {view.kind === "switch" && <SwitchMacTable view={view} />}
       {view.kind === "l3switch" && view.interfaces.length > 0 && <>
         <h4>L3 인터페이스</h4>

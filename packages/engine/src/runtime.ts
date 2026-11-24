@@ -25,6 +25,7 @@ import { deviceRun } from "./devices/link";
 import type { DeviceModel } from "./devices/model";
 import { HubModel } from "./devices/hub/hub-model";
 import { L3SwitchModel } from "./devices/l3switch/l3switch-model";
+import { LbModel } from "./devices/lb/lb-model";
 import { RouterModel } from "./devices/router/router-model";
 import { SwitchModel } from "./devices/switch/switch-model";
 import { createKernel } from "./kernel";
@@ -138,6 +139,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const switches = new Map<string, SwitchModel>();
   const hubs = new Map<string, HubModel>();
   const l3switches = new Map<string, L3SwitchModel>();
+  const lbs = new Map<string, LbModel>();
   // 가장 최근 것이 앞. 최대 LIMITS.maxTraces개
   let traces: readonly StoredTrace[] = [];
   // 마지막 경로 교환 뒤의 RIP 경로. 다음 교환과 비교한다 (T11.3.1)
@@ -203,12 +205,22 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     return model;
   };
 
+  const lbModel = (deviceId: string): LbModel | undefined => {
+    let model = lbs.get(deviceId);
+    if (model === undefined && findDevice(getDocument(), deviceId)?.kind === "lb") {
+      model = new LbModel(deviceId, getDocument);
+      lbs.set(deviceId, model);
+    }
+    return model;
+  };
+
   /** 실행을 시작할 때 앞 실행에서 남은 대기열과 응답 기록을 비운다 */
   const startModels = (): void => {
     for (const pc of pcs.values()) pc.startRun();
     for (const server of servers.values()) server.startRun();
     for (const router of routers.values()) router.startRun();
     for (const l3 of l3switches.values()) l3.startRun();
+    for (const lb of lbs.values()) lb.startRun();
   };
 
   /** 이번 실행에 쓸 PC·Server·Switch·Router·Hub 모델 */
@@ -220,6 +232,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       else if (device.kind === "router") models.set(device.id, routerModel(device.id)!);
       else if (device.kind === "hub") models.set(device.id, hubModel(device.id)!);
       else if (device.kind === "l3switch") models.set(device.id, l3switchModel(device.id)!);
+      else if (device.kind === "lb") models.set(device.id, lbModel(device.id)!);
       else models.set(device.id, switchModel(device.id)!);
     }
     return models;
@@ -255,7 +268,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     readonly stop: (round: PingRound) => boolean;
   }): PingRun => {
     const source = findDevice(getDocument(), deviceId);
-    const model = hostModel(deviceId) ?? routerModel(deviceId) ?? l3switchModel(deviceId);
+    const model = hostModel(deviceId) ?? routerModel(deviceId) ?? l3switchModel(deviceId) ?? lbModel(deviceId);
     if (source === undefined || model === undefined) {
       return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId }) };
     }
@@ -401,10 +414,15 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     },
 
     arpTable(deviceId) {
-      return pcs.get(deviceId)?.arp.view() ?? servers.get(deviceId)?.arp.view() ?? routers.get(deviceId)?.arpTable() ?? [];
+      return pcs.get(deviceId)?.arp.view() ?? servers.get(deviceId)?.arp.view() ?? routers.get(deviceId)?.arpTable() ?? lbs.get(deviceId)?.arpTable() ?? [];
     },
 
     clearArp(deviceId, ip) {
+      const lb = lbs.get(deviceId);
+      if (lb !== undefined) {
+        const before = lb.arpTable(); lb.clearArp(ip);
+        return lb.arpTable().length !== before.length;
+      }
       const router = routers.get(deviceId);
       if (router !== undefined) {
         const before = router.arpTable(); router.clearArp(ip);

@@ -4,6 +4,7 @@ import type { CommandOf, ErrorInfo, StaticRoute } from "@ping9/shared";
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
 import { findL3Switch, l3AddRoute, l3RemoveRoute } from "./l3switch";
+import { findLb, lbAddRoute, lbRemoveRoute } from "./lb";
 import { findRouter, withRouterConfig } from "./router-common";
 
 /** 타입 경계 밖의 직접 dispatch도 형식 오류로 돌려준다. */
@@ -21,6 +22,8 @@ const sameRoute = (a: StaticRoute, b: StaticRoute) => a.network === b.network &&
 export const addRoute: CommandHandler<"route/add"> = (document, command) => {
   const l3 = findL3Switch(document, command.deviceId);
   if (l3.ok) return l3AddRoute(document, l3.device, command);
+  const lb = findLb(document, command.deviceId);
+  if (lb.ok) return lbAddRoute(document, lb.device, command);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   const { device } = found;
@@ -46,6 +49,8 @@ export const addRoute: CommandHandler<"route/add"> = (document, command) => {
 export const removeRoute: CommandHandler<"route/remove"> = (document, command) => {
   const l3 = findL3Switch(document, command.deviceId);
   if (l3.ok) return l3RemoveRoute(document, l3.device, command);
+  const lb = findLb(document, command.deviceId);
+  if (lb.ok) return lbRemoveRoute(document, lb.device, command);
   const found = findRouter(document, command.deviceId);
   if (!found.ok) return found;
   const { device } = found;

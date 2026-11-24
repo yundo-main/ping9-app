@@ -1,5 +1,5 @@
 // 라우팅 계산은 패킷 전송과 분리한다. Router 모델과 스냅샷/CLI에서 재사용한다.
-import { checkInterfaceAddress, DEFAULT_DISTANCE, isSameNetwork, maskToPrefixLength, networkAddress, parseIpv4, PORT_NAMES, routerInterfaces, greEnabled } from "@ping9/shared";
+import { checkInterfaceAddress, DEFAULT_DISTANCE, isSameNetwork, maskToPrefixLength, networkAddress, parseIpv4, routerInterfaces, greEnabled } from "@ping9/shared";
 import type { PortView, RouteEntryView, RouterConfig } from "@ping9/shared";
 
 /** 실제 나가는 포트를 포함한 사용 가능한 경로. */
@@ -7,14 +7,15 @@ export interface RoutingEntry extends RouteEntryView {
   readonly port: string;
 }
 
+// 포트 목록은 넘겨받은 views로 정한다 — 라우터 Gi0/x, LB eth0/1처럼 종류마다 이름이 다르다 (T0.34)
 export function connectedRoutes(config: RouterConfig, ports: readonly PortView[]): readonly RoutingEntry[] {
-  return PORT_NAMES.router.flatMap(port => {
-    const iface = config.interfaces[port];
-    if (!iface?.adminUp || iface.ip === undefined || iface.mask === undefined ||
-      !ports.some(view => view.name === port && view.status === "up")) return [];
+  return ports.flatMap(view => {
+    const iface = config.interfaces[view.name];
+    if (!iface?.adminUp || iface.ip === undefined || iface.mask === undefined || view.status !== "up") return [];
     const network = networkAddress(iface.ip, iface.mask);
     return network === null ? [] : [{
-      source: "connected" as const, network, mask: iface.mask, port, distance: DEFAULT_DISTANCE.connected, metric: 0,
+      source: "connected" as const, network, mask: iface.mask, port: view.name,
+      distance: DEFAULT_DISTANCE.connected, metric: 0,
     }];
   });
 }

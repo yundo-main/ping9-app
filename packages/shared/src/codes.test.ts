@@ -56,13 +56,13 @@ describe("코드 목록", () => {
   });
 
   test("Command는 03 문서 3.4절의 MVP 목록 19개와 NAT 1개(T16.2), RIP 구성 5개(T11.2.1), Firewall 필터 4개(T14.2.1), "
-    + "GRE 구성 2개와 IPsec 구성 2개, Router 선택·commit 3개(T15.2.1)와 ip_forward 1개(T16.1), 서버 명령 5개(T0.25), L3 스위치 4개(T0.33)다", () => {
+    + "GRE 구성 2개와 IPsec 구성 2개, Router 선택·commit 3개(T15.2.1)와 ip_forward 1개(T16.1), 서버 명령 5개(T0.25), L3 스위치 4개(T0.33), LB 1개(T0.34)다", () => {
     const rip = ["rip/enable", "rip/disable", "rip/add-network", "rip/remove-network", "rip/set-passive"];
     const firewall = ["firewall/add-rule", "firewall/remove-rule", "firewall/flush-rules", "firewall/set-policy"];
     const server = ["server/set-ip", "server/set-os", "server/set-service", "server/add-dns-record", "server/remove-dns-record"];
     const l3switch = ["l3switch/svi", "l3switch/remove-svi", "l3switch/set-routed", "l3switch/set-ip-routing"];
     const vpn = (type: string) => type.startsWith("tunnel/") || type.startsWith("ipsec/") || type.startsWith("router/");
-    const added = [...rip, ...firewall, ...server, ...l3switch];
+    const added = [...rip, ...firewall, ...server, ...l3switch, "lb/set-frontends"];
     expect(COMMAND_TYPES.filter((type) => !added.includes(type) && !vpn(type))).toHaveLength(20);
     expect(COMMAND_TYPES).toEqual(expect.arrayContaining(added));
     expect(COMMAND_TYPES.filter(type => type.startsWith("tunnel/"))).toEqual(["tunnel/set", "tunnel/remove"]);
