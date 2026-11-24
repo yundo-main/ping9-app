@@ -135,3 +135,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T16.3 동적 NAT와 NAT overload: `ip nat pool`·`access-list`·`inside source list ... [overload]`, proxy ARP, vyos/linux 대응 (계획에 없는 새 ID. T16.2 후속) | [T16.3-dynamic-nat-overload.md](T16.3-dynamic-nat-overload.md) | 엔진, 공통 | jarrod | 병합됨 (팀원 검토 없이) |
 | T0.29 저장소 정리: `.specify`·`docs/superpowers`·미사용 아이콘 삭제, 옛 원격 브랜치 24개 제거 (계획에 없는 새 ID) | [T0.29-repo-cleanup.md](T0.29-repo-cleanup.md) | 인프라 | jarrod | main 직접 커밋 |
 | T0.30 앱 도움말 창: 상단 막대 `?` 버튼과 사용법 대화상자 (계획에 없는 새 ID) | [T0.30-help-dialog.md](T0.30-help-dialog.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.31 앱 아이콘을 완전한 펭귄으로 교체 (계획에 없는 새 ID) | [T0.31-app-icon-penguin.md](T0.31-app-icon-penguin.md) | 배포 | jarrod | main 직접 커밋 |
