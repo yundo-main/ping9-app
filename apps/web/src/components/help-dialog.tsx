@@ -7,7 +7,7 @@ const SECTIONS: readonly { readonly title: string; readonly items: readonly (rea
   {
     title: "시작하기",
     items: [
-      ["장비 놓기", "왼쪽 목록에서 PC·서버·스위치·허브·라우터를 캔버스로 끌어 놓습니다"],
+      ["장비 놓기", "왼쪽 목록에서 PC·서버·스위치·L3 스위치·허브·라우터·LB를 캔버스로 끌어 놓습니다"],
       ["케이블 연결", "왼쪽의 🔗 버튼을 누르고 장비 두 대를 차례로 눌러 포트를 고릅니다"],
       ["장비 설정", "장비를 누르면 오른쪽 패널에서 이름·IP 주소·게이트웨이를 고칩니다"],
       ["콘솔 열기", "장비를 두 번 누르거나 선택 뒤 Enter를 누릅니다"],
@@ -35,9 +35,28 @@ const SECTIONS: readonly { readonly title: string; readonly items: readonly (rea
     ],
   },
   {
+    title: "L3 스위치 콘솔",
+    items: [
+      ["ip routing", "VLAN 간 라우팅을 켭니다 (configure terminal 안)"],
+      ["interface vlan <번호>", "SVI를 만들어 ip address로 게이트웨이를 줍니다"],
+      ["no switchport", "포트를 라우티드 포트로 바꿉니다"],
+      ["ip route / router rip", "정적 경로와 RIP — 라우터와 같습니다"],
+    ],
+  },
+  {
+    title: "LB 콘솔 (리눅스)",
+    items: [
+      ["프런트엔드", "속성 패널에서 받을 포트·모드(L4 TCP/L7 HTTP)·백엔드(ip:포트·weight)를 고릅니다"],
+      ["L4 vs L7", "L4는 DNAT 전달, L7은 LB가 TCP를 맺는 프록시 — 경로 접두로 백엔드를 고릅니다"],
+      ["ip addr / ip route / ping", "리눅스 명령으로 주소·경로·통신을 봅니다"],
+      ["haproxy -c", "설정된 listen·server 목록을 봅니다"],
+      ["토폴로지 조건", "백엔드는 LB 뒤 세그먼트에 두고 게이트웨이를 LB로 잡습니다"],
+    ],
+  },
+  {
     title: "콘솔 스타일",
     items: [
-      ["linux", "라우터 속성에서 고를 수 있습니다. ip addr·ip route·iptables -t nat을 씁니다"],
+      ["linux", "라우터 속성에서 고를 수 있습니다. ip addr·ip route·iptables -t nat을 씁니다 (LB는 항상 리눅스)"],
       ["vyos", "set nat source rule ..., commit, show configuration commands"],
     ],
   },
