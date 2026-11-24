@@ -80,7 +80,7 @@ const SECTIONS: readonly { readonly title: string; readonly items: readonly (rea
   },
 ];
 
-export function HelpDialog({ onClose }: { readonly onClose: () => void }) {
+export function HelpDialog({ onClose, onAbout }: { readonly onClose: () => void; readonly onAbout?: () => void }) {
   const close = useRef<HTMLButtonElement>(null);
   // 열리면 닫기 버튼으로 — Enter나 Space로 바로 닫을 수 있다
   useEffect(() => close.current?.focus(), []);
@@ -106,6 +106,11 @@ export function HelpDialog({ onClose }: { readonly onClose: () => void }) {
             </section>
           ))}
         </div>
+        {onAbout !== undefined && (
+          <div className="help-foot">
+            <button type="button" className="about-link" onClick={onAbout}>PING9에 관하여</button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { Canvas, cableLength } from "./components/canvas";
 import { ConfirmDialog } from "./components/confirm-dialog";
 import { HelpDialog } from "./components/help-dialog";
+import { AboutDialog } from "./components/about-dialog";
 import { EventPanel, highlightOf, SideTabs } from "./components/event-panel";
 import type { SideTab } from "./components/event-panel";
 import { isRemoveKey, removeKeyAction } from "./components/canvas-keys";
@@ -84,6 +85,7 @@ export function App() {
   const [removeAsk, setRemoveAsk] = useState<string | null>(null);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const selectedLink = document.links.find(link => link.id === selectedLinkId);
 
@@ -555,7 +557,8 @@ export function App() {
       <TopBar name={topologyName} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
         onHelp={() => setHelpOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
-      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
