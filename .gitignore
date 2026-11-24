@@ -17,8 +17,7 @@ deploy/*
 .vercel/
 
 # 개인별 도구 설정
-.claude/settings.local.json
-.claude/journal/
+.claude/
 _bmad/config.user.toml
 _bmad/custom/config.user.toml
 
