@@ -88,7 +88,8 @@ button { font: inherit; cursor: pointer; }
 .tool.device-tool:not(:disabled):active { cursor: grabbing; }
 .placement-preview { pointer-events: none; opacity: .65; }
 .device-tool svg { pointer-events: none; }
-.tool-group { position: relative; }
+.tool-group { position: relative; display: flex; }
+.tool-group > .tool { flex: 1; } /* 다른 도구처럼 목록 너비를 채운다 (T0.39) */
 .tool.group-tool { color: inherit; }
 /* 스위치 묶음을 펼치면 목록이 커지지 않게 옆에 플라이아웃으로 띄운다 (T0.39) */
 .switch-flyout { position: absolute; left: calc(100% + 8px); top: 0; z-index: 40; width: 112px; display: flex; flex-direction: column; gap: 10px; padding: 12px 8px; background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); }
