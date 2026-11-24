@@ -118,6 +118,7 @@ export function createSimulator(): Simulator {
     arpTable: (deviceId) => runtime.arpTable(deviceId),
     macTable: (deviceId) => runtime.macTable(deviceId),
     routingTable: (deviceId) => runtime.routingTable(deviceId),
+    natTranslations: (deviceId) => runtime.natTranslations(deviceId),
     ipsecSa: (deviceId) => runtime.ipsecSa(deviceId),
     exchangeRoutes() {
       const trace = runtime.exchangeRoutes(docVersion);

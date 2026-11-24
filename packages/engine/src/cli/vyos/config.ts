@@ -8,6 +8,8 @@ export const RULES: readonly { pattern: RegExp; flag: boolean; sample: string }[
   { pattern: /^interfaces (?:tunnel tun[0-3]|ethernet eth[0-3]) disable$/, flag: true, sample: "interfaces tunnel tun0 disable" },
   { pattern: /^interfaces tunnel tun[0-3] (?:encapsulation|source-address|remote) \S+$/, flag: false, sample: "interfaces tunnel tun0 encapsulation gre" },
   { pattern: /^protocols static route \S+ next-hop \S+$/, flag: true, sample: "protocols static route <prefix> next-hop <IPv4>" },
+  { pattern: /^nat source rule [0-9]{1,3} outbound-interface eth[0-3]$/, flag: false, sample: "nat source rule 10 outbound-interface eth1" },
+  { pattern: /^nat source rule [0-9]{1,3} translation address masquerade$/, flag: false, sample: "nat source rule 10 translation address masquerade" },
   { pattern: /^vpn ipsec interface eth[0-3]$/, flag: true, sample: "vpn ipsec interface eth1" },
   { pattern: new RegExp(`^vpn ipsec authentication psk ${NAME} id \\S+$`), flag: true, sample: "vpn ipsec authentication psk LAB id <peer-id>" },
   { pattern: new RegExp(`^vpn ipsec authentication psk ${NAME} secret \\S+$`), flag: false, sample: "vpn ipsec authentication psk LAB secret <lab-secret>" },
@@ -60,6 +62,12 @@ export function settingsOf(config: RouterConfig): Settings {
     if (tunnel.source !== undefined && config.interfaces[tunnel.source]?.ip !== undefined) result[`${root} source-address`] = config.interfaces[tunnel.source]!.ip!;
     if (tunnel.destination !== undefined) result[`${root} remote`] = tunnel.destination;
     if (!tunnel.adminUp) result[`${root} disable`] = "";
+  }
+  for (const [index, port] of PORT_NAMES.router.entries()) {
+    if (config.interfaces[port]?.nat === "outside") {
+      result[`nat source rule ${(index + 1) * 10} outbound-interface`] = `eth${index}`;
+      result[`nat source rule ${(index + 1) * 10} translation address`] = "masquerade";
+    }
   }
   for (const route of config.staticRoutes) {
     ensure(route.distance === undefined || route.distance === 1, "이 VyOS 지원 범위에서는 AD가 지정된 정적 경로를 변환할 수 없습니다");
@@ -128,6 +136,16 @@ export function compile(settings: Settings, base: RouterConfig): RouterConfig {
     ensure(settings[`${root} encapsulation`] === "gre" && sourceIp !== undefined && source !== undefined && addresses.length === 1 && destination !== undefined && checkHostIpv4(destination) === null, `${name}: GRE 형식·로컬 source IP·remote·주소 하나가 필요합니다`);
     const address = subnet(addresses[0]!.slice(`${root} address `.length));
     tunnels[tunnelPort(name)] = { mode: "gre", adminUp: settings[`${root} disable`] === undefined, source: source!, destination: destination!, ip: address.network, mask: address.mask };
+  }
+  // `nat source rule N`: outbound-interface와 masquerade 변환이 함께 있으면 그 인터페이스가 NAT outside다 (T16.2)
+  for (const rule of names(settings, "nat source rule")) {
+    const root = `nat source rule ${rule}`;
+    const outbound = settings[`${root} outbound-interface`];
+    const translation = settings[`${root} translation address`];
+    ensure(outbound !== undefined && translation === "masquerade", `${root}: outbound-interface와 translation address masquerade가 함께 필요합니다`);
+    const port = /^eth([0-3])$/.test(outbound!) ? PORT_NAMES.router[Number(outbound![3])] : undefined;
+    ensure(port !== undefined, `${root}: outbound-interface는 eth0~eth3입니다`);
+    interfaces[port!] = { ...interfaces[port!]!, nat: "outside" };
   }
   const staticRoutes: StaticRoute[] = [];
   for (const key of Object.keys(settings)) if (key.startsWith("protocols static route ")) {

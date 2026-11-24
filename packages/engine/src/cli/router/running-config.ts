@@ -38,6 +38,9 @@ export function routerRunningConfigLines(device: RouterDevice): string[] {
     const distance = route.distance === undefined || route.distance === DEFAULT_DISTANCE.static ? "" : ` ${route.distance}`;
     lines.push(`ip route ${route.network} ${route.mask} ${route.nextHop}${distance}`);
   }
+  for (const entry of device.config.natStatics ?? []) {
+    lines.push(`ip nat inside source static ${entry.insideIp} ${entry.outsideIp}`);
+  }
   for (const [name, profile] of Object.entries(device.config.ipsec ?? {})) {
     lines.push(`crypto ipsec profile ${name}`);
     if (profile.interface !== undefined) lines.push(` source-interface ${profile.interface}`);

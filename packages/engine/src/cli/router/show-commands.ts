@@ -72,6 +72,19 @@ export const ROUTER_SHOW_COMMANDS: readonly CommandDefinition[] = [
       : {},
   })),
   defineCommand({
+    modes: ["privileged"], devices: ["router"], tokens: ["show", "ip", "nat", "translations"],
+    help: "Show the NAT translation table (static mappings and dynamic bindings)",
+    run: (_args, context) => {
+      const entries = context.runtime?.natTranslations?.(context.device.id) ?? [];
+      const host = (ip: string, port: number | undefined, proto: string) =>
+        port === undefined || proto === "all" ? ip : `${ip}:${port}`;
+      const rows = entries.map(entry => [entry.protocol === "all" ? "---" : entry.protocol,
+        host(entry.insideIp, entry.insidePort, entry.protocol), host(entry.outsideIp, entry.outsidePort, entry.protocol),
+        entry.peerIp === undefined ? "---" : host(entry.peerIp, entry.peerPort, entry.protocol)]);
+      return { lines: tableLines(["Pro", "Inside local", "Inside global", "Outside"], rows).map(text => ({ kind: "text" as const, text })) };
+    },
+  }),
+  defineCommand({
     modes: ["privileged"], devices: ["router"], tokens: ["show", "running-config"],
     help: "Show the router configuration as commands",
     run: (_args, context) => context.device.kind === "router"

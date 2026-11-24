@@ -11,6 +11,7 @@ import type {
   MacTableEntryView,
   RipRouteHop,
   RouteChangeView,
+  NatTranslationView,
   RouteEntryView,
   TopologyDocument,
   Trace,
@@ -101,6 +102,8 @@ export interface Runtime {
   macTable(deviceId: string): readonly MacTableEntryView[];
   /** Router가 지금 쓰는 라우팅 테이블. 배운 RIP 경로를 포함한다 (T11.2.2). Router가 아니면 빈 목록 */
   routingTable(deviceId: string): readonly RouteEntryView[];
+  /** NAT 변환 테이블 (T16.2). `show ip nat translations`. Router가 아니거나 바인딩이 없으면 빈 목록 */
+  natTranslations(deviceId: string): readonly NatTranslationView[];
   ipsecSa(deviceId: string): readonly IpsecSaView[];
   /**
    * 경로 교환 1회 (T11.2.2). RIP를 켠 Router마다 배운 경로를 지우고 Request부터 다시 주고받는다.
@@ -396,6 +399,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     ipsecSa(deviceId) { return routerModel(deviceId)?.ipsecSa() ?? []; },
     routingTable(deviceId) {
       return routerModel(deviceId)?.routingTable() ?? [];
+    },
+
+    natTranslations(deviceId) {
+      return routerModel(deviceId)?.natTranslations() ?? [];
     },
 
     exchangeRoutes(docVersion) {

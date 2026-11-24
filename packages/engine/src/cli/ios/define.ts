@@ -12,7 +12,7 @@ import type {
   OsKind,
   TopologyDocument,
 } from "@ping9/shared";
-import type { ArpEntryView, IpsecSaView, MacTableEntryView, RouteEntryView } from "@ping9/shared";
+import type { ArpEntryView, IpsecSaView, MacTableEntryView, NatTranslationView, RouteEntryView } from "@ping9/shared";
 
 import type { PingRequest, PingRun, ServiceRequest, ServiceRun, TracerouteRequest } from "../../runtime";
 import type { PcFiles } from "../pc/file-tree";
@@ -108,6 +108,8 @@ export interface RuntimeAccess {
   macTable(deviceId: string): readonly MacTableEntryView[];
   /** Router가 지금 쓰는 라우팅 테이블. 배운 RIP 경로를 포함한다 (T11.2.2) */
   routingTable(deviceId: string): readonly RouteEntryView[];
+  /** NAT 변환 테이블 (T16.2). `show ip nat translations`. Router가 아니거나 NAT가 없으면 빈 목록 */
+  natTranslations?(deviceId: string): readonly NatTranslationView[];
   /** 경로 교환 1회 (`clear ip route *`, T11.2.3). RIP Router가 없어 돌지 않았으면 false */
   exchangeRoutes(): boolean;
   ipsecSa?(deviceId: string): readonly IpsecSaView[];

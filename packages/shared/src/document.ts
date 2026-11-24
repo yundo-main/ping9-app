@@ -181,6 +181,12 @@ export interface RipConfig {
   readonly passiveInterfaces: readonly string[];
 }
 
+/** 정적 NAT 1:1 주소 대응 (T16.2). `ip nat inside source static <inside> <outside>`. 안쪽 호스트가 바깥 주소로 고정 대응된다 */
+export interface NatStaticEntry {
+  readonly insideIp: string;
+  readonly outsideIp: string;
+}
+
 /** Router 구성. `interfaces`에 없는 인터페이스는 설정된 적이 없는 것이다 */
 export const VPN_MODES = ["off", "gre", "ipsec"] as const;
 export type VpnMode = (typeof VPN_MODES)[number];
@@ -197,6 +203,8 @@ export interface RouterConfig {
   readonly staticRoutes: readonly StaticRoute[];
   /** 없으면 RIP를 쓰지 않음. `router rip`로 생기고 `no router rip`로 사라진다 (T11.2.1) */
   readonly rip?: RipConfig;
+  /** 정적 NAT 대응 (T16.2). 없거나 빈 목록이면 동적 변환만 */
+  readonly natStatics?: readonly NatStaticEntry[];
   readonly tunnels?: Readonly<Record<string, GreTunnelConfig>>;
   readonly ipsec?: Readonly<Record<string, IpsecProfileConfig>>;
 }

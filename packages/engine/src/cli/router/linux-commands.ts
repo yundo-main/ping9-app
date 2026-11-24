@@ -198,6 +198,37 @@ function flushNeigh(_args: CommandArgs, context: CommandContext): CommandOutcome
   return {};
 }
 
+/** `iptables -t nat -A/-D POSTROUTING -o ethN -j MASQUERADE` (T16.2). 문서의 `nat: outside`와 같다 */
+const natMasquerade = (add: boolean) => (args: CommandArgs, context: CommandContext): CommandOutcome => ({
+  lines: linesFromDispatch(context.dispatch({
+    type: "interface/set-nat", deviceId: context.device.id, port: String(args["eth"]), nat: add ? "outside" : null,
+  })),
+});
+
+/** `-t nat -L POSTROUTING`: Chain 머리와 MASQUERADE 규칙을 나열한다 */
+function showNatTable(_args: CommandArgs, context: CommandContext): CommandOutcome {
+  const router = routerOf(context);
+  if (router === undefined) return {};
+  const lines = ["Chain POSTROUTING (policy ACCEPT)", "target     prot opt source               destination"];
+  for (const [index, port] of PORT_NAMES.router.entries()) {
+    if (router.config.interfaces[port]?.nat === "outside") {
+      lines.push(`MASQUERADE  all  --  anywhere             anywhere             /* eth${index} */`);
+    }
+  }
+  return { lines: lines.map(text) };
+}
+
+/** `-t nat -S POSTROUTING`: 규칙을 다시 입력할 수 있는 명령 형태로 나열한다 */
+function showNatRules(_args: CommandArgs, context: CommandContext): CommandOutcome {
+  const router = routerOf(context);
+  if (router === undefined) return {};
+  const lines = ["-P POSTROUTING ACCEPT"];
+  for (const [index, port] of PORT_NAMES.router.entries()) {
+    if (router.config.interfaces[port]?.nat === "outside") lines.push(`-A POSTROUTING -o eth${index} -j MASQUERADE`);
+  }
+  return { lines: lines.map(text) };
+}
+
 /** 자기 인터페이스나 127.x로의 ping은 링크를 지나지 않는다 */
 function isLoopback(router: RouterDevice, target: string): boolean {
   return target.startsWith("127.") || Object.values(router.config.interfaces).some((iface) => iface.adminUp && iface.ip === target);
@@ -282,6 +313,10 @@ export const LINUX_ROUTER_COMMANDS: readonly CommandDefinition[] = [
   linux(["ip", "neigh"], "Show the neighbour (ARP) table", showNeigh),
   linux(["ip", "neigh", "show"], "Show the neighbour (ARP) table", showNeigh),
   linux(["ip", "neigh", "flush", "all"], "Delete all neighbour entries", flushNeigh),
+  linux(["iptables", "-t", "nat", "-A", "POSTROUTING", "-o", ethParam, "-j", "MASQUERADE"], "Masquerade traffic leaving the interface (NAT outside)", natMasquerade(true)),
+  linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-o", ethParam, "-j", "MASQUERADE"], "Stop masquerading on the interface", natMasquerade(false)),
+  linux(["iptables", "-t", "nat", "-L", "POSTROUTING"], "List NAT rules in POSTROUTING", showNatTable),
+  linux(["iptables", "-t", "nat", "-S", "POSTROUTING"], "List NAT rules as commands", showNatRules),
   linux(["ping", ipParam], "Send 4 echo requests", runPing),
   linux(["ping", "-c", countParam, ipParam], "Send the given number of echo requests", runPing),
   linux(["ping", ipParam, "-c", countParam], "Send the given number of echo requests", runPing),

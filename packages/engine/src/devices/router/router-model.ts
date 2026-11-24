@@ -1,5 +1,5 @@
 import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, isIcmpError, isSameNetwork, isTunnelName, routerInterfaces, greEnabled } from "@ping9/shared";
-import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, Reason, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
+import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatTranslationView, Reason, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -87,6 +87,21 @@ export class RouterModel implements DeviceModel {
   /** 지금 쓰는 라우팅 테이블. 배운 RIP 경로를 포함한다 (T11.2.2) */
   routingTable(): readonly RoutingEntry[] {
     return routingTable(this.#device().config, portViewsOf(this.#getDocument(), this.#device()), this.#rip.routes());
+  }
+
+  /** NAT 변환 테이블 (`show ip nat translations`, T16.2). `#natInside`가 바인딩을 한 번씩만 든 정본이다 */
+  natTranslations(): readonly NatTranslationView[] {
+    const device = this.#device();
+    const outsideIp = Object.entries(device.config.interfaces).find(([, iface]) => iface.nat === "outside")?.[1].ip;
+    const dynamic = [...this.#natInside.values()].map(binding => ({
+      protocol: binding.protocol, insideIp: binding.insideIp, insidePort: binding.insidePort,
+      outsideIp: outsideIp ?? "", outsidePort: binding.natPort,
+      peerIp: binding.peerIp, peerPort: binding.peerPort, source: "dynamic" as const,
+    }));
+    const statics = (device.config.natStatics ?? []).map(entry => ({
+      protocol: "all" as const, insideIp: entry.insideIp, outsideIp: entry.outsideIp, source: "static" as const,
+    }));
+    return [...statics, ...dynamic];
   }
 
   /** 경로 교환 1회의 시작 (T11.2.2). RIP를 켠 Router만 보낸다 */
@@ -194,8 +209,23 @@ export class RouterModel implements DeviceModel {
   #dnat(ctx: SimContext, device: RouterDevice, port: string, frame: Frame, ipv4: Ipv4Header, icmp: IcmpMessage | undefined, received: number):
     { readonly ipv4: Ipv4Header; readonly icmp: IcmpMessage | undefined; readonly frame: Frame; readonly seq: number } | undefined {
     const iface = device.config.interfaces[port];
-    if (iface?.nat !== "outside" || ipv4.destinationIp !== iface.ip) return undefined;
+    if (iface?.nat !== "outside") return undefined;
     const { tcp, udp } = frame.snapshot;
+    // 정적 대응은 인터페이스 주소가 아닌 바깥 주소로도 온다 — 바인딩보다 먼저 본다
+    const statik = (device.config.natStatics ?? []).find(entry => entry.outsideIp === ipv4.destinationIp);
+    if (statik !== undefined) {
+      const snapshot: FrameSnapshot = { ...frame.snapshot, ipv4: { ...ipv4, destinationIp: statik.insideIp } };
+      const next = ctx.updateFrame(frame, snapshot);
+      const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+        reason: { code: "NAT_TRANSLATED", params: {
+          device: deviceRef(device), direction: "outside-to-inside",
+          insideIp: statik.insideIp, outsideIp: statik.outsideIp, peerIp: ipv4.sourceIp,
+          ...(tcp !== undefined ? { protocol: "tcp" as const, port: tcp.destinationPort }
+            : udp !== undefined ? { protocol: "udp" as const, port: udp.destinationPort } : { protocol: "icmp" as const }),
+        } } });
+      return { ipv4: { ...ipv4, destinationIp: statik.insideIp }, icmp, frame: next, seq };
+    }
+    if (ipv4.destinationIp !== iface.ip) return undefined;
     let binding: NatBinding | undefined;
     let newIcmp = icmp;
     if (tcp !== undefined) {
@@ -245,6 +275,20 @@ export class RouterModel implements DeviceModel {
     const ownIps = new Set(Object.values(routerInterfaces(device.config)).map(candidate => candidate.ip));
     if (ownIps.has(ipv4.sourceIp)) return undefined;
     const { tcp, udp } = frame.snapshot;
+    // 정적 대응: 출발지가 static의 안쪽 주소면 바깥 주소로 바꾼다. 포트는 그대로 두고 바인딩도 남기지 않는다
+    const statik = (device.config.natStatics ?? []).find(entry => entry.insideIp === ipv4.sourceIp);
+    if (statik !== undefined) {
+      const snapshot: FrameSnapshot = { ...frame.snapshot, ipv4: { ...ipv4, ttl: ipv4.ttl - 1, sourceIp: statik.outsideIp } };
+      const next = ctx.updateFrame(frame, snapshot);
+      const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+        reason: { code: "NAT_TRANSLATED", params: {
+          device: deviceRef(device), direction: "inside-to-outside",
+          insideIp: statik.insideIp, outsideIp: statik.outsideIp, peerIp: ipv4.destinationIp,
+          ...(tcp !== undefined ? { protocol: "tcp" as const, port: tcp.sourcePort }
+            : udp !== undefined ? { protocol: "udp" as const, port: udp.sourcePort } : { protocol: "icmp" as const }),
+        } } });
+      return { ipv4: snapshot.ipv4!, icmp, frame: next, seq };
+    }
     let protocol: NatBinding["protocol"] = "icmp";
     let insidePort = icmp?.sequence ?? 0;
     let peerPort = 0;

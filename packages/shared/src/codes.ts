@@ -102,6 +102,11 @@ export interface ErrorParamsByCode {
   ROUTE_NEXT_HOP_IS_SELF: { readonly deviceId: string; readonly nextHop: string };
   ROUTE_DISTANCE_INVALID: { readonly value: string };
   ROUTE_NOT_FOUND: { readonly deviceId: string; readonly network: string; readonly mask: string; readonly nextHop: string };
+  // 정적 NAT (T16.2)
+  /** 안쪽 주소와 바깥 주소가 같음 */
+  NAT_STATIC_SAME_ADDRESS: { readonly ip: string };
+  /** `no ip nat inside source static`으로 없는 대응을 지우려 함 */
+  NAT_STATIC_NOT_FOUND: { readonly deviceId: string; readonly insideIp: string };
   // RIP (T11.2.1)
   /** `router rip` 전에 RIP 구성을 바꾸려 함 */
   RIP_NOT_ENABLED: { readonly deviceId: string };
@@ -223,6 +228,8 @@ const ERROR_CODE_SET = {
   ROUTE_NEXT_HOP_IS_SELF: true,
   ROUTE_DISTANCE_INVALID: true,
   ROUTE_NOT_FOUND: true,
+  NAT_STATIC_SAME_ADDRESS: true,
+  NAT_STATIC_NOT_FOUND: true,
   RIP_NOT_ENABLED: true,
   RIP_NETWORK_INVALID: true,
   RIP_NETWORK_NOT_FOUND: true,

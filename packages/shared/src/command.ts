@@ -34,6 +34,8 @@ export type Command =
   | { readonly type: "interface/clear-ip"; readonly deviceId: string; readonly port: string }
   // Router 인터페이스의 NAT 역할 (T16.2). null이면 지운다
   | { readonly type: "interface/set-nat"; readonly deviceId: string; readonly port: string; readonly nat: "inside" | "outside" | null }
+  // 정적 NAT 1:1 대응 (T16.2). `outsideIp`가 null이면 `insideIp`의 대응을 지운다
+  | { readonly type: "router/set-static-nat"; readonly deviceId: string; readonly insideIp: string; readonly outsideIp: string | null }
   // PC의 IP (FR-25). `ip`가 null이면 IP를 지운다. 이때 `mask`와 `gateway`도 null이어야 한다
   | { readonly type: "pc/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
   // PC의 OS (T0.7). IP 구성은 그대로 둔다. 서버는 `kind`가 다른 장비라 여기서는 고르지 않는다 (T0.25)
@@ -99,6 +101,7 @@ const COMMAND_TYPE_SET = {
   "interface/set-ip": true,
   "interface/clear-ip": true,
   "interface/set-nat": true,
+  "router/set-static-nat": true,
   "pc/set-ip": true,
   "pc/set-os": true,
   "server/set-ip": true,

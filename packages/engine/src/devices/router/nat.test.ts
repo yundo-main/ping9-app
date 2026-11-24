@@ -60,3 +60,97 @@ describe("NAT 주소 변환", () => {
     expect(cleared?.kind === "router" && cleared.config.interfaces["GigabitEthernet0/1"]?.nat).toBeUndefined();
   });
 });
+
+describe("정적 NAT와 변환 표", () => {
+  test("`router/set-static-nat`는 바깥 주소를 안쪽 호스트로 고정 대응하고 `no`로 지운다", async () => {
+    const sim = open();
+    sim.dispatch({ type: "interface/set-nat", deviceId: LAB.r1, port: "GigabitEthernet0/1", nat: "outside" });
+    sim.dispatch({ type: "interface/set-nat", deviceId: LAB.r1, port: "GigabitEthernet0/0", nat: "inside" });
+    // 같은 주소·없는 대응 삭제는 거절된다
+    expect(sim.dispatch({ type: "router/set-static-nat", deviceId: LAB.r1, insideIp: "10.0.12.1", outsideIp: "10.0.12.1" }))
+      .toMatchObject({ ok: false, error: { code: "NAT_STATIC_SAME_ADDRESS" } });
+    expect(sim.dispatch({ type: "router/set-static-nat", deviceId: LAB.r1, insideIp: "192.168.1.10", outsideIp: null }))
+      .toMatchObject({ ok: false, error: { code: "NAT_STATIC_NOT_FOUND" } });
+    // outside 인터페이스 주소(10.0.12.1)를 PC1에 고정 대응한다
+    expect(sim.dispatch({ type: "router/set-static-nat", deviceId: LAB.r1, insideIp: "192.168.1.10", outsideIp: "10.0.12.1" }).ok).toBe(true);
+    // 바깥 PC가 바깥 주소를 찌르면 안쪽 호스트에 도달한다 — 바인딩이 없어도 된다
+    expect(success((await sim.console(LAB.pc2).exec("ping -n 1 10.0.12.1")).lines)).toHaveLength(1);
+    const events = natEvents(sim);
+    expect(events.some(event => event.reason?.code === "NAT_TRANSLATED" && event.reason.params.direction === "outside-to-inside" && event.reason.params.insideIp === "192.168.1.10")).toBe(true);
+    expect(events.some(event => event.reason?.code === "NAT_TRANSLATED" && event.reason.params.direction === "inside-to-outside" && event.reason.params.outsideIp === "10.0.12.1")).toBe(true);
+    // running-config에 남고 지우면 사라진다
+    const con = sim.console(LAB.r1);
+    await con.exec("enable");
+    const running = await con.exec("show running-config");
+    expect(running.lines.map(l => l.kind === "text" ? l.text : "").join("\n")).toContain("ip nat inside source static 192.168.1.10 10.0.12.1");
+    for (const line of ["configure terminal", "no ip nat inside source static 192.168.1.10 10.0.12.1", "end"]) {
+      expect((await con.exec(line)).lines.filter(l => l.kind === "error")).toEqual([]);
+    }
+    const cleared = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(cleared?.kind === "router" && (cleared.config.natStatics ?? [])).toHaveLength(0);
+  });
+
+  test("`show ip nat translations`는 static 대응과 동적 바인딩을 함께 보인다", async () => {
+    const sim = open();
+    sim.dispatch({ type: "interface/set-nat", deviceId: LAB.r1, port: "GigabitEthernet0/1", nat: "outside" });
+    sim.dispatch({ type: "interface/set-nat", deviceId: LAB.r1, port: "GigabitEthernet0/0", nat: "inside" });
+    const con = sim.console(LAB.r1);
+    for (const line of ["enable", "configure terminal", "ip nat inside source static 192.168.1.99 10.0.12.9", "end"]) {
+      expect((await con.exec(line)).lines.filter(l => l.kind === "error")).toEqual([]);
+    }
+    // PC1은 static 대응(.99)이 아니니 동적 바인딩이 생긴다
+    expect(success((await sim.console(LAB.pc1).exec("ping -n 1 192.168.2.10")).lines)).toHaveLength(1);
+    const shown = (await con.exec("show ip nat translations")).lines.map(l => l.kind === "text" ? l.text : "").join("\n");
+    expect(shown).toContain("192.168.1.99");   // static 행
+    expect(shown).toContain("10.0.12.9");
+    expect(shown).toContain("192.168.1.10");   // 동적 바인딩 행
+    expect(shown).toContain("192.168.2.10");   // 상대방
+  });
+});
+
+describe("linux·vyos 스타일 NAT", () => {
+  const errors = (result: ConsoleResult) => result.lines.filter(line => line.kind === "error");
+  const textOf = (result: ConsoleResult) => result.lines.flatMap(line => line.kind === "text" ? [line.text] : []).join("\n");
+
+  test("linux 라우터의 `iptables -t nat` MASQUERADE는 outside 역할과 같고 `-S`/`-L`로 보인다", async () => {
+    const sim = open();
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "linux" }).ok).toBe(true);
+    const con = sim.console(LAB.r1);
+    expect(errors(await con.exec("iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE"))).toEqual([]);
+    const configured = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(configured?.kind === "router" && configured.config.interfaces["GigabitEthernet0/1"]?.nat).toBe("outside");
+    expect(textOf(await con.exec("iptables -t nat -S POSTROUTING"))).toContain("-A POSTROUTING -o eth1 -j MASQUERADE");
+    expect(textOf(await con.exec("iptables -t nat -L POSTROUTING"))).toContain("MASQUERADE");
+    // 실제 변환: 안쪽 PC의 ping 출발지가 eth1 주소로 바뀐다
+    expect(success((await sim.console(LAB.pc1).exec("ping -n 1 192.168.2.10")).lines)).toHaveLength(1);
+    expect(natEvents(sim).some(event => event.reason?.code === "NAT_TRANSLATED" &&
+      event.reason.params.direction === "inside-to-outside" && event.reason.params.outsideIp === "10.0.12.1")).toBe(true);
+    // -D로 지우면 역할이 사라진다
+    expect(errors(await con.exec("iptables -t nat -D POSTROUTING -o eth1 -j MASQUERADE"))).toEqual([]);
+    const cleared = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(cleared?.kind === "router" && cleared.config.interfaces["GigabitEthernet0/1"]?.nat).toBeUndefined();
+  });
+
+  test("vyos의 `nat source rule` masquerade는 commit 뒤 outside 역할이 되고, 반쪽 규칙은 거절된다", async () => {
+    const sim = open();
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "vyos" }).ok).toBe(true);
+    const con = sim.console(LAB.r1);
+    for (const line of ["configure",
+      "set nat source rule 10 outbound-interface eth1",
+      "set nat source rule 10 translation address masquerade",
+      "commit", "exit"]) {
+      expect(errors(await con.exec(line)), line).toEqual([]);
+    }
+    const configured = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(configured?.kind === "router" && configured.config.interfaces["GigabitEthernet0/1"]?.nat).toBe("outside");
+    expect(textOf(await con.exec("show configuration commands"))).toContain("nat source rule 10");
+    // 변환도 동작한다
+    expect(success((await sim.console(LAB.pc1).exec("ping -n 1 192.168.2.10")).lines)).toHaveLength(1);
+    expect(natEvents(sim).some(event => event.reason?.code === "NAT_TRANSLATED")).toBe(true);
+    // outbound-interface만 있는 반쪽 규칙은 commit이 거절한다
+    expect(errors(await con.exec("configure"))).toEqual([]);
+    expect(errors(await con.exec("set nat source rule 20 outbound-interface eth0"))).toEqual([]);
+    expect(errors(await con.exec("commit")).length).toBeGreaterThan(0);
+    await con.exec("exit discard");
+  });
+});

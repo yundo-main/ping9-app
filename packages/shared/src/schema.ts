@@ -84,6 +84,7 @@ const routerConfigSchema = z.object({
   vpnMode: z.enum(VPN_MODES).optional(),
   interfaces: z.record(shortString, routerInterfaceConfigSchema),
   staticRoutes: z.array(staticRouteSchema),
+  natStatics: z.array(z.object({ insideIp: shortString, outsideIp: shortString })).optional(),
   rip: ripConfigSchema.optional(),
   tunnels: z.record(shortString, routerInterfaceConfigSchema.extend({
     mode: z.literal("gre"), source: shortString.optional(), destination: shortString.optional(),

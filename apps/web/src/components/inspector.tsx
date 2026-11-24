@@ -104,6 +104,8 @@ export function Inspector({
           <span className={port.status === "up" ? "dot" : "dot off"} />
           {shortPortName(port.name)}
           {device.kind === "router" && <span className="port-state">{port.status}</span>}
+          {device.kind === "router" && device.config.interfaces[port.name]?.nat !== undefined &&
+            <span className="port-state">nat {device.config.interfaces[port.name]?.nat}</span>}
           {device.kind === "switch" && <SwitchPortTag config={device.config} port={port.name} />}
           <span className="ip">
             {(device.kind === "switch" ? trunkAllowedText(device.config, port.name) : undefined) ??
@@ -112,6 +114,14 @@ export function Inspector({
           </span>
         </div>
       ))}
+
+      {device.kind === "router" && (device.config.natStatics ?? []).length > 0 && <>
+        <h4>정적 NAT</h4>
+        {(device.config.natStatics ?? []).map(entry => <div key={entry.insideIp} className="if-row">
+          <span className="ip">{entry.insideIp} → {entry.outsideIp}</span>
+        </div>)}
+        <div className="sub">`ip nat inside source static` · 콘솔에서 설정</div>
+      </>}
 
       {device.kind === "router" && view.kind === "router" && view.tunnels !== undefined && <>
         <h4>GRE 터널</h4>

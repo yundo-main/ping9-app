@@ -49,6 +49,22 @@ export interface RouteEntryView {
   readonly metric: number;
 }
 
+/** NAT 변환 테이블 한 줄 (T16.2). 동적 바인딩과 `ip nat inside source static`의 고정 항목 */
+export interface NatTranslationView {
+  /** static은 전 프로토콜 대응이라 "all" */
+  readonly protocol: "tcp" | "udp" | "icmp" | "all";
+  /** 안쪽 호스트의 주소와 논리 포트. ICMP는 echo의 sequence. static은 포트가 없다 */
+  readonly insideIp: string;
+  readonly insidePort?: number;
+  /** 바깥에서 보이는 주소와 논리 포트 (outside 인터페이스 IP 또는 static의 외부 주소) */
+  readonly outsideIp: string;
+  readonly outsidePort?: number;
+  /** 상대방 주소와 논리 포트. static 항목은 어느 상대든 받으므로 생략된다 */
+  readonly peerIp?: string;
+  readonly peerPort?: number;
+  readonly source: "dynamic" | "static";
+}
+
 /** RIP 경로 하나의 다음 홉, 나가는 인터페이스, metric */
 export interface RipRouteHop {
   readonly nextHop: string;
