@@ -10,6 +10,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { frameKind } from "../replay/steps";
+import { PacketStructure } from "./packet-structure";
 import type { FrameKind } from "../replay/steps";
 
 const TITLE: Readonly<Record<FrameKind, string>> = {
@@ -128,6 +129,7 @@ export function PacketCard({ event, document, linkId, onClose }: {
   const { ethernet, arp, ipv4, icmp, udp, tcp, rip, application, gre, esp } = event.frame;
   const kind = frameKind(event);
   const [help, setHelp] = useState(false);
+  const [view, setView] = useState<"summary" | "structure">("summary");
   const owners = ownersOf(document);
   const macOwner = (value: string) => owners.mac.get(value);
   const ipOwner = (value: string) => owners.ip.get(value);
@@ -232,11 +234,18 @@ export function PacketCard({ event, document, linkId, onClose }: {
         <span className="pkt-dot" style={{ background: COLOR[kind] }} />
         <b>{TITLE[kind]}</b>
         <span className="pkt-num">프레임 #{event.frameId} · 이벤트 #{event.seq}</span>
+        <span className="pkt-mode" role="radiogroup" aria-label="보기">
+          <label><input type="radio" name="pkt-view" checked={view === "summary"}
+            onChange={() => setView("summary")} />요약</label>
+          <label><input type="radio" name="pkt-view" checked={view === "structure"}
+            onChange={() => setView("structure")} />헤더 구조</label>
+        </span>
         <button type="button" className={`pkt-help${help ? " on" : ""}`} aria-label="카드 읽는 법" aria-expanded={help}
           onMouseEnter={() => setHelp(true)} onMouseLeave={() => setHelp(false)}
           onFocus={() => setHelp(true)} onBlur={() => setHelp(false)}>?</button>
         <button type="button" className="pkt-close" aria-label="닫고 계속 재생" onClick={onClose}>✕</button>
       </div>
+      {view === "structure" ? <PacketStructure frame={event.frame} /> :
       <Box layer="l2" tag="L2" title="Ethernet">
         <dl>
           <dt>출발 MAC</dt><Value value={ethernet.sourceMac} owner={macOwner(ethernet.sourceMac)} />
@@ -244,7 +253,7 @@ export function PacketCard({ event, document, linkId, onClose }: {
           <dt>VLAN 태그</dt>{ethernet.vlanTag !== undefined ? <dd>{ethernet.vlanTag}</dd> : <dd><small className="pkt-none">{noTag}</small></dd>}
         </dl>
         {inner}
-      </Box>
+      </Box>}
     </div>
     {help && (
       <div className="pkt-tip" role="tooltip">

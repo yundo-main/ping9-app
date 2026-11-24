@@ -187,3 +187,47 @@ test("TCP 서비스: IPv4 안에 TCP(포트·플래그), 응답에는 그 안에
   expect(answer).toContain('<span class="pkt-tag">L7</span>HTTP');
   expect(answer.indexOf("pkt-l4")).toBeLessThan(answer.indexOf("pkt-app"));
 });
+
+test("헤더 구조 보기: 필드·바이트·값 표로 펼치고, 시뮬레이션이 생략한 필드는 —로 둔다", async () => {
+  const { PacketStructure } = await import("./packet-structure");
+  const trace = await traceOf(oneRouterLabDocument, ROUTER_LAB.pc1, "ping -n 1 192.168.2.10");
+  const html = renderToString(<PacketStructure frame={sent(trace, (event) => event.frame.icmp?.type === "echo-request").frame} />)
+    .replaceAll("<!-- -->", "");
+
+  // Ethernet → IPv4 → ICMP 순서의 섹션
+  expect(html.indexOf("Ethernet II 헤더")).toBeLessThan(html.indexOf("IPv4 헤더"));
+  expect(html.indexOf("IPv4 헤더")).toBeLessThan(html.indexOf("ICMP"));
+  expect(html).toContain("0x0800 (IPv4)");
+  expect(html).toContain("8 (echo-request)");
+  expect(html).toContain("1 (ICMP)");
+  // 생략한 필드는 값을 지어내지 않는다
+  expect(html).toMatch(/체크섬<\/td><td[^>]*>2B<\/td><td[^>]*>—/);
+  expect(html).toContain("페이로드 → IPv4");
+});
+
+test("헤더 구조 보기: TCP+HTTP 프레임은 TCP 20바이트 헤더와 응용 데이터까지 펼친다", async () => {
+  const { PacketStructure } = await import("./packet-structure");
+  const simulator = createSimulator();
+  const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "44444444-4444-4444-8444-444444444444"] as const;
+  const [pc, server, sw] = ids;
+  const commands: unknown[] = [
+    { type: "device/add", id: pc, kind: "pc", position: { x: 0, y: 0 }, os: "linux" },
+    { type: "device/add", id: server, kind: "server", position: { x: 400, y: 0 } },
+    { type: "device/add", id: sw, kind: "switch", position: { x: 200, y: 0 } },
+    { type: "link/add", id: "55555555-5555-4555-8555-555555555555", ends: [{ deviceId: pc, port: "Ethernet0" }, { deviceId: sw, port: "FastEthernet0/1" }] },
+    { type: "link/add", id: "66666666-6666-4666-8666-666666666666", ends: [{ deviceId: server, port: "Ethernet0" }, { deviceId: sw, port: "FastEthernet0/2" }] },
+    { type: "pc/set-ip", deviceId: pc, ip: "10.0.1.10", mask: "255.255.255.0", gateway: null },
+    { type: "server/set-ip", deviceId: server, ip: "10.0.1.20", mask: "255.255.255.0", gateway: null },
+  ];
+  for (const command of commands) expect(simulator.dispatch(command as Command)).toMatchObject({ ok: true });
+  await simulator.console(pc).exec("curl http://10.0.1.20/");
+  const trace = simulator.getTrace(simulator.getSnapshot().traces[0]!.id)!;
+  const event = sent(trace, (item) => item.frame.tcp !== undefined && item.frame.application !== undefined);
+  const html = renderToString(<PacketStructure frame={event.frame} />).replaceAll("<!-- -->", "");
+
+  expect(html).toContain("TCP 헤더");
+  expect(html).toContain("6 (TCP)");
+  expect(html).toMatch(/플래그<\/td><td[^>]*>1B<\/td><td[^>]*>(SYN\+ACK|PSH\+ACK)/);
+  expect(html).toContain("응용 데이터 (HTTP)");
+  expect(html).toContain("GET /");
+});
