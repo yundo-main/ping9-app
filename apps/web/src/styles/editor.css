@@ -75,7 +75,7 @@ button { font: inherit; cursor: pointer; }
 .work.side-dragging { cursor: ew-resize; user-select: none; }
 .work.side-dragging .canvas, .work.side-dragging .inspector { pointer-events: none; }
 /* 좌우 패널은 떠 있는 카드 (T0.17) */
-.palette { background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); padding: 12px 8px; display: flex; flex-direction: column; gap: 10px; }
+.palette { position: relative; z-index: 30; background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); padding: 12px 8px; display: flex; flex-direction: column; gap: 10px; }
 .palette h4 { font-size: 12px; color: var(--navy-60); font-weight: 600; margin-top: 4px; }
 .tool { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--ice-50); font-size: 11px; font-weight: 600; cursor: grab; }
 /* 목록의 도구 네모는 작게 (T0.23) */
