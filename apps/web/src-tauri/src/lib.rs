@@ -1,4 +1,4 @@
-use tauri::menu::{Menu, MenuItemBuilder, MenuItemKind, SubmenuBuilder};
+use tauri::menu::{Menu, MenuItemBuilder, MenuItemKind, PredefinedMenuItem, SubmenuBuilder};
 use tauri::Emitter;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,6 +26,7 @@ pub fn run() {
       }
       match file {
         Some(sub) => {
+          sub.append(&PredefinedMenuItem::separator(app)?)?;
           sub.append(&import)?;
           sub.append(&export)?;
         }
