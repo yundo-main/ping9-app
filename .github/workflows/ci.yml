@@ -67,5 +67,14 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # src-tauri의 Rust 코드도 PR에서 컴파일 확인한다 — 릴리스 빌드까지 오류를 미루지 않게
+      - name: Cache Rust builds
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: apps/web/src-tauri
+
+      - name: Check Rust code
+        run: cargo check --manifest-path apps/web/src-tauri/Cargo.toml
+
       - name: Build
         run: pnpm build
