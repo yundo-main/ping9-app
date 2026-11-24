@@ -13,7 +13,7 @@ import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { arch, platform } from "node:os";
-import { basename, extname, join } from "node:path";
+import { join } from "node:path";
 
 const WEB = "apps/web";
 const CONF_PATH = join(WEB, "src-tauri/tauri.conf.json");
@@ -56,7 +56,7 @@ mkdirSync(outDir, { recursive: true });
 const collected = [];
 for (const artifact of ARTIFACTS) {
   const dir = join(BUNDLE_DIR, artifact.dir);
-  let names = [];
+  let names;
   try { names = readdirSync(dir); } catch { continue; }
   for (const name of names.filter((n) => n.endsWith(artifact.ext))) {
     const from = join(dir, name);
