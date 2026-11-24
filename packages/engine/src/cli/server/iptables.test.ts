@@ -1,7 +1,7 @@
 // 서버로 쓰는 PC의 iptables (T0.21). 공개 인터페이스(createSimulator)로만 확인한다.
 // 토폴로지: PC1 — R1 — SRV1. 규칙은 SRV1의 콘솔에서 건다. 서버는 포트가 하나라 INPUT과 OUTPUT만 패킷을 본다.
 import { validateDocument, validateTrace } from "@ping9/shared";
-import type { Command, ConsoleLine, ConsoleResult, PcDevice, Trace } from "@ping9/shared";
+import type { Command, ConsoleLine, ConsoleResult, ServerDevice, Trace } from "@ping9/shared";
 import { describe, expect, test } from "vitest";
 
 import { needsRouteExchange } from "../../routing-inputs";
@@ -25,13 +25,13 @@ async function lab() {
   const send = (command: unknown) => sim.dispatch(command as Command);
   const must = (command: unknown) => expect(send(command)).toMatchObject({ ok: true });
   must({ type: "device/add", id: PC1, kind: "pc", position: { x: 0, y: 0 }, os: "linux" });
-  must({ type: "device/add", id: SRV, kind: "pc", position: { x: 400, y: 0 }, os: "server" });
+  must({ type: "device/add", id: SRV, kind: "server", position: { x: 400, y: 0 } });
   must({ type: "device/rename", deviceId: SRV, name: "SRV1" });
   must({ type: "device/add", id: R1, kind: "router", position: { x: 200, y: 0 } });
   must({ type: "link/add", id: "55555555-5555-4555-8555-555555555555", ends: [{ deviceId: PC1, port: "Ethernet0" }, { deviceId: R1, port: "GigabitEthernet0/0" }] });
   must({ type: "link/add", id: "66666666-6666-4666-8666-666666666666", ends: [{ deviceId: SRV, port: "Ethernet0" }, { deviceId: R1, port: "GigabitEthernet0/1" }] });
   must({ type: "pc/set-ip", deviceId: PC1, ip: "10.0.1.10", mask: "255.255.255.0", gateway: "10.0.1.1" });
-  must({ type: "pc/set-ip", deviceId: SRV, ip: "10.0.2.10", mask: "255.255.255.0", gateway: "10.0.2.1" });
+  must({ type: "server/set-ip", deviceId: SRV, ip: "10.0.2.10", mask: "255.255.255.0", gateway: "10.0.2.1" });
   for (const [port, ip] of [["GigabitEthernet0/0", "10.0.1.1"], ["GigabitEthernet0/1", "10.0.2.1"]] as const) {
     must({ type: "interface/set-ip", deviceId: R1, port, ip, mask: "255.255.255.0" });
     must({ type: "interface/set-admin", deviceId: R1, port, adminUp: true });
@@ -50,7 +50,7 @@ async function lab() {
     expect(validateTrace(trace)).toMatchObject({ ok: true });
     return trace.events[trace.result.primaryDropSeq!]!;
   };
-  const config = () => (sim.getSnapshot().document.devices.find((device) => device.id === SRV) as PcDevice).config;
+  const config = () => (sim.getSnapshot().document.devices.find((device) => device.id === SRV) as ServerDevice).config;
   return { sim, send, must, pc, raw, srv, lastTrace, primaryDrop, config };
 }
 
@@ -162,7 +162,7 @@ describe("INPUT 체인은 서버로 온 패킷을 거른다", () => {
     await srv("iptables -P OUTPUT DROP");
     await pc("ping -c 1 10.0.2.10");
     const view = sim.getSnapshot().views[SRV]!;
-    expect(view.kind === "pc" && view.arpTable.map((entry) => entry.ip)).toEqual(["10.0.2.1"]);
+    expect(view.kind === "server" && view.arpTable.map((entry) => entry.ip)).toEqual(["10.0.2.1"]);
   });
 });
 
@@ -375,10 +375,10 @@ describe("서버가 아닌 PC", () => {
   test("서버가 아닌 PC의 규칙은 바꿀 수 없다", async () => {
     const { send } = await lab();
     expect(send({ type: "firewall/add-rule", deviceId: PC1, chain: "INPUT", rule: { target: "DROP" } })).toEqual({
-      ok: false, error: { code: "PC_NOT_SERVER", params: { deviceId: PC1 } },
+      ok: false, error: { code: "DEVICE_KIND_MISMATCH", params: { deviceId: PC1, expected: "server", actual: "pc" } },
     });
     expect(send({ type: "firewall/set-policy", deviceId: R1, chain: "INPUT", policy: "DROP" })).toMatchObject({
-      ok: false, error: { code: "DEVICE_KIND_MISMATCH", params: { expected: "pc", actual: "router" } },
+      ok: false, error: { code: "DEVICE_KIND_MISMATCH", params: { expected: "server", actual: "router" } },
     });
     expect(send({ type: "firewall/flush-rules", deviceId: "nope" })).toMatchObject({ ok: false, error: { code: "DEVICE_NOT_FOUND" } });
   });
@@ -386,7 +386,7 @@ describe("서버가 아닌 PC", () => {
   test("종류를 바꾸면 규칙은 남지만 적용되지 않는다. 다시 Server로 고르면 다시 막는다", async () => {
     const { pc, srv, must, config } = await lab();
     await srv("iptables -A INPUT -p icmp -j DROP");
-    must({ type: "pc/set-os", deviceId: SRV, os: "linux" });
+    must({ type: "server/set-os", deviceId: SRV, os: "linux" });
     expect(config().filter?.INPUT.rules).toHaveLength(1);
     expect(texts(await pc("ping -c 1 10.0.2.10")).join("\n")).toContain("1 received");
     must({ type: "pc/set-os", deviceId: SRV, os: "server" });
@@ -401,10 +401,10 @@ describe("규칙의 Command", () => {
     const { sim, srv, must, config } = await lab();
     await srv("iptables -A INPUT -s 10.0.1.10 -i eth0 -p tcp --dport 80 -j DROP");
     await srv("iptables -P OUTPUT DROP");
-    must({ type: "pc/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
-    must({ type: "pc/set-service", deviceId: SRV, service: "ftp", enabled: false });
-    must({ type: "pc/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.0.1" });
-    must({ type: "pc/remove-dns-record", deviceId: SRV, name: "a.test" });
+    must({ type: "server/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
+    must({ type: "server/set-service", deviceId: SRV, service: "ftp", enabled: false });
+    must({ type: "server/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.0.1" });
+    must({ type: "server/remove-dns-record", deviceId: SRV, name: "a.test" });
     must({ type: "device/rename", deviceId: SRV, name: "WEB1" });
     must({ type: "interface/set-admin", deviceId: SRV, port: "Ethernet0", adminUp: true });
     expect(config().filter).toEqual({

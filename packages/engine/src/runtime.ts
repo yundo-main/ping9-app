@@ -16,9 +16,10 @@ import type {
   Trace,
   TraceSummary,
 } from "@ping9/shared";
-import { errorInfo, isPcLikeDevice } from "@ping9/shared";
+import { errorInfo, isPcDevice, isServerDevice } from "@ping9/shared";
 
 import { PC_PORT, PcModel } from "./devices/pc/pc-model";
+import { SERVER_PORT, ServerModel } from "./devices/server/server-model";
 import { deviceRun } from "./devices/link";
 import type { DeviceModel } from "./devices/model";
 import { RouterModel } from "./devices/router/router-model";
@@ -127,6 +128,7 @@ type RipRoutes = ReadonlyMap<string, ReadonlyMap<string, RipRouteHop>>;
 export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const kernel = createKernel();
   const pcs = new Map<string, PcModel>();
+  const servers = new Map<string, ServerModel>();
   const routers = new Map<string, RouterModel>();
   const switches = new Map<string, SwitchModel>();
   // 가장 최근 것이 앞. 최대 LIMITS.maxTraces개
@@ -137,12 +139,26 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   /** 문서의 PC마다 모델이 있게 한다. 모델은 처음 쓸 때 만든다 */
   const pcModel = (deviceId: string): PcModel | undefined => {
     let model = pcs.get(deviceId);
-    if (model === undefined && isPcLikeDevice(findDevice(getDocument(), deviceId))) {
+    if (model === undefined && isPcDevice(findDevice(getDocument(), deviceId))) {
       model = new PcModel(deviceId, getDocument);
       pcs.set(deviceId, model);
     }
     return model;
   };
+
+  /** 문서의 Server마다 모델이 있게 한다. 모델은 처음 쓸 때 만든다 */
+  const serverModel = (deviceId: string): ServerModel | undefined => {
+    let model = servers.get(deviceId);
+    if (model === undefined && isServerDevice(findDevice(getDocument(), deviceId))) {
+      model = new ServerModel(deviceId, getDocument);
+      servers.set(deviceId, model);
+    }
+    return model;
+  };
+
+  /** PC든 Server든 끝단 호스트의 모델 */
+  const hostModel = (deviceId: string): PcModel | ServerModel | undefined =>
+    pcModel(deviceId) ?? serverModel(deviceId);
 
   const routerModel = (deviceId: string): RouterModel | undefined => {
     let model = routers.get(deviceId);
@@ -165,14 +181,16 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   /** 실행을 시작할 때 앞 실행에서 남은 대기열과 응답 기록을 비운다 */
   const startModels = (): void => {
     for (const pc of pcs.values()) pc.startRun();
+    for (const server of servers.values()) server.startRun();
     for (const router of routers.values()) router.startRun();
   };
 
-  /** 이번 실행에 쓸 PC·Switch·Router 모델 */
+  /** 이번 실행에 쓸 PC·Server·Switch·Router 모델 */
   const runModels = (): Map<string, DeviceModel> => {
     const models = new Map<string, DeviceModel>();
     for (const device of getDocument().devices) {
-      if (isPcLikeDevice(device)) models.set(device.id, pcModel(device.id)!);
+      if (device.kind === "pc") models.set(device.id, pcModel(device.id)!);
+      else if (device.kind === "server") models.set(device.id, serverModel(device.id)!);
       else if (device.kind === "router") models.set(device.id, routerModel(device.id)!);
       else models.set(device.id, switchModel(device.id)!);
     }
@@ -208,7 +226,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     readonly stop: (round: PingRound) => boolean;
   }): PingRun => {
     const source = findDevice(getDocument(), deviceId);
-    const model = pcModel(deviceId) ?? routerModel(deviceId);
+    const model = hostModel(deviceId) ?? routerModel(deviceId);
     if (source === undefined || model === undefined) {
       return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId }) };
     }
@@ -224,9 +242,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
           start: (ctx) => {
             startModels();
             if (model instanceof PcModel) model.ipv4.sendEcho(ctx, PC_PORT, targetIp, sequence, ttl);
+            else if (model instanceof ServerModel) model.ipv4.sendEcho(ctx, SERVER_PORT, targetIp, sequence, ttl);
             else model.sendEcho(ctx, targetIp, sequence, ttl);
           },
-          outcome: () => ((model instanceof PcModel ? model.ipv4.repliesReceived() : model.repliesReceived()).includes(sequence) ? "success" : "failed"),
+          outcome: () => ((model instanceof PcModel || model instanceof ServerModel ? model.ipv4.repliesReceived() : model.repliesReceived()).includes(sequence) ? "success" : "failed"),
         }));
 
       made.push({
@@ -270,9 +289,19 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
         changed ||= model.arpTable().length !== before.length;
       }
       for (const [deviceId, model] of pcs) {
-        if (!isPcLikeDevice(findDevice(document, deviceId))) {
+        if (!isPcDevice(findDevice(document, deviceId))) {
           pcs.delete(deviceId);
           // 지운 장비의 ARP 항목은 화면에서도 사라진다
+          changed ||= model.arp.view().length > 0;
+          continue;
+        }
+        const before = model.arp.view();
+        model.onConfigChanged({ previous, document });
+        changed ||= model.arp.view().length !== before.length;
+      }
+      for (const [deviceId, model] of servers) {
+        if (!isServerDevice(findDevice(document, deviceId))) {
+          servers.delete(deviceId);
           changed ||= model.arp.view().length > 0;
           continue;
         }
@@ -311,7 +340,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
 
     exchange(request, docVersion) {
       const source = findDevice(getDocument(), request.deviceId);
-      const model = pcModel(request.deviceId);
+      const model = hostModel(request.deviceId);
       if (source === undefined || model === undefined) {
         return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId: request.deviceId }) };
       }
@@ -343,7 +372,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     },
 
     arpTable(deviceId) {
-      return pcs.get(deviceId)?.arp.view() ?? routers.get(deviceId)?.arpTable() ?? [];
+      return pcs.get(deviceId)?.arp.view() ?? servers.get(deviceId)?.arp.view() ?? routers.get(deviceId)?.arpTable() ?? [];
     },
 
     clearArp(deviceId, ip) {
@@ -352,7 +381,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
         const before = router.arpTable(); router.clearArp(ip);
         return router.arpTable().length !== before.length;
       }
-      const model = pcs.get(deviceId);
+      const model = pcs.get(deviceId) ?? servers.get(deviceId);
       if (model === undefined) return false;
       const before = model.arp.view();
       if (ip !== undefined && !before.some((entry) => entry.ip === ip)) return false;
@@ -411,6 +440,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       for (const [deviceId, model] of pcs) {
         const view = views[deviceId];
         if (view?.kind === "pc") views[deviceId] = { ...view, arpTable: model.arp.view() };
+      }
+      for (const [deviceId, model] of servers) {
+        const view = views[deviceId];
+        if (view?.kind === "server") views[deviceId] = { ...view, arpTable: model.arp.view() };
       }
       for (const [deviceId, model] of switches) {
         const view = views[deviceId];

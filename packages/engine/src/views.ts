@@ -36,8 +36,10 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
     const ports = portViewsOf(document, device);
     switch (device.kind) {
       case "pc":
-      case "server":
         views[device.id] = { kind: "pc", ports, arpTable: [] };
+        break;
+      case "server":
+        views[device.id] = { kind: "server", ports, arpTable: [] };
         break;
       case "switch":
         views[device.id] = { kind: "switch", ports, macTable: [] };

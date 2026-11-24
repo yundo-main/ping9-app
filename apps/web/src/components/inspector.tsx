@@ -1,7 +1,7 @@
 // 오른쪽 속성 패널. 시안의 selectDevice가 만드는 마크업과 클래스를 따른다.
 // 구성 값은 스냅샷의 Document에서, 포트 상태와 테이블은 스냅샷의 views에서 읽는다 (AD-7).
 
-import { LIMITS, filterOf, isPcLikeDevice, shortPortName } from "@ping9/shared";
+import { LIMITS, filterOf, isPcDevice, isServerDevice, shortPortName } from "@ping9/shared";
 import type { Command, DeviceKind, DispatchResult, PortView, RouteChangeView, Snapshot, TopologyDocument } from "@ping9/shared";
 import type { ReactNode } from "react";
 
@@ -11,6 +11,7 @@ import { FilterRules } from "./filter-rules";
 import { PcSettings } from "./pc-settings";
 import { ripSummaryFor, RouteExchange, RouterRoutingTable } from "./router-inspector";
 import { ServerServices } from "./server-services";
+import { ServerSettings } from "./server-settings";
 import { SwitchMacTable, SwitchVlanList } from "./switch-inspector";
 import { SwitchPortTag, trunkAllowedText } from "./switch-port-tag";
 import { VpnSettings } from "./vpn-settings";
@@ -90,8 +91,9 @@ export function Inspector({
         포트 {view.ports.length}개 · {linked}개 연결
       </div>
 
-      {isPcLikeDevice(device) && <PcSettings key={device.id} device={device} onDispatch={onDispatch} />}
-      {device.kind === "server" &&
+      {isPcDevice(device) && <PcSettings key={device.id} device={device} onDispatch={onDispatch} />}
+      {isServerDevice(device) && <ServerSettings key={device.id} device={device} onDispatch={onDispatch} />}
+      {isServerDevice(device) &&
         <ServerServices key={`services ${device.id}`} device={device} onDispatch={onDispatch} />}
       {device.kind === "switch" && <SwitchVlanList config={device.config} />}
       {device.kind === "router" && <VpnSettings key={device.id} device={device} onDispatch={onDispatch} />}

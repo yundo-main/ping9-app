@@ -3,9 +3,10 @@
 // 장비 종류에 명령 정의 목록이 있으면 IOS 방식 CLI(cli/ios)로 넘긴다.
 // 목록이 없는 종류는 아직 모든 명령어가 알 수 없는 명령어다. 담당이 자기 목록을 아래에 더한다.
 // `complete`와 `help`는 E3(T3.2.x)에서 같은 명령 정의로 계산한다.
+// Server 장비는 server-console.ts의 독립 콘솔로 넘긴다 (T0.25).
 
-import { LIMITS, errorInfo, isPcLikeDevice, isServer, osOf } from "@ping9/shared";
-import type { ConsoleLine, ConsoleResult, Device, DeviceKind, HelpEntry, OsKind, PcLikeDevice } from "@ping9/shared";
+import { LIMITS, errorInfo, isPcDevice, osOf } from "@ping9/shared";
+import type { ConsoleLine, ConsoleResult, Device, DeviceKind, HelpEntry, OsKind, PcDevice } from "@ping9/shared";
 
 import { iosCandidates, iosComplete, iosExec, iosHelp, iosPrompt } from "./cli/ios";
 import type { PathCompleter } from "./cli/ios";
@@ -14,11 +15,11 @@ import type { CommandDefinition, IosConsoleEnv } from "./cli/ios";
 import { initialFiles, parseEcho, pcCommandsFor, pcPrompt, runEcho, unknownCommandText, unsupportedSyntaxAt } from "./cli/pc";
 import type { PcFiles } from "./cli/pc";
 import { splitWords } from "./cli/ios/parse";
-import { runIptables } from "./cli/pc/iptables-run";
 import { ROUTER_COMMANDS } from "./cli/router";
 import { LINUX_ROUTER_COMMANDS } from "./cli/router/linux-commands";
 import { vyosExec, vyosPrompt, vyosHelp, vyosComplete } from "./cli/vyos/console";
 import { SWITCH_COMMANDS } from "./cli/switch";
+import { createServerConsolePort } from "./server-console";
 
 export interface ConsolePort {
   /** 현재 프롬프트 (예: `PC1 User>`, `R1(config-if)#`) */
@@ -56,16 +57,17 @@ function pcUnknownCommand(lines: readonly ConsoleLine[], text: string, os: OsKin
 
 function definitionsFor(device: Device): readonly CommandDefinition[] | undefined {
   if (device.kind === "router" && device.config.cliStyle === "linux") return LINUX_ROUTER_COMMANDS;
-  return isPcLikeDevice(device) ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
+  if (device.kind === "server") return undefined; // Server는 server-console.ts의 독립 콘솔이 담당한다 (T0.25)
+  return isPcDevice(device) ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
 }
 
-export function createConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePort {
+function createMainConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePort {
   const findDevice = () => env.getDocument().devices.find((device) => device.id === deviceId);
   // PC의 경로 자리에서 Tab이 파일·폴더 이름을 채운다 (T0.19)
   const pathsOf = (device: Device): PathCompleter | undefined =>
-    isPcLikeDevice(device) ? (typed, dirsOnly) => pathCompletions(filesOf(device), typed, dirsOnly) : undefined;
+    isPcDevice(device) ? (typed, dirsOnly) => pathCompletions(filesOf(device), typed, dirsOnly) : undefined;
   // 파일 트리가 없는 환경(일부 테스트)에서는 늘 처음 상태다
-  const filesOf = (pc: PcLikeDevice): PcFiles => env.getFiles?.(pc.id, osOf(pc.config)) ?? initialFiles(osOf(pc.config));
+  const filesOf = (pc: PcDevice): PcFiles => env.getFiles?.(pc.id, osOf(pc.config)) ?? initialFiles(osOf(pc.config));
 
   const prompt = (): string => {
     const device = findDevice();
@@ -74,16 +76,11 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
     // 리눅스 네이티브 라우터는 root 셸 프롬프트 (T16.1)
     if (device.kind === "router" && device.config.cliStyle === "linux") return `root@${device.name}:~#`;
     // PC에는 모드가 없고 OS마다 프롬프트가 다르다 (Windows `PC1 User>`, Linux `user@PC2 ~ $`, T0.19)
-    if (isPcLikeDevice(device)) return pcPrompt(device, filesOf(device));
+    if (isPcDevice(device)) return pcPrompt(device, filesOf(device));
     return definitionsFor(device) === undefined ? `${device.name}>` : iosPrompt(device, env);
   };
 
   const result = (...lines: ConsoleLine[]): ConsoleResult => ({ lines, prompt: prompt() });
-
-  // 서버에서는 앞의 `sudo`를 같은 길이의 빈칸으로 바꿔 읽는다. 오류의 `^` 위치가 그대로다 (T14.2.1, T0.21)
-  const SUDO = /^(\s*)sudo(?=\s)/;
-  const withoutSudo = (device: Device, line: string): string =>
-    isPcLikeDevice(device) && isServer(device.config) ? line.replace(SUDO, "$1    ") : line;
 
   // 완성과 도움말을 계산할 수 있는 경우만 돌려준다. 장비가 없거나, 명령 정의가 없는 종류거나,
   // 글이 아니거나 너무 긴 줄이면 완성도 도움말도 없다 (예외를 던지지 않는다, AD-16)
@@ -93,7 +90,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
     const definitions = definitionsFor(device);
     if (definitions === undefined) return undefined;
     if (typeof line !== "string" || line.length > LIMITS.maxConsoleLineLength) return undefined;
-    return { text: withoutSudo(device, line), device, definitions };
+    return { text: line, device, definitions };
   };
 
   return {
@@ -105,7 +102,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
         return result({ kind: "error", code: "DEVICE_NOT_FOUND", params: { deviceId } });
       }
 
-      const text = withoutSudo(device, typeof line === "string" ? line : "");
+      const text = typeof line === "string" ? line : "";
       if (text.length > LIMITS.maxConsoleLineLength) {
         return result({
           kind: "error",
@@ -116,7 +113,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
 
       if (device.kind === "router" && device.config.cliStyle === "vyos") return vyosExec(text, device, env);
       // `echo <글>`, `echo <글> > <파일>`은 리다이렉트 기호 검사의 예외다 (T0.19 설계안 결정 3)
-      if (isPcLikeDevice(device)) {
+      if (isPcDevice(device)) {
         const echo = parseEcho(text, osOf(device.config));
         if (echo !== undefined) {
           const outcome = runEcho(filesOf(device), echo);
@@ -126,7 +123,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       }
 
       // PC 콘솔은 한 줄에 명령 하나다. 파이프, 리다이렉트, 명령 연결은 실행하지 않는다 (T0.9)
-      if (isPcLikeDevice(device)) {
+      if (isPcDevice(device)) {
         const blocked = unsupportedSyntaxAt(text);
         if (blocked !== undefined) {
           return result({
@@ -137,17 +134,11 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
         }
       }
 
-      // 서버의 `iptables`는 옵션 순서가 자유로워 명령 정의로 읽지 않고 따로 읽는다 (T14.2.1, T0.21)
-      if (isPcLikeDevice(device) && isServer(device.config)) {
-        const [first, ...rest] = splitWords(text);
-        if (first?.text === "iptables") return result(...runIptables(rest, device, env.dispatch));
-      }
-
       const definitions = definitionsFor(device);
       if (definitions !== undefined) {
         const executed = iosExec(text, device, definitions, env);
         // iosExec의 프롬프트는 IOS 모드의 것이다. PC는 실행 뒤의 문서로 OS별 프롬프트를 다시 만든다
-        if (isPcLikeDevice(device)) return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
+        if (isPcDevice(device)) return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
         if (device.kind === "router" && device.config.cliStyle === "linux") return { lines: executed.lines, prompt: prompt() };
         return executed;
       }
@@ -168,11 +159,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       const target = assistTarget(line);
       if (target?.device.kind === "router" && target.device.config.cliStyle === "vyos") return vyosComplete(target.text, target.device, env);
       if (target === undefined) return null;
-      const completed = iosComplete(target.text, target.device, target.definitions, env, pathsOf(target.device));
-      // 빈칸으로 바꿔 읽은 `sudo`를 완성한 줄에 되돌린다
-      const sudo = target.text === line ? null : SUDO.exec(line);
-      return completed === null || sudo === null || !completed.startsWith(" ".repeat(sudo[0].length))
-        ? completed : `${sudo[0]}${completed.slice(sudo[0].length)}`;
+      return iosComplete(target.text, target.device, target.definitions, env, pathsOf(target.device));
     },
 
     candidates: (line: string): readonly string[] => {
@@ -187,5 +174,27 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       if (target?.device.kind === "router" && target.device.config.cliStyle === "vyos") return vyosHelp(target.text, target.device, env);
       return target === undefined ? [] : iosHelp(target.text, target.device, target.definitions, env);
     },
+  };
+}
+
+/**
+ * 장비의 콘솔 포트. Server면 독립 콘솔(server-console.ts)로 넘기고, 그 밖에는 여기의 구현을 쓴다 (T0.25).
+ * 열린 콘솔 위에서 종류가 바뀌어도(pc/set-os ↔ server/set-os) 매 호출마다 지금 종류로 고른다
+ */
+export function createConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePort {
+  let main: ConsolePort | undefined;
+  let server: ConsolePort | undefined;
+  const kind = (): DeviceKind | undefined =>
+    env.getDocument().devices.find((device) => device.id === deviceId)?.kind;
+  const forKind = (): ConsolePort =>
+    kind() === "server"
+      ? (server ??= createServerConsolePort(deviceId, env))
+      : (main ??= createMainConsolePort(deviceId, env));
+  return {
+    prompt: () => forKind().prompt(),
+    exec: (line: string) => forKind().exec(line),
+    complete: (line: string) => forKind().complete(line),
+    candidates: (line: string) => forKind().candidates(line),
+    help: (line: string) => forKind().help(line),
   };
 }

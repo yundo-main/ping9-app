@@ -3,29 +3,26 @@
 // 이름 풀이는 없다: `curl`은 IP 주소만 받고, 이름은 `nslookup <이름> <서버>`로 직접 물어본다.
 // os.ts가 OS별 명령 목록 뒤에 이 목록을 붙인다.
 
-import { isPcLikeDevice,
-  SERVICE_KINDS,
+import { isPcDevice,
+
   SERVICE_PORTS,
   checkHostName,
   errorInfo,
-  isServer,
   parseIpv4,
-  servicesOf,
 } from "@ping9/shared";
-import type { ConsoleLine, ErrorInfo, OsKind, PcLikeDevice, ServiceKind } from "@ping9/shared";
+import type { ConsoleLine, ErrorInfo, OsKind, PcDevice, ServiceKind } from "@ping9/shared";
 
 import { listeningService, serviceResponse } from "../../devices/pc/services";
 import type { ServiceOutcome } from "../../runtime";
-import { customParam, defineCommand, linesFromDispatch, param } from "../ios";
-import { IPTABLES_USAGE } from "./iptables-run";
+import { customParam, defineCommand, param } from "../ios";
 import type { CommandArgs, CommandContext, CommandDefinition, CommandOutcome, ParamValue } from "../ios";
 
 const text = (value: string): ConsoleLine => ({ kind: "text", text: value });
 const errorLine = (error: ErrorInfo): ConsoleLine => ({ kind: "error", ...error });
 const clip = (value: string): string => (value.length > 64 ? value.slice(0, 64) : value);
 
-function pcOf(context: CommandContext): PcLikeDevice | undefined {
-  return isPcLikeDevice(context.device) ? context.device : undefined;
+function pcOf(context: CommandContext): PcDevice | undefined {
+  return isPcDevice(context.device) ? context.device : undefined;
 }
 
 /** 첫 줄 바로 뒤에 추적 줄을 둔다. 화면이 그 추적을 재생한 뒤에 첫 줄을 보인다 (ping의 회차와 같은 길) */
@@ -71,7 +68,7 @@ function readHostName(value: string): ParamValue {
 }
 
 /** 자기 주소나 127.x로 보낸 요청은 링크를 지나지 않는다. 이 PC가 듣고 있으면 바로 답한다 */
-function localOutcome(pc: PcLikeDevice, targetIp: string, protocol: "tcp" | "udp", port: number, message: string): ServiceOutcome | undefined {
+function localOutcome(pc: PcDevice, targetIp: string, protocol: "tcp" | "udp", port: number, message: string): ServiceOutcome | undefined {
   if (targetIp !== pc.config.ip && !targetIp.startsWith("127.")) return undefined;
   const service = listeningService(pc, protocol, port);
   return service === undefined ? { kind: "refused", timeUs: 0 } : { kind: "response", ...serviceResponse(pc, service, message), timeUs: 0 };
@@ -84,7 +81,7 @@ interface Requested {
 }
 
 function request(
-  context: CommandContext, pc: PcLikeDevice, service: ServiceKind, protocol: "tcp" | "udp", targetIp: string, port: number, message: string,
+  context: CommandContext, pc: PcDevice, service: ServiceKind, protocol: "tcp" | "udp", targetIp: string, port: number, message: string,
 ): Requested | { readonly error: ErrorInfo } | undefined {
   const local = localOutcome(pc, targetIp, protocol, port, message);
   if (local !== undefined) return { outcome: local };
@@ -194,74 +191,15 @@ function runW32tm(args: CommandArgs, context: CommandContext): CommandOutcome {
     : [`error: 0x800705B4  [${server}:123]`], result.traceId);
 }
 
-/** `systemctl`이 받는 서비스 이름. 흔한 데몬 이름도 받는다 */
-const SERVICE_ALIASES: Readonly<Record<string, ServiceKind>> = {
-  http: "http", httpd: "http", nginx: "http", apache2: "http",
-  dns: "dns", named: "dns", bind9: "dns",
-  ntp: "ntp", ntpd: "ntp", chronyd: "ntp",
-  ftp: "ftp", vsftpd: "ftp",
-};
-
-function readService(value: string): ParamValue {
-  const name = value.replace(/\.service$/, "");
-  return Object.hasOwn(SERVICE_ALIASES, name)
-    ? { ok: true, value: SERVICE_ALIASES[name]! }
-    : { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: clip(value) }) };
-}
-
-const SERVICE_TITLES: Readonly<Record<ServiceKind, string>> = {
-  http: "PING9 HTTP server", dns: "PING9 DNS server", ntp: "PING9 NTP server", ftp: "PING9 FTP server",
-};
-
-/** `systemctl start|stop <서비스>`. 속성 패널의 스위치와 같은 Command를 낸다 (AD-3) */
-function setService(enabled: boolean) {
-  return (args: CommandArgs, context: CommandContext): CommandOutcome => {
-    const pc = pcOf(context);
-    if (pc === undefined) return {};
-    return { lines: linesFromDispatch(context.dispatch({ type: "pc/set-service", deviceId: pc.id, service: args["service"] as ServiceKind, enabled })) };
-  };
-}
-
-function serviceStatus(args: CommandArgs, context: CommandContext): CommandOutcome {
-  const pc = pcOf(context);
-  if (pc === undefined) return {};
-  const service = args["service"] as ServiceKind;
-  const { protocol, port } = SERVICE_PORTS[service];
-  const active = servicesOf(pc.config).includes(service);
-  return {
-    lines: [
-      text(`${active ? "●" : "○"} ${service}.service - ${SERVICE_TITLES[service]}`),
-      text(`     Active: ${active ? "active (running)" : "inactive (dead)"}`),
-      ...(active ? [text(`     Listen: ${protocol}/${port}`)] : []),
-    ],
-  };
-}
-
-/** `ss -tuln`: 듣고 있는 포트. 켜 둔 서비스만 나온다 */
-function listSockets(_args: CommandArgs, context: CommandContext): CommandOutcome {
-  const pc = pcOf(context);
-  if (pc === undefined) return {};
-  const enabled = servicesOf(pc.config);
-  const rows = SERVICE_KINDS.filter((kind) => enabled.includes(kind))
-    .map((kind) => SERVICE_PORTS[kind])
-    .sort((a, b) => (a.protocol === b.protocol ? a.port - b.port : a.protocol === "udp" ? -1 : 1));
-  return {
-    lines: [
-      text("Netid  State   Local Address:Port"),
-      ...rows.map((row) => text(`${row.protocol.padEnd(6)} ${(row.protocol === "tcp" ? "LISTEN" : "UNCONN").padEnd(7)} 0.0.0.0:${row.port}`)),
-    ],
-  };
-}
 
 const urlParam = customParam("url", "Address: [http://|ftp://]<IP>[:port][/path]", readUrl);
 const nameParam = customParam("name", "Host name to look up, e.g. www.ping9.test", readHostName);
 const serverParam = param("server", "ipv4", "DNS server address");
 const ipParam = param("ip", "ipv4", "NTP server address");
 const computerParam = customParam("computer", "NTP server, e.g. /computer:10.0.2.10", readComputer);
-const serviceParam = customParam("service", "Service: http, dns, ntp or ftp", readService);
 
 const pcCommand = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
 
 export const WINDOWS_SERVICE_COMMANDS: readonly CommandDefinition[] = [
   pcCommand(["curl", urlParam], "Fetch a web page (http://) or a file list (ftp://) from a server", runCurl),
@@ -275,15 +213,3 @@ export const LINUX_SERVICE_COMMANDS: readonly CommandDefinition[] = [
   pcCommand(["ntpdate", "-q", ipParam], "Ask an NTP server once", runNtpdate),
 ];
 
-/** 종류가 Server인 PC에만 있는 명령어 */
-export const SERVER_ONLY_COMMANDS: readonly CommandDefinition[] = [
-  pcCommand(["ss", "-tuln"], "Show listening ports", listSockets),
-  pcCommand(["systemctl", "start", serviceParam], "Turn a service on", setService(true)),
-  pcCommand(["systemctl", "stop", serviceParam], "Turn a service off", setService(false)),
-  pcCommand(["systemctl", "status", serviceParam], "Show whether a service is running", serviceStatus),
-  // 실행은 console.ts가 iptables-run으로 넘긴다 (옵션 순서가 자유롭다). 이 정의는 `help`, `?`, Tab이 명령을 알게 한다 (T0.21)
-  pcCommand(["iptables"], "Packet filter rules (iptables -h)", () => ({ lines: IPTABLES_USAGE.map(text) })),
-];
-
-/** 서버가 아닌 PC에서 서버 명령을 쓸 수 없게, 목록을 고르는 쪽(os.ts)이 이 판정을 쓴다 */
-export const hasServerCommands = (pc: PcLikeDevice): boolean => isServer(pc.config);

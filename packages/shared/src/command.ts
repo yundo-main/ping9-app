@@ -34,13 +34,22 @@ export type Command =
   | { readonly type: "interface/clear-ip"; readonly deviceId: string; readonly port: string }
   // PC의 IP (FR-25). `ip`가 null이면 IP를 지운다. 이때 `mask`와 `gateway`도 null이어야 한다
   | { readonly type: "pc/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
-  // PC의 OS (T0.7). IP 구성은 그대로 둔다
+  // PC의 OS (T0.7). IP 구성은 그대로 둔다. `server`를 고르면 장비가 `kind: "server"`로 바뀐다
   | { readonly type: "pc/set-os"; readonly deviceId: string; readonly os: PcOsChoice }
   // 서버로 쓰는 PC의 서비스 (T0.20). `os`가 `server`인 PC에만 쓴다
   | { readonly type: "pc/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
   // 같은 이름이 있으면 주소를 바꾼다
   | { readonly type: "pc/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
   | { readonly type: "pc/remove-dns-record"; readonly deviceId: string; readonly name: string }
+  // Server 장비의 명령 (T0.25). pc/* 명령에서 복사한 독립 명령이다
+  // Server의 IP. `ip`가 null이면 IP를 지운다
+  | { readonly type: "server/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
+  // Server를 PC로 되돌리는 명령. 고른 OS로 `kind: "pc"`가 된다
+  | { readonly type: "server/set-os"; readonly deviceId: string; readonly os: Exclude<PcOsChoice, "server"> }
+  // Server의 서비스
+  | { readonly type: "server/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
+  | { readonly type: "server/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
+  | { readonly type: "server/remove-dns-record"; readonly deviceId: string; readonly name: string }
   // Static route (FR-35)
   // distance (T11.1.1): add는 없으면 1. remove는 없으면 AD와 상관없이, 있으면 같은 AD일 때만 지운다
   | { readonly type: "route/add"; readonly deviceId: string; readonly network: string; readonly mask: string; readonly nextHop: string; readonly distance?: number }
@@ -97,6 +106,11 @@ const COMMAND_TYPE_SET = {
   "pc/set-service": true,
   "pc/add-dns-record": true,
   "pc/remove-dns-record": true,
+  "server/set-ip": true,
+  "server/set-os": true,
+  "server/set-service": true,
+  "server/add-dns-record": true,
+  "server/remove-dns-record": true,
   "route/add": true,
   "route/remove": true,
   "rip/enable": true,

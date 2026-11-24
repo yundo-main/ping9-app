@@ -5,7 +5,7 @@
 // ping과 `ip neigh`는 ping.ts에 있다.
 // Linux의 인터페이스 이름 `eth0`은 콘솔에서만 쓴다. 문서 안의 포트 이름은 `Ethernet0`이다.
 
-import { isPcLikeDevice,
+import { isPcDevice,
   PORT_NAMES,
   errorInfo,
   formatIpv4,
@@ -14,7 +14,7 @@ import { isPcLikeDevice,
   parseIpv4,
   prefixLengthToMask,
 } from "@ping9/shared";
-import type { ConsoleLine, PcLikeDevice, PortStatus } from "@ping9/shared";
+import type { ConsoleLine, PcDevice, PortStatus } from "@ping9/shared";
 
 import { macAddressFor } from "../../mac";
 import { computeViews } from "../../views";
@@ -29,8 +29,8 @@ const PC_PORT = PORT_NAMES.pc[0];
 
 const text = (value: string): ConsoleLine => ({ kind: "text", text: value });
 
-function pcOf(context: CommandContext): PcLikeDevice | undefined {
-  return isPcLikeDevice(context.device) ? context.device : undefined;
+function pcOf(context: CommandContext): PcDevice | undefined {
+  return isPcDevice(context.device) ? context.device : undefined;
 }
 
 /** 오류에 담는 입력 글의 최대 길이. 해석기의 다른 오류와 같다 */
@@ -68,7 +68,7 @@ function splitCidr(value: string | number | undefined): { ip: string; mask: stri
 }
 
 /** 게이트웨이가 새 주소의 네트워크 안이면 남기고 아니면 지운다 */
-function keptGateway(pc: PcLikeDevice, ip: string, mask: string | null): string | null {
+function keptGateway(pc: PcDevice, ip: string, mask: string | null): string | null {
   const { gateway } = pc.config;
   if (gateway === undefined || mask === null || maskToPrefixLength(mask) === null) return null;
   return isSameNetwork(gateway, ip, mask) ? gateway : null;
@@ -189,7 +189,7 @@ function broadcastOf(ip: string, mask: string): string | null {
   return formatIpv4(((address | ~bits) >>> 0));
 }
 
-function eth0Lines(pc: PcLikeDevice, context: CommandContext): ConsoleLine[] {
+function eth0Lines(pc: PcDevice, context: CommandContext): ConsoleLine[] {
   const view = computeViews(context.document)[pc.id];
   const status = view?.ports.find((port) => port.name === PC_PORT)?.status ?? "no-link";
   const { ip, mask } = pc.config;
@@ -223,7 +223,7 @@ function ifconfigShowEth0(_args: CommandArgs, context: CommandContext): CommandO
 }
 
 /** `ip link`의 eth0 두 줄. 첫 줄은 `ip addr`과 같은 상태 줄이다 */
-function linkLines(pc: PcLikeDevice, context: CommandContext): ConsoleLine[] {
+function linkLines(pc: PcDevice, context: CommandContext): ConsoleLine[] {
   return [
     text(`2: ${LINUX_INTERFACE}: ${LINK_STATE[portStatusOf(pc, context)]}`),
     text(`    link/ether ${macAddressFor(pc.id, 0)} brd ff:ff:ff:ff:ff:ff`),
@@ -303,7 +303,7 @@ const maskParam = param("mask", "mask", "Subnet mask");
 const gatewayParam = param("gateway", "ipv4", "Default gateway");
 
 const linux = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
 
 export const LINUX_PC_COMMANDS: readonly CommandDefinition[] = [
   linux(["ip", "addr"], "Show addresses", showAddresses),

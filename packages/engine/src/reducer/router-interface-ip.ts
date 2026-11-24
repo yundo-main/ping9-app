@@ -1,4 +1,4 @@
-import { checkInterfaceAddress, checkRouterInterfaceOverlap, errorInfo, isPcLikeDevice, isTunnelName, routerInterfaces } from "@ping9/shared";
+import { checkInterfaceAddress, checkRouterInterfaceOverlap, errorInfo, isTunnelName, routerInterfaces } from "@ping9/shared";
 import type { Notice } from "@ping9/shared";
 
 import { describeValue } from "../describe";
@@ -26,7 +26,7 @@ export const setRouterInterfaceIp: CommandHandler<"interface/set-ip"> = (documen
   if (overlap !== null) return { ok: false, error: overlap };
 
   const others = document.devices.filter(other => other.id !== device.id && (
-    isPcLikeDevice(other) ? other.config.ip === command.ip :
+    (other.kind === "pc" || other.kind === "server") ? other.config.ip === command.ip :
       other.kind === "router" && Object.values(other.config.interfaces).some(iface => iface.ip === command.ip)
   )).map(other => ({ deviceId: other.id, deviceName: other.name }));
   const notices: readonly Notice[] = others.length === 0 ? [] : [{ code: "DUPLICATE_IP", params: { ip: command.ip, others } }];

@@ -19,11 +19,11 @@ async function lab(...rules: string[]): Promise<{ document: TopologyDocument; ti
   const simulator = createSimulator();
   const commands: unknown[] = [
     { type: "device/add", id: PC1, kind: "pc", position: { x: 100, y: 200 }, os: "windows" },
-    { type: "device/add", id: SRV, kind: "pc", position: { x: 500, y: 200 }, os: "server" },
+    { type: "device/add", id: SRV, kind: "server", position: { x: 500, y: 200 } },
     { type: "device/rename", deviceId: SRV, name: "SRV1" },
     { type: "link/add", id: "55555555-5555-4555-8555-555555555555", ends: [{ deviceId: PC1, port: "Ethernet0" }, { deviceId: SRV, port: "Ethernet0" }] },
     { type: "pc/set-ip", deviceId: PC1, ip: "10.0.1.10", mask: "255.255.255.0" },
-    { type: "pc/set-ip", deviceId: SRV, ip: "10.0.1.20", mask: "255.255.255.0" },
+    { type: "server/set-ip", deviceId: SRV, ip: "10.0.1.20", mask: "255.255.255.0" },
   ];
   for (const command of commands) expect(simulator.dispatch(command as Command)).toMatchObject({ ok: true });
   for (const rule of rules) {
@@ -175,11 +175,11 @@ function wired(middle: "switch" | "router") {
   const commands: unknown[] = [
     { type: "device/add", id: PC1, kind: "pc", position: { x: 100, y: 200 }, os: "linux" },
     { type: "device/add", id: MID, kind: middle, position: { x: 300, y: 200 } },
-    { type: "device/add", id: SRV, kind: "pc", position: { x: 500, y: 200 }, os: "server" },
+    { type: "device/add", id: SRV, kind: "server", position: { x: 500, y: 200 } },
     { type: "link/add", id: "55555555-5555-4555-8555-555555555555", ends: [{ deviceId: PC1, port: "Ethernet0" }, { deviceId: MID, port: ports[0] }] },
     { type: "link/add", id: "66666666-6666-4666-8666-666666666666", ends: [{ deviceId: SRV, port: "Ethernet0" }, { deviceId: MID, port: ports[1] }] },
     { type: "pc/set-ip", deviceId: PC1, ip: "10.0.1.10", mask: "255.255.255.0", ...(middle === "router" ? { gateway: "10.0.1.1" } : {}) },
-    { type: "pc/set-ip", deviceId: SRV, ip: serverIp, mask: "255.255.255.0", ...(middle === "router" ? { gateway: "10.0.2.1" } : {}) },
+    { type: "server/set-ip", deviceId: SRV, ip: serverIp, mask: "255.255.255.0", ...(middle === "router" ? { gateway: "10.0.2.1" } : {}) },
     ...(middle === "switch" ? [] : ([[ports[0], "10.0.1.1"], [ports[1], "10.0.2.1"]] as const).flatMap(([port, ip]) => [
       { type: "interface/set-ip", deviceId: MID, port, ip, mask: "255.255.255.0" },
       { type: "interface/set-admin", deviceId: MID, port, adminUp: true },

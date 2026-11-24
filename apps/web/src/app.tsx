@@ -1,7 +1,7 @@
 // 편집기 화면. 배치는 화면 시안을 따른다: 상단 막대, 왼쪽 장비 목록, 가운데 캔버스, 오른쪽 속성 패널.
 // 화면이 가진 상태는 선택, 열린 터미널, 터미널의 화면 기록뿐이다. 나머지는 engine의 스냅샷에서 읽는다 (AD-4).
 
-import { isPcLikeDevice, osOf, pingRoundKind, shortPortName } from "@ping9/shared";
+import { osOf, pingRoundKind, shortPortName } from "@ping9/shared";
 import type { ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
 import type { PaletteKind } from "./canvas-interaction";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
@@ -390,7 +390,7 @@ export function App() {
             // 서비스 요청(T0.20)도 회차가 하나라, 멈추면 ping 통계 없이 `^C`만 찍는다
             return summary?.kind === "ping" && (summary.hop !== undefined || summary.service !== undefined);
           },
-          os: device !== undefined && isPcLikeDevice(device) ? osOf(device.config) : "windows",
+          os: device !== undefined && (device.kind === "pc" || device.kind === "server") ? osOf(device.config) : "windows",
           // 실시간이면 재생하지 않는다. 0을 돌려주면 회차 줄이 실제 OS처럼 바로 뜬다 (응답 없는 회차는 4초)
           play: (traceId) => (modeRef.current === "simulation" ? play(deviceId, traceId) : 0),
         });

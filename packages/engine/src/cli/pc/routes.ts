@@ -2,7 +2,7 @@
 // PC의 경로는 문서의 IP·마스크·게이트웨이에서 계산한다. 따로 저장하지 않는다.
 
 import { PORT_NAMES, formatIpv4, maskToPrefixLength, parseIpv4 } from "@ping9/shared";
-import type { PcLikeDevice, PortStatus } from "@ping9/shared";
+import type { PcDevice, PortStatus } from "@ping9/shared";
 
 import { computeViews } from "../../views";
 import type { CommandContext } from "../ios";
@@ -22,7 +22,7 @@ export interface PcRoutes {
 }
 
 /** 포트 상태는 화면과 같은 값을 쓴다 (AD-7) */
-export function portStatusOf(pc: PcLikeDevice, context: CommandContext): PortStatus {
+export function portStatusOf(pc: PcDevice, context: CommandContext): PortStatus {
   return computeViews(context.document)[pc.id]?.ports.find((port) => port.name === PC_PORT)?.status ?? "no-link";
 }
 
@@ -30,7 +30,7 @@ export function portStatusOf(pc: PcLikeDevice, context: CommandContext): PortSta
  * 지금 PC의 경로. IP가 없거나 포트가 꺼져 있으면 null (경로가 하나도 없다).
  * 꺼진 동안 게이트웨이는 문서에 남지만 경로에는 보이지 않는다 (T0.14 결정 4)
  */
-export function pcRoutes(pc: PcLikeDevice, status: PortStatus): PcRoutes | null {
+export function pcRoutes(pc: PcDevice, status: PortStatus): PcRoutes | null {
   const { ip, mask, gateway } = pc.config;
   if (status === "admin-down" || ip === undefined || mask === undefined) return null;
   const address = parseIpv4(ip);

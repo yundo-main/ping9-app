@@ -4,11 +4,6 @@
 export const DEVICE_KINDS = ["pc", "server", "switch", "router"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
-/** PC처럼 끝단 장비인지. Server는 kind가 따로 있지만 PC의 구성·포트·동작을 그대로 쓴다 (T0.23) */
-export function isPcKind(kind: DeviceKind | undefined): kind is "pc" | "server" {
-  return kind === "pc" || kind === "server";
-}
-
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
 export const PORT_NAMES = {
   pc: ["Ethernet0"],
@@ -269,15 +264,34 @@ interface DeviceBase {
   readonly position: Position;
 }
 
+/**
+ * Server 구성 (T0.25). PC 구성에서 복사한 독립 타입 — 서버를 따로 바꿀 수 있다.
+ * `os`는 항상 `server`다. 필드가 `PcConfig`와 같아 `osOf`·`servicesOf` 같은 구성 헬퍼가 그대로 쓰인다
+ */
+export interface ServerConfig {
+  readonly ip?: string;
+  readonly mask?: string;
+  readonly gateway?: string;
+  readonly os?: "server";
+  /** 포트 켜짐 (T0.14). 칸이 없으면 켜짐 */
+  readonly adminUp?: boolean;
+  /** 켜 둔 서비스 (T0.20). 칸이 없으면 넷 다 켜짐. `SERVICE_KINDS`의 순서 */
+  readonly services?: readonly ServiceKind[];
+  /** DNS 서비스가 답하는 이름 (T0.20). 칸이 없으면 없음 */
+  readonly dnsRecords?: readonly DnsRecord[];
+  /** iptables의 필터 규칙 (T0.21). 칸이 없으면 세 체인 모두 ACCEPT에 규칙 없음 */
+  readonly filter?: PcFilter;
+}
+
 export interface PcDevice extends DeviceBase {
   readonly kind: "pc";
   readonly config: PcConfig;
 }
 
-/** 서버. PC와 같은 구성(`PcConfig`)을 쓰는 별도 장비다 (T0.23). `config.os`는 항상 `server`다 */
+/** 서버. PC를 복사해 만든 독립 장비다 (T0.25). `config.os`는 항상 `server`다 */
 export interface ServerDevice extends DeviceBase {
   readonly kind: "server";
-  readonly config: PcConfig;
+  readonly config: ServerConfig;
 }
 
 export interface SwitchDevice extends DeviceBase {
@@ -292,12 +306,14 @@ export interface RouterDevice extends DeviceBase {
 
 export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice;
 
-/** PC와 Server. 둘 다 `PcConfig`를 쓰고 포트가 `Ethernet0` 하나다 */
-export type PcLikeDevice = PcDevice | ServerDevice;
+/** PC 장비인지. 객체를 `PcDevice`로 좁힌다 */
+export function isPcDevice(device: Device | undefined): device is PcDevice {
+  return device !== undefined && device.kind === "pc";
+}
 
-/** PC 계열 장비인지 (Server 포함). 객체를 `PcLikeDevice`로 좁힌다 */
-export function isPcLikeDevice(device: Device | undefined): device is PcLikeDevice {
-  return device !== undefined && isPcKind(device.kind);
+/** Server 장비인지. 객체를 `ServerDevice`로 좁힌다 */
+export function isServerDevice(device: Device | undefined): device is ServerDevice {
+  return device !== undefined && device.kind === "server";
 }
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */

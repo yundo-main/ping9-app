@@ -1,7 +1,7 @@
 // 서버로 쓰는 PC의 서비스와 그것을 쓰는 명령어 (T0.20). 공개 인터페이스(createSimulator)로만 확인한다.
 // 토폴로지: PC1 — R1(또는 Switch) — SRV1. 서버의 iptables 규칙은 server-iptables.test.ts가 본다 (T0.21).
 import { validateDocument, validateTrace } from "@ping9/shared";
-import type { Command, ConsoleResult, PcDevice, Trace } from "@ping9/shared";
+import type { Command, ConsoleResult, ServerDevice, Trace } from "@ping9/shared";
 import { describe, expect, test } from "vitest";
 
 import { createSimulator } from "../../simulator";
@@ -24,7 +24,7 @@ async function lab(middle: Middle = "router", clientOs: "windows" | "linux" = "l
   const send = (command: unknown) => sim.dispatch(command as Command);
   const must = (command: unknown) => expect(send(command)).toMatchObject({ ok: true });
   must({ type: "device/add", id: PC1, kind: "pc", position: { x: 0, y: 0 }, os: clientOs });
-  must({ type: "device/add", id: SRV, kind: "pc", position: { x: 400, y: 0 }, os: "server" });
+  must({ type: "device/add", id: SRV, kind: "server", position: { x: 400, y: 0 } });
   must({ type: "device/rename", deviceId: SRV, name: "SRV1" });
   must({ type: "device/add", id: MID, kind: middle, position: { x: 200, y: 0 } });
   const mid = MID;
@@ -35,7 +35,7 @@ async function lab(middle: Middle = "router", clientOs: "windows" | "linux" = "l
   const routed = middle !== "switch";
   const serverIp = routed ? "10.0.2.10" : "10.0.1.20";
   must({ type: "pc/set-ip", deviceId: PC1, ip: "10.0.1.10", mask: "255.255.255.0", gateway: routed ? "10.0.1.1" : null });
-  must({ type: "pc/set-ip", deviceId: SRV, ip: serverIp, mask: "255.255.255.0", gateway: routed ? "10.0.2.1" : null });
+  must({ type: "server/set-ip", deviceId: SRV, ip: serverIp, mask: "255.255.255.0", gateway: routed ? "10.0.2.1" : null });
   if (routed) {
     for (const [port, ip] of [[ports[0], "10.0.1.1"], [ports[1], "10.0.2.1"]] as const) {
       must({ type: "interface/set-ip", deviceId: mid, port, ip, mask: "255.255.255.0" });
@@ -51,7 +51,7 @@ async function lab(middle: Middle = "router", clientOs: "windows" | "linux" = "l
     expect(validateTrace(trace).ok).toBe(true);
     return trace.events[trace.result.primaryDropSeq!]!;
   };
-  const serverConfig = () => (sim.getSnapshot().document.devices.find((device) => device.id === SRV) as PcDevice).config;
+  const serverConfig = () => (sim.getSnapshot().document.devices.find((device) => device.id === SRV) as ServerDevice).config;
   return { sim, send, must, run, pc, lastTrace, primaryDrop, serverConfig, serverIp };
 }
 
@@ -105,7 +105,7 @@ describe("서버의 서비스에 요청한다", () => {
 
   test("DNS는 넣어 둔 이름에 답한다 (Linux와 Windows의 출력)", async () => {
     const linux = await lab();
-    linux.must({ type: "pc/add-dns-record", deviceId: SRV, name: "WWW.ping9.test", address: "10.0.2.10" });
+    linux.must({ type: "server/add-dns-record", deviceId: SRV, name: "WWW.ping9.test", address: "10.0.2.10" });
     expect(texts(await linux.pc("nslookup www.ping9.test 10.0.2.10"))).toEqual([
       "Server:\t\t10.0.2.10", "Address:\t10.0.2.10#53", "", "Name:\twww.ping9.test", "Address: 10.0.2.10",
     ]);
@@ -113,7 +113,7 @@ describe("서버의 서비스에 요청한다", () => {
       .map((event) => event.frame.application?.message)).toEqual(["A www.ping9.test", "www.ping9.test A 10.0.2.10"]);
 
     const windows = await lab("router", "windows");
-    windows.must({ type: "pc/add-dns-record", deviceId: SRV, name: "www.ping9.test", address: "10.0.2.10" });
+    windows.must({ type: "server/add-dns-record", deviceId: SRV, name: "www.ping9.test", address: "10.0.2.10" });
     expect(texts(await windows.pc("nslookup WWW.PING9.TEST 10.0.2.10"))).toEqual([
       "Server:  UnKnown", "Address:  10.0.2.10", "", "Name:    www.ping9.test", "Address:  10.0.2.10",
     ]);
@@ -131,7 +131,7 @@ describe("서버의 서비스에 요청한다", () => {
 describe("서비스가 꺼져 있거나 닿지 않을 때", () => {
   test("끈 TCP 서비스는 RST로 거절한다. 원인은 서버의 PORT_CLOSED다", async () => {
     const { pc, must, primaryDrop } = await lab();
-    must({ type: "pc/set-service", deviceId: SRV, service: "http", enabled: false });
+    must({ type: "server/set-service", deviceId: SRV, service: "http", enabled: false });
     expect(texts(await pc("curl http://10.0.2.10/"))).toEqual(["curl: (7) Failed to connect to 10.0.2.10 port 80: Connection refused"]);
     const drop = primaryDrop();
     expect(drop.deviceId).toBe(SRV);
@@ -142,7 +142,7 @@ describe("서비스가 꺼져 있거나 닿지 않을 때", () => {
 
   test("끈 UDP 서비스는 ICMP 도달 불가로 답한다", async () => {
     const { pc, must, primaryDrop, lastTrace } = await lab();
-    must({ type: "pc/set-service", deviceId: SRV, service: "dns", enabled: false });
+    must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: false });
     expect(texts(await pc("nslookup www.ping9.test 10.0.2.10"))).toEqual([
       ";; communications error to 10.0.2.10#53: connection refused", ";; no servers could be reached",
     ]);
@@ -153,7 +153,7 @@ describe("서비스가 꺼져 있거나 닿지 않을 때", () => {
 
   test("서버가 아닌 PC는 어느 포트도 듣지 않는다", async () => {
     const { pc, must } = await lab();
-    must({ type: "pc/set-os", deviceId: SRV, os: "linux" });
+    must({ type: "server/set-os", deviceId: SRV, os: "linux" });
     expect(texts(await pc("curl http://10.0.2.10/"))).toEqual(["curl: (7) Failed to connect to 10.0.2.10 port 80: Connection refused"]);
     // 다시 Server로 고르면 서비스가 돌아온다
     must({ type: "pc/set-os", deviceId: SRV, os: "server" });
@@ -265,13 +265,13 @@ describe("서비스 구성의 Command", () => {
   test("서비스를 끄고 켜면 정해진 순서로 저장된다. 주소를 바꾸거나 종류를 바꿔도 남는다", async () => {
     const { sim, must, serverConfig } = await lab();
     expect(serverConfig().services).toBeUndefined();
-    must({ type: "pc/set-service", deviceId: SRV, service: "dns", enabled: false });
-    must({ type: "pc/set-service", deviceId: SRV, service: "http", enabled: false });
-    must({ type: "pc/set-service", deviceId: SRV, service: "dns", enabled: true });
+    must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: false });
+    must({ type: "server/set-service", deviceId: SRV, service: "http", enabled: false });
+    must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: true });
     expect(serverConfig().services).toEqual(["dns", "ntp", "ftp"]);
-    must({ type: "pc/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
-    must({ type: "pc/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
-    must({ type: "pc/set-os", deviceId: SRV, os: "windows" });
+    must({ type: "server/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
+    must({ type: "server/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
+    must({ type: "server/set-os", deviceId: SRV, os: "windows" });
     must({ type: "interface/set-admin", deviceId: SRV, port: "Ethernet0", adminUp: false });
     must({ type: "pc/set-os", deviceId: SRV, os: "server" });
     expect(serverConfig()).toMatchObject({ services: ["dns", "ntp", "ftp"], dnsRecords: [{ name: "a.test", address: "10.0.2.10" }] });
@@ -282,27 +282,27 @@ describe("서비스 구성의 Command", () => {
 
   test("DNS 이름: 같은 이름은 주소를 바꾸고, 지울 수 있고, 한도가 있다", async () => {
     const { send, must, serverConfig } = await lab();
-    must({ type: "pc/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
-    must({ type: "pc/add-dns-record", deviceId: SRV, name: "A.TEST", address: "10.0.2.11" });
+    must({ type: "server/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
+    must({ type: "server/add-dns-record", deviceId: SRV, name: "A.TEST", address: "10.0.2.11" });
     expect(serverConfig().dnsRecords).toEqual([{ name: "a.test", address: "10.0.2.11" }]);
-    must({ type: "pc/remove-dns-record", deviceId: SRV, name: "a.test" });
+    must({ type: "server/remove-dns-record", deviceId: SRV, name: "a.test" });
     expect(serverConfig().dnsRecords).toEqual([]);
-    expect(send({ type: "pc/remove-dns-record", deviceId: SRV, name: "a.test" })).toMatchObject({ ok: false, error: { code: "DNS_RECORD_NOT_FOUND" } });
-    for (let index = 0; index < 32; index += 1) must({ type: "pc/add-dns-record", deviceId: SRV, name: `h${index}.test`, address: "10.0.2.10" });
-    expect(send({ type: "pc/add-dns-record", deviceId: SRV, name: "more.test", address: "10.0.2.10" })).toEqual({
+    expect(send({ type: "server/remove-dns-record", deviceId: SRV, name: "a.test" })).toMatchObject({ ok: false, error: { code: "DNS_RECORD_NOT_FOUND" } });
+    for (let index = 0; index < 32; index += 1) must({ type: "server/add-dns-record", deviceId: SRV, name: `h${index}.test`, address: "10.0.2.10" });
+    expect(send({ type: "server/add-dns-record", deviceId: SRV, name: "more.test", address: "10.0.2.10" })).toEqual({
       ok: false, error: { code: "LIMIT_EXCEEDED", params: { limit: "dnsRecords", max: 32 } },
     });
   });
 
   test.each<[string, Record<string, unknown>, string]>([
-    ["없는 서비스", { type: "pc/set-service", service: "ssh", enabled: true }, "DOCUMENT_INVALID_SHAPE"],
-    ["켜짐이 글", { type: "pc/set-service", service: "http", enabled: "yes" }, "DOCUMENT_INVALID_SHAPE"],
-    ["이름이 수", { type: "pc/add-dns-record", name: 5, address: "10.0.2.10" }, "DNS_NAME_INVALID"],
-    ["틀린 이름", { type: "pc/add-dns-record", name: "bad_name", address: "10.0.2.10" }, "DNS_NAME_INVALID"],
-    ["긴 이름", { type: "pc/add-dns-record", name: `${"a".repeat(41)}.test`, address: "10.0.2.10" }, "DNS_NAME_INVALID"],
-    ["틀린 주소", { type: "pc/add-dns-record", name: "a.test", address: "10.0.2.300" }, "INVALID_IPV4"],
-    ["쓸 수 없는 주소", { type: "pc/add-dns-record", name: "a.test", address: "0.0.0.0" }, "RESERVED_IPV4"],
-    ["주소가 객체", { type: "pc/add-dns-record", name: "a.test", address: {} }, "INVALID_IPV4"],
+    ["없는 서비스", { type: "server/set-service", service: "ssh", enabled: true }, "DOCUMENT_INVALID_SHAPE"],
+    ["켜짐이 글", { type: "server/set-service", service: "http", enabled: "yes" }, "DOCUMENT_INVALID_SHAPE"],
+    ["이름이 수", { type: "server/add-dns-record", name: 5, address: "10.0.2.10" }, "DNS_NAME_INVALID"],
+    ["틀린 이름", { type: "server/add-dns-record", name: "bad_name", address: "10.0.2.10" }, "DNS_NAME_INVALID"],
+    ["긴 이름", { type: "server/add-dns-record", name: `${"a".repeat(41)}.test`, address: "10.0.2.10" }, "DNS_NAME_INVALID"],
+    ["틀린 주소", { type: "server/add-dns-record", name: "a.test", address: "10.0.2.300" }, "INVALID_IPV4"],
+    ["쓸 수 없는 주소", { type: "server/add-dns-record", name: "a.test", address: "0.0.0.0" }, "RESERVED_IPV4"],
+    ["주소가 객체", { type: "server/add-dns-record", name: "a.test", address: {} }, "INVALID_IPV4"],
   ])("%s → %s", async (_name, command, code) => {
     const { send, sim } = await lab();
     const before = sim.getSnapshot().document;
@@ -315,7 +315,7 @@ describe("검토에서 나온 것", () => {
   test("가장 긴 DNS 이름으로 물어도 추적이 형식에 맞는다", async () => {
     const { pc, must, sim } = await lab();
     const name = `${"a".repeat(40)}.test`;
-    must({ type: "pc/add-dns-record", deviceId: SRV, name, address: "192.168.100.100" });
+    must({ type: "server/add-dns-record", deviceId: SRV, name, address: "192.168.100.100" });
     expect(texts(await pc(`nslookup ${name} 10.0.2.10`)).at(-1)).toBe("Address: 192.168.100.100");
     expect(texts(await pc(`nslookup ${"b".repeat(40)}.test 10.0.2.10`)).at(-1)).toContain("NXDOMAIN");
     for (const summary of sim.getSnapshot().traces) expect(validateTrace(sim.getTrace(summary.id))).toMatchObject({ ok: true });

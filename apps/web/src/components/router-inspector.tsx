@@ -1,7 +1,7 @@
 // Router 속성 패널의 라우팅 테이블과 경로 교환 (T11.5.1). 값은 스냅샷의 views와 traces, `getRouteChanges`에서 읽는다 (AD-7).
 // 화면 시안: 설계안 폴더의 T11.5.1-시안1-패널.png
 
-import { isPcLikeDevice, maskToPrefixLength, parseIpv4, shortPortName } from "@ping9/shared";
+import { maskToPrefixLength, parseIpv4, shortPortName } from "@ping9/shared";
 import type { RipRouteHop, RouteChangeView, RouteEntryView, RouterDevice, RouterView, TopologyDocument, TraceSummary } from "@ping9/shared";
 
 type RipSummary = Extract<TraceSummary, { kind: "rip" }>;
@@ -23,7 +23,7 @@ const byNetwork = (a: RouteEntryView, b: RouteEntryView) =>
 function ownerName(document: TopologyDocument, ip: string): string | undefined {
   return document.devices.find((device) =>
     device.kind === "router" ? Object.values(device.config.interfaces).some((iface) => iface.ip === ip)
-      : isPcLikeDevice(device) ? device.config.ip === ip : false)?.name;
+      : (device.kind === "pc" || device.kind === "server") ? device.config.ip === ip : false)?.name;
 }
 
 /** 이 Router에서 마지막 교환에 바뀐 경로의 표시 */

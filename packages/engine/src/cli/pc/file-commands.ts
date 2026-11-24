@@ -1,7 +1,7 @@
 // PC 콘솔의 파일 명령어 (T0.19, 설계안 2절). 출력과 오류는 각 OS의 실제 형식을 따른다.
 // 트리는 Runtime에만 있다. 명령은 context.files로 읽고 새 트리를 돌려 놓는다.
 
-import { errorInfo, isPcLikeDevice, osOf } from "@ping9/shared";
+import { errorInfo, isPcDevice, osOf } from "@ping9/shared";
 import type { ConsoleLine, OsKind } from "@ping9/shared";
 
 import { customParam, defineCommand } from "../ios";
@@ -34,7 +34,7 @@ export interface FileOutcome {
 const text = (line: string): ConsoleLine => ({ kind: "text", text: line });
 
 function osOfContext(context: CommandContext): OsKind {
-  return isPcLikeDevice(context.device) ? osOf(context.device.config) : "windows";
+  return isPcDevice(context.device) ? osOf(context.device.config) : "windows";
 }
 
 /** 파일 트리를 읽고 바꾸는 명령. Runtime이 없으면(테스트의 일부) 아무것도 하지 않는다 */
@@ -220,7 +220,7 @@ function echoDefinitions(caseSensitive: boolean): CommandDefinition[] {
 }
 
 const pc = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
 
 // ── Linux ──────────────────────────────────────────────
 

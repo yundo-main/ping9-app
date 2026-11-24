@@ -35,6 +35,18 @@ const pcConfigSchema = z.object({
   filter: z.lazy(() => filterSchema).optional(),
 });
 
+/** Server 구성 (T0.25). pcConfigSchema에서 복사한 독립 스키마 — `os`는 `server`만 온다 */
+const serverConfigSchema = z.object({
+  ip: shortString.optional(),
+  mask: shortString.optional(),
+  gateway: shortString.optional(),
+  os: z.literal("server").optional(),
+  adminUp: z.boolean().optional(),
+  services: z.array(z.enum(SERVICE_KINDS)).optional(),
+  dnsRecords: z.array(z.object({ name: shortString, address: shortString })).optional(),
+  filter: z.lazy(() => filterSchema).optional(),
+});
+
 const vlanSchema = z.object({ id: integer, name: shortString });
 
 const switchPortConfigSchema = z.object({
@@ -114,7 +126,7 @@ const deviceBase = { id: shortString, name: shortString, position: positionSchem
 
 const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("pc"), config: pcConfigSchema }),
-  z.object({ ...deviceBase, kind: z.literal("server"), config: pcConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("server"), config: serverConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("switch"), config: switchConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("router"), config: routerConfigSchema }),
 ]);

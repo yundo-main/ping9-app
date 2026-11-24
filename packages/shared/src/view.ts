@@ -77,6 +77,13 @@ export interface PcView {
   readonly arpTable: readonly ArpEntryView[];
 }
 
+/** Server 장비의 표시용 값 (T0.25). PcView에서 복사한 독립 타입이다 */
+export interface ServerView {
+  readonly kind: "server";
+  readonly ports: readonly PortView[];
+  readonly arpTable: readonly ArpEntryView[];
+}
+
 export interface SwitchView {
   readonly kind: "switch";
   readonly ports: readonly PortView[];
@@ -113,7 +120,7 @@ export interface RouterView {
 }
 
 /** 장비 종류로 구분되는 표시용 값. web은 표현(아이콘, 표의 열)에 한해서만 `kind`로 분기한다 */
-export type DeviceView = PcView | SwitchView | RouterView;
+export type DeviceView = PcView | ServerView | SwitchView | RouterView;
 
 /** `Simulator.getSnapshot()`이 돌려주는 값. 변경 불가능한 단순 자료다 */
 export interface Snapshot {

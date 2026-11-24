@@ -1,0 +1,146 @@
+// T1.8.3: PC 모델. 포트 하나(`Ethernet0`)에 ARP 모듈과 IPv4 호스트를 붙인다.
+// 구성(IP, OS, 링크)은 복사하지 않고 매번 지금 Document에서 읽는다. 그래서 IP를 바꿔도 모델을 다시 만들 필요가 없다.
+// 모델이 들고 있는 것은 Document에 없는 동적 상태(ARP 테이블)뿐이다.
+
+import { PORT_NAMES, filterOf, osOf } from "@ping9/shared";
+import { isServerDevice } from "@ping9/shared";
+import type { DeviceView, ServerDevice, TopologyDocument } from "@ping9/shared";
+
+import type { Frame, SimContext, TimerRef } from "../../kernel";
+import { ArpModule } from "../../protocols/arp";
+import { Ipv4Host } from "../../protocols/ipv4-host";
+import { TransportHost } from "../../protocols/transport";
+import type { Ipv4Address } from "../../protocols/ipv4-host";
+import { deviceRef, findDevice, isAdminUp, portLink, portMac } from "../../topology";
+import { computeViews } from "../../views";
+import { transmit } from "../link";
+import type { ConfigChange, DeviceModel } from "../model";
+import { listeningService, serviceResponse } from "./services";
+
+export const SERVER_PORT = PORT_NAMES.server[0];
+
+/** OS별 TTL. Windows 128, Linux 64 (T1.8.2 결정 4) */
+export const TTL_BY_OS = { windows: 128, linux: 64 } as const;
+
+function serverIn(document: TopologyDocument, deviceId: string): ServerDevice | undefined {
+  const device = findDevice(document, deviceId);
+  return isServerDevice(device) ? device : undefined;
+}
+
+function addressOf(server: ServerDevice): Ipv4Address | undefined {
+  const { ip, mask, gateway } = server.config;
+  if (ip === undefined || mask === undefined) return undefined;
+  return gateway === undefined ? { ip, mask } : { ip, mask, gateway };
+}
+
+export class ServerModel implements DeviceModel {
+  readonly deviceId: string;
+  readonly arp: ArpModule;
+  readonly ipv4: Ipv4Host;
+  /** TCP·UDP와 서비스 (T0.20). 서버로 쓰는 PC는 듣고, 모든 PC가 요청을 보낸다 */
+  readonly transport: TransportHost;
+  readonly #getDocument: () => TopologyDocument;
+
+  constructor(deviceId: string, getDocument: () => TopologyDocument) {
+    this.deviceId = deviceId;
+    this.#getDocument = getDocument;
+
+    const server = (): ServerDevice => {
+      const found = serverIn(this.#getDocument(), deviceId);
+      if (found === undefined) throw new Error(`ServerModel: PC ${deviceId} is not in the document`);
+      return found;
+    };
+    const linkOf = (port: string) => portLink(this.#getDocument(), { deviceId, port })?.linkId;
+    const macOf = (port: string) => portMac(server(), port);
+
+    // device와 ttl은 값이라 getter로 매번 읽는다. 이름과 OS가 바뀌어도 바로 반영된다
+    this.arp = new ArpModule({
+      get device() {
+        return deviceRef(server());
+      },
+      ipOf: () => server().config.ip,
+      macOf,
+      linkOf,
+      transmit: (ctx, port, frame) => {
+        transmit(ctx, this.#getDocument(), { deviceId, port }, frame);
+      },
+    });
+    this.ipv4 = new Ipv4Host(
+      {
+        get device() {
+          return deviceRef(server());
+        },
+        addressOf: () => addressOf(server()),
+        isUp: (port) => isAdminUp(server(), port),
+        macOf,
+        linkOf,
+        get ttl() {
+          return TTL_BY_OS[osOf(server().config)];
+        },
+        // 서버로 쓰는 PC의 iptables 규칙 (T0.21). 서버가 아니면 빈 필터라 모두 지나간다
+        filter: () => filterOf(server().config),
+      },
+      this.arp,
+    );
+    this.transport = new TransportHost({
+      get device() {
+        return deviceRef(server());
+      },
+      port: SERVER_PORT,
+      ipv4: this.ipv4,
+      listening: (protocol, port) => listeningService(server(), protocol, port),
+      respond: (service, message) => serviceResponse(server(), service, message),
+    });
+    this.ipv4.setTransport({
+      onPacket: (ctx, port, frame, address) => { this.transport.onPacket(ctx, port, frame, address); },
+      onIcmpError: (ctx, frame) => { this.transport.onIcmpError(ctx, frame); },
+    });
+  }
+
+  onFrame(ctx: SimContext, port: string, frame: Frame): void {
+    // 꺼진 포트로 받은 프레임은 버린다 (T0.14). Switch·Router가 받는 쪽에서 하는 것과 같다
+    const server = serverIn(this.#getDocument(), this.deviceId);
+    if (server !== undefined && !isAdminUp(server, port)) {
+      ctx.record({
+        frame, deviceId: this.deviceId, inPort: port, layer: "L2", action: "drop",
+        reason: { code: "IF_DOWN", params: { device: deviceRef(server), port } },
+      });
+      return;
+    }
+    this.ipv4.onFrame(ctx, port, frame);
+  }
+
+  onTimer(ctx: SimContext, timer: TimerRef): void {
+    this.arp.onTimer(ctx, timer);
+  }
+
+  /**
+   * 이 PC의 IP·마스크나 포트의 링크, 포트의 켜짐이 바뀌면 ARP 테이블을 비운다. 게이트웨이와 이름, OS는 ARP와 상관없다.
+   * 포트를 끄면 비운다: 실제 Linux도 링크가 내려가면 이웃 항목이 사라진다 (T0.14)
+   */
+  onConfigChanged(change: ConfigChange): void {
+    const before = serverIn(change.previous, this.deviceId);
+    const after = serverIn(change.document, this.deviceId);
+    if (before === undefined || after === undefined) return;
+
+    const ref = { deviceId: this.deviceId, port: SERVER_PORT };
+    const addressChanged = before.config.ip !== after.config.ip || before.config.mask !== after.config.mask;
+    const linkChanged = portLink(change.previous, ref)?.linkId !== portLink(change.document, ref)?.linkId;
+    const adminChanged = isAdminUp(before, SERVER_PORT) !== isAdminUp(after, SERVER_PORT);
+    if (addressChanged || linkChanged || adminChanged) this.arp.onPortChanged(SERVER_PORT);
+  }
+
+  /** 회차를 시작할 때 Runtime이 모든 PC에 부른다. 지난 회차의 대기열과 응답 목록을 비운다 */
+  startRun(): void {
+    this.arp.discardPending();
+    this.ipv4.startRun();
+    this.transport.startRun();
+  }
+
+  view(): DeviceView {
+    const document = this.#getDocument();
+    const base = computeViews(document)[this.deviceId];
+    if (base?.kind !== "server") throw new Error(`ServerModel: PC ${this.deviceId} is not in the document`);
+    return { ...base, arpTable: this.arp.view() };
+  }
+}

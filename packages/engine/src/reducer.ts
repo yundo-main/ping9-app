@@ -19,6 +19,9 @@ import { addLink, removeDevice, removeLink } from "./reducer/link";
 import { setPcIp } from "./reducer/pc-set-ip";
 import { setPcOs } from "./reducer/pc-set-os";
 import { addPcDnsRecord, removePcDnsRecord, setPcService } from "./reducer/pc-services";
+import { addServerDnsRecord, removeServerDnsRecord, setServerService } from "./reducer/server-services";
+import { setServerIp } from "./reducer/server-set-ip";
+import { setServerOs } from "./reducer/server-set-os";
 import { clearRouterInterfaceIp, setRouterInterfaceIp } from "./reducer/router-interface-ip";
 import { addRipNetwork, disableRip, enableRip, removeRipNetwork, setRipPassive } from "./reducer/router-rip";
 import { addRoute, removeRoute } from "./reducer/router-route";
@@ -68,6 +71,12 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "pc/set-service": setPcService,
   "pc/add-dns-record": addPcDnsRecord,
   "pc/remove-dns-record": removePcDnsRecord,
+  // Server 장비의 명령 (T0.25). pc/*에서 복사한 독립 처리기다
+  "server/set-ip": setServerIp,
+  "server/set-os": setServerOs,
+  "server/set-service": setServerService,
+  "server/add-dns-record": addServerDnsRecord,
+  "server/remove-dns-record": removeServerDnsRecord,
   "interface/set-admin": setInterfaceAdmin,
   "interface/set-ip": setRouterInterfaceIp,
   "interface/clear-ip": clearRouterInterfaceIp,

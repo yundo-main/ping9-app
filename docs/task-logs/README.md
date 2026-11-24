@@ -126,3 +126,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T17.2 배포 디렉터리와 버전 관리: dmg를 deploy/에 모은다 (계획에 없는 새 ID. T17.1의 예고 번호가 밀림) | [T17.2-desktop-release-dir.md](T17.2-desktop-release-dir.md) | 배포 | jarrod | 병합됨 (팀원 검토 없이) |
 | T0.23 서버를 별도 장비 종류(`kind: "server"`)로 분리하고 캔버스·목록 아이콘을 줄인다 (계획에 없는 새 ID) | [T0.23-server-rack-icon.md](T0.23-server-rack-icon.md) | 화면, 엔진, 스키마 | jarrod | 병합됨 (팀원 검토 없이). 옛 파일의 `pc + os server`는 마이그레이션 — 새 형식은 이 버전부터 읽는다 |
 | T0.24 Vercel 연동 제거와 저장소 이전 `yundo-main/ping9-app` (계획에 없는 새 ID. 배포는 Tauri 데스크톱 앱) | [T0.24-remove-vercel.md](T0.24-remove-vercel.md) | 배포, 문서 | jarrod | 병합됨 (팀원 검토 없이). Vercel 프로젝트·Neon DB 삭제는 대시보드에서 별도 작업 |
+| T0.25 서버를 PC에서 완전히 분리: `ServerConfig`, `server/*` 명령, 독립 콘솔·모델·리듀서 (계획에 없는 새 ID. T0.23 후속) | [T0.25-server-pc-separation.md](T0.25-server-pc-separation.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이). `pc/*` 서비스 명령은 PC에서 거절로 남음 — `server/*` 사용 |

@@ -17,7 +17,7 @@ const noop = () => {};
 
 function open(os: "windows" | "linux" | "server") {
   const simulator = createSimulator();
-  expect(simulator.dispatch({ type: "device/add", id: ID, kind: "pc", position: { x: 320, y: 200 }, os }).ok).toBe(true);
+  expect(simulator.dispatch({ type: "device/add", id: ID, kind: os === "server" ? "server" : "pc", position: { x: 320, y: 200 }, ...(os === "server" ? {} : { os }) }).ok).toBe(true);
   return simulator;
 }
 
@@ -43,7 +43,7 @@ describe("Server를 고른 PC", () => {
   test("끈 서비스는 꺼짐으로, 넣은 DNS 이름은 줄로 보인다", () => {
     const simulator = open("server");
     expect(simulator.dispatch(serviceCommand(ID, "ftp", false)).ok).toBe(true);
-    expect(simulator.dispatch({ type: "pc/add-dns-record", deviceId: ID, name: "www.ping9.test", address: "10.0.2.10" }).ok).toBe(true);
+    expect(simulator.dispatch({ type: "server/add-dns-record", deviceId: ID, name: "www.ping9.test", address: "10.0.2.10" }).ok).toBe(true);
     const html = inspector(simulator);
     expect(html).toContain('aria-checked="false" aria-label="FTP 서비스"');
     expect(html).toContain('aria-checked="true" aria-label="HTTP 서비스"');

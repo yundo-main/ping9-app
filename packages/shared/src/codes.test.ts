@@ -59,7 +59,9 @@ describe("코드 목록", () => {
     + "GRE 구성 2개와 IPsec 구성 2개, Router 선택·commit 3개(T15.2.1)와 ip_forward 1개(T16.1), 서버의 서비스 3개(T0.20)다", () => {
     const rip = ["rip/enable", "rip/disable", "rip/add-network", "rip/remove-network", "rip/set-passive"];
     const firewall = ["firewall/add-rule", "firewall/remove-rule", "firewall/flush-rules", "firewall/set-policy"];
-    const server = ["pc/set-service", "pc/add-dns-record", "pc/remove-dns-record"];
+    const server = ["pc/set-service", "pc/add-dns-record", "pc/remove-dns-record",
+      // Server 장비의 독립 명령 (T0.25). pc/*에서 복사한 것이다
+      "server/set-ip", "server/set-os", "server/set-service", "server/add-dns-record", "server/remove-dns-record"];
     const vpn = (type: string) => type.startsWith("tunnel/") || type.startsWith("ipsec/") || type.startsWith("router/");
     const added = [...rip, ...firewall, ...server];
     expect(COMMAND_TYPES.filter((type) => !added.includes(type) && !vpn(type))).toHaveLength(19);

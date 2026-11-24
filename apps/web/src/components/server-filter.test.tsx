@@ -16,7 +16,7 @@ const noop = () => {};
 
 function open(os: "server" | "linux" | "windows" = "server") {
   const simulator = createSimulator();
-  expect(simulator.dispatch({ type: "device/add", id: ID, kind: "pc", position: { x: 320, y: 200 }, os }).ok).toBe(true);
+  expect(simulator.dispatch({ type: "device/add", id: ID, kind: os === "server" ? "server" : "pc", position: { x: 320, y: 200 }, ...(os === "server" ? {} : { os }) }).ok).toBe(true);
   return simulator;
 }
 
@@ -56,7 +56,7 @@ describe("장비 목록과 캔버스", () => {
   test("종류를 Server에서 바꾸면 규칙이 적용되지 않아 배지도 없다", async () => {
     const simulator = open();
     await simulator.console(ID).exec("iptables -A INPUT -p icmp -j DROP");
-    expect(simulator.dispatch({ type: "pc/set-os", deviceId: ID, os: "linux" }).ok).toBe(true);
+    expect(simulator.dispatch({ type: "server/set-os", deviceId: ID, os: "linux" }).ok).toBe(true);
     expect(canvas(simulator)).not.toContain("filter-badge");
   });
 });
@@ -94,7 +94,7 @@ describe("속성 패널의 필터 규칙", () => {
   test("종류를 바꾸면 규칙 구역이 사라지고, 다시 Server로 고르면 규칙이 그대로 보인다", async () => {
     const simulator = open();
     await simulator.console(ID).exec("iptables -A INPUT -p icmp -j DROP");
-    expect(simulator.dispatch({ type: "pc/set-os", deviceId: ID, os: "windows" }).ok).toBe(true);
+    expect(simulator.dispatch({ type: "server/set-os", deviceId: ID, os: "windows" }).ok).toBe(true);
     expect(inspector(simulator)).not.toContain("필터 규칙");
     expect(simulator.dispatch({ type: "pc/set-os", deviceId: ID, os: "server" }).ok).toBe(true);
     expect(inspector(simulator)).toContain('<span class="code">1</span><span>-p icmp -j DROP</span>');

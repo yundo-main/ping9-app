@@ -1,9 +1,9 @@
 // 속성 패널에서 서버로 쓰는 PC에만 있는 구역 (T0.20): 서비스 켜고 끄기와 DNS 이름.
-// 스위치는 누르는 즉시 pc/set-service를, DNS 이름은 "추가"·"삭제"로 pc/add-dns-record·pc/remove-dns-record를 dispatch한다 (AD-3).
+// 스위치는 누르는 즉시 server/set-service를, DNS 이름은 "추가"·"삭제"로 server/add-dns-record·server/remove-dns-record를 dispatch한다 (AD-3).
 // 모양은 포트 스위치(T0.14)와 IP 설정(T1.5.2)의 것을 그대로 쓴다. 문구는 카탈로그에서 만든다 (AD-14).
 
 import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf } from "@ping9/shared";
-import type { Command, DispatchResult, ErrorInfo, PcLikeDevice, ServiceKind } from "@ping9/shared";
+import type { Command, DispatchResult, ErrorInfo, ServerDevice, ServiceKind } from "@ping9/shared";
 import { useId, useState } from "react";
 
 import { formatError } from "../messages/errors";
@@ -12,7 +12,7 @@ export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HT
 
 /** 스위치를 눌렀을 때 낼 Command */
 export function serviceCommand(deviceId: string, service: ServiceKind, enabled: boolean): Command {
-  return { type: "pc/set-service", deviceId, service, enabled };
+  return { type: "server/set-service", deviceId, service, enabled };
 }
 
 /** 서비스 하나의 스위치. 색만으로 구별하지 않도록 "켜짐"·"꺼짐" 글자를 함께 쓴다 */
@@ -44,7 +44,7 @@ function ServiceSwitch({ service, enabled, onChange }: {
 }
 
 export function ServerServices({ device, onDispatch }: {
-  readonly device: PcLikeDevice;
+  readonly device: ServerDevice;
   readonly onDispatch: (command: Command) => DispatchResult;
 }) {
   const id = useId();
@@ -55,7 +55,7 @@ export function ServerServices({ device, onDispatch }: {
   const records = dnsRecordsOf(device.config);
 
   const add = () => {
-    const result = onDispatch({ type: "pc/add-dns-record", deviceId: device.id, name: name.trim(), address: address.trim() });
+    const result = onDispatch({ type: "server/add-dns-record", deviceId: device.id, name: name.trim(), address: address.trim() });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -80,7 +80,7 @@ export function ServerServices({ device, onDispatch }: {
           {record.name}
           <span className="ip">{record.address}</span>
           <button type="button" className="dns-remove" aria-label={`${record.name} 삭제`}
-            onClick={() => onDispatch({ type: "pc/remove-dns-record", deviceId: device.id, name: record.name })}>
+            onClick={() => onDispatch({ type: "server/remove-dns-record", deviceId: device.id, name: record.name })}>
             ×
           </button>
         </div>

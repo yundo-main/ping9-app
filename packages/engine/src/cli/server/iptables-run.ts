@@ -5,7 +5,7 @@
 import {
   FIREWALL_CHAINS, FIREWALL_ICMP_TYPE_NUMBERS, filterOf, firewallInterfaceName, firewallRuleSpec, normalizeFirewallRule,
 } from "@ping9/shared";
-import type { Command, ConsoleLine, DispatchResult, FirewallChain, FirewallRule, PcLikeDevice, PcFilter } from "@ping9/shared";
+import type { Command, ConsoleLine, DispatchResult, FirewallChain, FirewallRule, ServerDevice, PcFilter } from "@ping9/shared";
 
 import { linesFromDispatch } from "../ios";
 import type { Word } from "../ios/parse";
@@ -98,7 +98,7 @@ const sameRule = (a: FirewallRule, b: FirewallRule): boolean =>
 /** `words`는 `iptables`를 뺀 나머지 단어다 */
 export function runIptables(
   words: readonly Word[],
-  device: PcLikeDevice,
+  device: ServerDevice,
   dispatch: (command: Command) => DispatchResult,
 ): readonly ConsoleLine[] {
   const parsed = parseIptables(words);

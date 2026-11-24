@@ -3,8 +3,8 @@
 // PC에는 모드 전환이 없어 모든 정의가 `user` 모드 하나에만 있고, 프롬프트는 늘 `이름>`이다.
 // `help`와 `?`는 T3.2.2에서 모든 장비 공용으로 만든다.
 
-import { isPcLikeDevice, PORT_NAMES } from "@ping9/shared";
-import type { ConsoleLine, PcLikeDevice, PortStatus } from "@ping9/shared";
+import { isPcDevice, PORT_NAMES } from "@ping9/shared";
+import type { ConsoleLine, PcDevice, PortStatus } from "@ping9/shared";
 
 import { macAddressFor } from "../../mac";
 import { computeViews } from "../../views";
@@ -38,11 +38,11 @@ const MEDIA_STATE: Readonly<Record<PortStatus, string>> = {
   "peer-down": "Disconnected",
 };
 
-function pcOf(context: CommandContext): PcLikeDevice | undefined {
-  return isPcLikeDevice(context.device) ? context.device : undefined;
+function pcOf(context: CommandContext): PcDevice | undefined {
+  return isPcDevice(context.device) ? context.device : undefined;
 }
 
-function addressLines(pc: PcLikeDevice): ConsoleLine[] {
+function addressLines(pc: PcDevice): ConsoleLine[] {
   const { ip, mask, gateway } = pc.config;
   return [
     row(LABEL.physical, macAddressFor(pc.id, 0)),
@@ -149,14 +149,14 @@ const gatewayParam = param("gateway", "ipv4", "Default gateway");
 export const WINDOWS_PC_COMMANDS: readonly CommandDefinition[] = [
   defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["ipconfig"],
     help: "Show the IP configuration",
     run: showIpconfig,
   }),
   defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["ipconfig", "/all"],
     help: "Show the full IP configuration",
     run: showIpconfigAll,
@@ -164,21 +164,21 @@ export const WINDOWS_PC_COMMANDS: readonly CommandDefinition[] = [
   // 정의 형태에 선택 매개변수가 없어 게이트웨이가 없는 형태와 있는 형태를 따로 둔다
   defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["ipconfig", ipParam, maskParam],
     help: "Set the IP address and subnet mask",
     run: setIp,
   }),
   defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["ipconfig", ipParam, maskParam, gatewayParam],
     help: "Set the IP address, subnet mask and default gateway",
     run: setIp,
   }),
   defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["route", "print"],
     help: "Show the IPv4 routing table (default gateway and own network only)",
     run: showRoutePrint,

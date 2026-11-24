@@ -2,7 +2,7 @@
 // 네트워크 동작은 OS와 상관없이 같다. 문서 안의 포트 이름도 OS와 상관없이 `Ethernet0`이다.
 
 import { osOf } from "@ping9/shared";
-import type { OsKind, PcLikeDevice } from "@ping9/shared";
+import type { OsKind, PcDevice } from "@ping9/shared";
 
 import { defineCommand } from "../ios";
 import type { CommandDefinition } from "../ios";
@@ -12,7 +12,7 @@ import type { PcFiles } from "./file-tree";
 import { LINUX_PC_COMMANDS } from "./linux-commands";
 import { WINDOWS_PC_COMMANDS } from "./pc-commands";
 import { LINUX_NETWORK_COMMANDS, WINDOWS_NETWORK_COMMANDS } from "./ping";
-import { LINUX_SERVICE_COMMANDS, SERVER_ONLY_COMMANDS, WINDOWS_SERVICE_COMMANDS, hasServerCommands } from "./service-commands";
+import { LINUX_SERVICE_COMMANDS, WINDOWS_SERVICE_COMMANDS } from "./service-commands";
 import { LINUX_TRACE_COMMANDS, WINDOWS_TRACE_COMMANDS } from "./traceroute";
 
 /** 명령 정의의 쓰는 형태. 매개변수 자리는 `<ip>`처럼 보인다 */
@@ -27,7 +27,7 @@ function usageOf(definition: CommandDefinition): string {
 function helpCommand(commands: () => readonly CommandDefinition[]): CommandDefinition {
   return defineCommand({
     modes: ["user"],
-    devices: ["pc", "server"],
+    devices: ["pc"],
     tokens: ["help"],
     help: "Show all commands",
     run: () => {
@@ -59,20 +59,8 @@ const LINUX_COMMANDS: readonly CommandDefinition[] = [
   ...LINUX_SERVICE_COMMANDS,
   helpCommand(() => LINUX_COMMANDS),
 ].map((definition) => ({ ...definition, caseSensitive: true }));
-// 서버로 쓰는 PC (T0.20): Linux의 명령어에 서비스를 다루는 명령어를 더한다
-const SERVER_COMMANDS: readonly CommandDefinition[] = [
-  ...LINUX_PC_COMMANDS,
-  ...LINUX_FILE_COMMANDS,
-  ...LINUX_NETWORK_COMMANDS,
-  ...LINUX_TRACE_COMMANDS,
-  ...LINUX_SERVICE_COMMANDS,
-  ...SERVER_ONLY_COMMANDS,
-  helpCommand(() => SERVER_COMMANDS),
-].map((definition) => ({ ...definition, caseSensitive: true }));
-
 /** 이 PC의 콘솔이 쓰는 명령 정의 목록 */
-export function pcCommandsFor(pc: PcLikeDevice): readonly CommandDefinition[] {
-  if (hasServerCommands(pc)) return SERVER_COMMANDS;
+export function pcCommandsFor(pc: PcDevice): readonly CommandDefinition[] {
   return osOf(pc.config) === "linux" ? LINUX_COMMANDS : WINDOWS_COMMANDS;
 }
 
@@ -80,7 +68,7 @@ export function pcCommandsFor(pc: PcLikeDevice): readonly CommandDefinition[] {
  * 프롬프트 (T0.19 설계안 결정 4, D안): 장비 이름과 지금 폴더 이름만.
  * Windows `PC1 User>`, `PC1 C:\>`. Linux `user@PC2 ~ $`, `user@PC2 / $`
  */
-export function pcPrompt(pc: PcLikeDevice, files: PcFiles): string {
+export function pcPrompt(pc: PcDevice, files: PcFiles): string {
   const label = folderLabel(files);
   return osOf(pc.config) === "linux" ? `user@${pc.name} ${label} $` : `${pc.name} ${label}>`;
 }

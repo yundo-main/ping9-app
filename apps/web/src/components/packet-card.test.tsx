@@ -165,12 +165,12 @@ test("TCP 서비스: IPv4 안에 TCP(포트·플래그), 응답에는 그 안에
   const [pc, server, sw] = ids;
   const commands: unknown[] = [
     { type: "device/add", id: pc, kind: "pc", position: { x: 0, y: 0 }, os: "linux" },
-    { type: "device/add", id: server, kind: "pc", position: { x: 400, y: 0 }, os: "server" },
+    { type: "device/add", id: server, kind: "server", position: { x: 400, y: 0 } },
     { type: "device/add", id: sw, kind: "switch", position: { x: 200, y: 0 } },
     { type: "link/add", id: "55555555-5555-4555-8555-555555555555", ends: [{ deviceId: pc, port: "Ethernet0" }, { deviceId: sw, port: "FastEthernet0/1" }] },
     { type: "link/add", id: "66666666-6666-4666-8666-666666666666", ends: [{ deviceId: server, port: "Ethernet0" }, { deviceId: sw, port: "FastEthernet0/2" }] },
     { type: "pc/set-ip", deviceId: pc, ip: "10.0.1.10", mask: "255.255.255.0", gateway: null },
-    { type: "pc/set-ip", deviceId: server, ip: "10.0.1.20", mask: "255.255.255.0", gateway: null },
+    { type: "server/set-ip", deviceId: server, ip: "10.0.1.20", mask: "255.255.255.0", gateway: null },
   ];
   for (const command of commands) expect(simulator.dispatch(command as Command)).toMatchObject({ ok: true });
   await simulator.console(pc).exec("curl http://10.0.1.20/");

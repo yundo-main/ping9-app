@@ -3,8 +3,8 @@
 // 모델이 들고 있는 것은 Document에 없는 동적 상태(ARP 테이블)뿐이다.
 
 import { PORT_NAMES, filterOf, osOf } from "@ping9/shared";
-import { isPcLikeDevice } from "@ping9/shared";
-import type { DeviceView, PcLikeDevice, TopologyDocument } from "@ping9/shared";
+import { isPcDevice } from "@ping9/shared";
+import type { DeviceView, PcDevice, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -22,12 +22,12 @@ export const PC_PORT = PORT_NAMES.pc[0];
 /** OS별 TTL. Windows 128, Linux 64 (T1.8.2 결정 4) */
 export const TTL_BY_OS = { windows: 128, linux: 64 } as const;
 
-function pcIn(document: TopologyDocument, deviceId: string): PcLikeDevice | undefined {
+function pcIn(document: TopologyDocument, deviceId: string): PcDevice | undefined {
   const device = findDevice(document, deviceId);
-  return isPcLikeDevice(device) ? device : undefined;
+  return isPcDevice(device) ? device : undefined;
 }
 
-function addressOf(pc: PcLikeDevice): Ipv4Address | undefined {
+function addressOf(pc: PcDevice): Ipv4Address | undefined {
   const { ip, mask, gateway } = pc.config;
   if (ip === undefined || mask === undefined) return undefined;
   return gateway === undefined ? { ip, mask } : { ip, mask, gateway };
@@ -45,7 +45,7 @@ export class PcModel implements DeviceModel {
     this.deviceId = deviceId;
     this.#getDocument = getDocument;
 
-    const pc = (): PcLikeDevice => {
+    const pc = (): PcDevice => {
       const found = pcIn(this.#getDocument(), deviceId);
       if (found === undefined) throw new Error(`PcModel: PC ${deviceId} is not in the document`);
       return found;

@@ -3,7 +3,7 @@
 
 import { macAddressFor } from "@ping9/engine";
 import {
-  BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_IP, RIP_MULTICAST_MAC, UNKNOWN_MAC, isIcmpError, isPcLikeDevice, portIndex, shortPortName, switchPort,
+  BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_IP, RIP_MULTICAST_MAC, UNKNOWN_MAC, isIcmpError, portIndex, shortPortName, switchPort,
 } from "@ping9/shared";
 import type { Device, IcmpMessage, TopologyDocument, TraceEvent } from "@ping9/shared";
 import { useState } from "react";
@@ -59,9 +59,9 @@ function ownersOf(document: TopologyDocument): Owners {
   for (const device of document.devices) {
     for (const port of PORT_NAMES[device.kind]) {
       mac.set(macAddressFor(device.id, portIndex(device.kind, port)),
-        isPcLikeDevice(device) ? device.name : `${device.name} ${shortPortName(port)}`);
+        (device.kind === "pc" || device.kind === "server") ? device.name : `${device.name} ${shortPortName(port)}`);
     }
-    if (isPcLikeDevice(device) && device.config.ip !== undefined) ip.set(device.config.ip, device.name);
+    if ((device.kind === "pc" || device.kind === "server") && device.config.ip !== undefined) ip.set(device.config.ip, device.name);
     if (device.kind === "router") {
       for (const iface of Object.values(device.config.interfaces)) if (iface.ip !== undefined) ip.set(iface.ip, device.name);
     }
