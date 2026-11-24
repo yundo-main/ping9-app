@@ -1,0 +1,103 @@
+# 데스크톱 산출물 빌드와 GitHub Release 만들기 (T17.3).
+# 수동 실행(Actions → Desktop Release → Run workflow)에 버전 인수를 준다:
+#   patch | minor | major | x.y.z — scripts/desktop-release.mjs의 버전 인수와 같다.
+# 흐름: bump 잡이 버전 파일을 올려 main에 커밋하고 태그·릴리스를 만들고,
+# build 잡이 mac·Windows runner에서 같은 스크립트로 산출물을 빌드해 그 릴리스에 올린다.
+# 외부 액션은 태그가 아니라 커밋 해시로 고정한다 (SEC-27, ci.yml과 같은 규칙).
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "올릴 버전: patch | minor | major | x.y.z"
+        required: true
+        default: "patch"
+
+# 태그·릴리스를 만들고 버전 커밋을 main에 넣는다. 검사용 ci.yml의 contents: read와 달리 이 워크플로는 쓴다
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: 버전 올리기와 태그·릴리스 만들기
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Bump version files
+        id: bump
+        run: |
+          node scripts/desktop-release.mjs --bump-only "${{ inputs.version }}"
+          version=$(node -p "require('./apps/web/src-tauri/tauri.conf.json').version")
+          if git ls-remote --tags origin "v${version}" | grep -q .; then
+            echo "::error::태그 v${version}이 이미 있다. 다른 버전을 고르세요."
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump and push tag
+        run: |
+          version="${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src-tauri/tauri.conf.json apps/web/src-tauri/Cargo.toml
+          git commit -m "Bump version to ${version}"
+          git tag "v${version}"
+          git push origin main "v${version}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --title "PING9 v${{ steps.bump.outputs.version }}"
+
+  build:
+    name: ${{ matrix.os }} 빌드
+    needs: bump
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: "v${{ needs.bump.outputs.version }}"
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # runner의 OS 산출물이 나온다 (mac→dmg, Windows→nsis exe·msi). 수집·이름 바꾸기는 스크립트가 한다
+      - name: Build desktop bundles
+        run: node scripts/desktop-release.mjs
+
+      - name: Upload bundles to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: gh release upload "v${{ needs.bump.outputs.version }}" "deploy/${{ needs.bump.outputs.version }}/"* --clobber

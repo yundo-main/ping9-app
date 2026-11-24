@@ -94,7 +94,7 @@ describe("서비스의 문구", () => {
   });
 
   test("오류 문구", () => {
-    expect(formatError({ code: "PC_NOT_SERVER", params: { deviceId: ID } })).toContain("Server를 골라 주세요");
+    expect(formatError({ code: "PC_NOT_SERVER", params: { deviceId: ID } })).toContain("서버 장비만");
     expect(formatError({ code: "SERVICE_URL_INVALID", params: { value: "http://www/" } })).toContain("http://www/");
     expect(formatError({ code: "DNS_RECORD_NOT_FOUND", params: { deviceId: ID, name: "a.test" } })).toBe("이 서버에는 a.test 이름이 없어요");
     expect(formatError({ code: "LIMIT_EXCEEDED", params: { limit: "dnsRecords", max: 32 } })).toBe("DNS 이름은 서버 하나에 32개까지 넣을 수 있어요");

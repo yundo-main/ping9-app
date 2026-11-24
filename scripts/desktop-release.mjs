@@ -8,6 +8,7 @@
 //   node scripts/desktop-release.mjs minor      마이너 버전을 올리고 빌드
 //   node scripts/desktop-release.mjs major      메이저 버전을 올리고 빌드
 //   node scripts/desktop-release.mjs 0.2.0      버전을 정해 빌드
+//   node scripts/desktop-release.mjs --bump-only <위 인수>  버전 파일만 올리고 끝 (CI의 범프 잡이 쓴다)
 
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -29,7 +30,8 @@ const ARTIFACTS = [
 
 const conf = JSON.parse(readFileSync(CONF_PATH, "utf8"));
 
-const arg = process.argv[2];
+const bumpOnly = process.argv[2] === "--bump-only";
+const arg = bumpOnly ? process.argv[3] : process.argv[2];
 let version = conf.version;
 if (arg !== undefined) {
   const [maj, min, pat] = version.split(".").map(Number);
@@ -45,6 +47,15 @@ if (arg !== undefined) {
   // Cargo.toml도 같은 버전으로 맞춘다 — 두 곳이 어긋나면 앱의 정보가 갈라진다
   writeFileSync(CARGO_PATH, readFileSync(CARGO_PATH, "utf8").replace(/^version = ".*"$/m, `version = "${version}"`));
   console.log(`버전 ${version}으로 올림 (tauri.conf.json, Cargo.toml)`);
+}
+
+if (bumpOnly) {
+  if (arg === undefined) {
+    console.error("--bump-only에는 patch|minor|major|x.y.z 인수가 필요합니다.");
+    process.exit(1);
+  }
+  console.log(`NEW_VERSION=${version}`);
+  process.exit(0);
 }
 
 console.log(`PING9 ${version} 데스크톱 빌드 시작 (${platform()}/${arch()})`);
