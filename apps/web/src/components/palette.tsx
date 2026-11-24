@@ -17,6 +17,17 @@ const NOTE: Readonly<Record<DragCancelState, string>> = {
   over: "놓으면 취소돼요",
 };
 
+/** 버튼에 올렸을 때 뜨는 툴팁 (T0.48). `title` 대신 data-tip으로 — 네이티브 툴팁은 늦게 뜬다 */
+const TIPS: Readonly<Record<PaletteKind, string>> = {
+  pc: "끌어서 배치 — ping·curl 같은 명령을 쓰는 단말",
+  server: "끌어서 배치 — HTTP·DNS 같은 서비스를 돌리는 서버",
+  switch: "끌어서 배치 — VLAN으로 네트워크를 나누는 L2 스위치",
+  l3switch: "끌어서 배치 — VLAN 사이를 라우팅하는 L3 스위치",
+  lb: "끌어서 배치 — 요청을 백엔드로 나누는 로드밸런서 (L4·L7)",
+  hub: "끌어서 배치 — 들어온 걸 모든 포트로 보내는 허브 (L1)",
+  router: "끌어서 배치 — 서로 다른 네트워크를 잇는 라우터 (L3)",
+};
+
 export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = false, selectActive = false, onSelectTool, onDeviceDragStart,
   dragCancel = "idle", zoneRef }: {
   readonly deviceCount: number;
@@ -37,7 +48,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
 
   const tool = (kind: PaletteKind, label: string): ReactNode => (
     <button key={kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
-      title={`${label}를 캔버스로 끌어서 놓으세요`} disabled={full} draggable={false}
+      data-tip={TIPS[kind]} disabled={full} draggable={false}
       onPointerDown={event => {
         if (event.button !== 0 || full) return;
         event.preventDefault();
@@ -55,7 +66,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       {/* 스위치는 한 버튼으로 묶는다. 누르면 옆에 뜨는 플라이아웃에서 고른다 — 목록 크기는 안 변한다 (T0.39) */}
       <div className="tool-group">
         <button type="button" className="tool group-tool" aria-label="Switch 종류" aria-expanded={switchesOpen}
-          title="눌러 스위치 종류를 고르세요" disabled={full}
+          data-tip="눌러 스위치 종류를 고릅니다" disabled={full}
           onClick={() => setSwitchesOpen(open => !open)}>
           <DeviceIcon kind="switch" hideLayerBadge />Switch
         </button>
@@ -73,7 +84,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       <h4>도구</h4>
       <button type="button" className={selectActive ? "tool select-tool active" : "tool select-tool"}
         aria-label="범위 선택" aria-pressed={selectActive} onClick={onSelectTool}
-        title="여러 장비·케이블을 상자로 고릅니다">
+        data-tip="빈 곳을 끌어 장비와 케이블을 상자로 고릅니다">
         <svg viewBox="0 0 32 32" fill="none" stroke="#3B8EF0" strokeWidth="2">
           <rect x="5" y="6" width="22" height="15" rx="1.5" strokeDasharray="4 3" />
           <path d="M10 10l9 4.5-4 1.2-1.8 3.8z" fill="#3B8EF0" stroke="none" />
@@ -82,6 +93,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       </button>
       <button type="button" className={cableActive ? "tool cable-tool active" : "tool cable-tool"}
         aria-label="케이블 연결" aria-pressed={cableActive} onClick={onConnect}
+        data-tip="장비 두 곳을 차례로 눌러 케이블로 잇습니다"
         disabled={!cableActive && (deviceCount < 2 || linkCount >= LIMITS.maxLinks)}>
         <svg viewBox="0 0 32 32" fill="none" stroke="#DB5B91" strokeWidth="2" strokeLinecap="round">
           <path d="M6 24c6 0 6-16 20-16" />
