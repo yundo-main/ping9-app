@@ -144,3 +144,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.36 도움말 갱신: L3 스위치·허브·LB 장비와 명령 사용법 (계획에 없는 새 ID) | [T0.36-help-new-devices.md](T0.36-help-new-devices.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.37 장비 표시 정리: L2 Switch 라벨 + L1/L2/L3/L4·7 계층 배지 아이콘 (계획에 없는 새 ID) | [T0.37-l2-label-layer-badges.md](T0.37-l2-label-layer-badges.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.38 패킷 카드 헤더 구조 보기: 요약/구조 라디오, 필드·바이트·값 표 (계획에 없는 새 ID) | [T0.38-packet-structure-view.md](T0.38-packet-structure-view.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.39 장비 목록의 스위치 묶음: L2·L3·LB를 "Switch" 버튼으로 접기 (계획에 없는 새 ID) | [T0.39-switch-group-palette.md](T0.39-switch-group-palette.md) | 화면 | jarrod | main 직접 커밋 |

@@ -239,17 +239,19 @@ function Rack() {
  * 넘기지 않으면 OS가 없는 원래 이글루다 (장비 목록).
  * `filtering`: 필터 규칙을 건 서버다. 방패 배지를 단다 (T0.21)
  */
-export function DeviceIcon({ kind, os, filtering = false, ...box }: {
+export function DeviceIcon({ kind, os, filtering = false, hideLayerBadge = false, ...box }: {
   readonly kind: DeviceKind; readonly os?: PcOsChoice; readonly filtering?: boolean;
+  /** 팔레트의 묶음 버튼처럼 한 계층을 뜻하지 않을 때 배지를 뺀다 (T0.39) */
+  readonly hideLayerBadge?: boolean;
 } & Box) {
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
       {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : kind === "lb" ? <Lb /> : <GateOpen />}
-      {kind === "hub" && <LayerBadge text="L1" />}
-      {kind === "switch" && <LayerBadge text="L2" />}
-      {kind === "l3switch" && <LayerBadge text="L3" />}
-      {kind === "lb" && <LayerBadge text="L4·7" />}
+      {!hideLayerBadge && kind === "hub" && <LayerBadge text="L1" />}
+      {!hideLayerBadge && kind === "switch" && <LayerBadge text="L2" />}
+      {!hideLayerBadge && kind === "l3switch" && <LayerBadge text="L3" />}
+      {!hideLayerBadge && kind === "lb" && <LayerBadge text="L4·7" />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

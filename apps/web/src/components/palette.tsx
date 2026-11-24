@@ -4,7 +4,8 @@
 
 import { LIMITS } from "@ping9/shared";
 import type { PaletteKind } from "../canvas-interaction";
-import type { RefObject } from "react";
+import { useState } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import type { DragCancelState } from "../canvas-interaction";
 import { DeviceIcon } from "./device-icons";
@@ -29,21 +30,37 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
 }) {
   const used = Math.min(100, (deviceCount / LIMITS.maxDevices) * 100);
   const full = deviceCount >= LIMITS.maxDevices;
+  const [switchesOpen, setSwitchesOpen] = useState(false);
+
+  const tool = (kind: PaletteKind, label: string, sub = false): ReactNode => (
+    <button key={kind} type="button" className={sub ? "tool device-tool sub" : "tool device-tool"} aria-label={`${label} 추가`}
+      title={`${label}를 캔버스로 끌어서 놓으세요`} disabled={full} draggable={false}
+      onPointerDown={event => {
+        if (event.button !== 0 || full) return;
+        event.preventDefault();
+        onDeviceDragStart?.(kind);
+      }}>
+      <DeviceIcon kind={kind} />{label}
+    </button>
+  );
 
   return (
     <aside ref={zoneRef} className={dragCancel === "idle" ? "palette" : `palette cancel-${dragCancel}`}>
       <h4>장비</h4>
-      {([ ["pc", "PC"], ["server", "Server"], ["switch", "L2 Switch"], ["l3switch", "L3 Switch"], ["hub", "Hub"], ["router", "Router"], ["lb", "LB"] ] as const).map(([kind, label]) => (
-        <button key={kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
-          title={`${label}를 캔버스로 끌어서 놓으세요`} disabled={full} draggable={false}
-          onPointerDown={event => {
-            if (event.button !== 0 || full) return;
-            event.preventDefault();
-            onDeviceDragStart?.(kind);
-          }}>
-          <DeviceIcon kind={kind} />{label}
-        </button>
-      ))}
+      {tool("pc", "PC")}
+      {tool("server", "Server")}
+      {/* 스위치는 한 버튼으로 묶고 눌러 종류를 고른다 — L2, L3, L4·7(LB) (T0.39) */}
+      <button type="button" className="tool group-tool" aria-label="Switch 종류" aria-expanded={switchesOpen}
+        title="눌러 스위치 종류를 고르세요" disabled={full}
+        onClick={() => setSwitchesOpen(open => !open)}>
+        <DeviceIcon kind="switch" hideLayerBadge />Switch
+        <span className="group-caret" aria-hidden="true">{switchesOpen ? "▾" : "▸"}</span>
+      </button>
+      {switchesOpen && tool("switch", "L2 Switch", true)}
+      {switchesOpen && tool("l3switch", "L3 Switch", true)}
+      {switchesOpen && tool("lb", "LB", true)}
+      {tool("hub", "Hub")}
+      {tool("router", "Router")}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>
       <h4>연결</h4>
       <button type="button" className={cableActive ? "tool cable-tool active" : "tool cable-tool"}

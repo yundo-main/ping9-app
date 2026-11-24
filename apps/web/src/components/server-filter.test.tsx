@@ -28,11 +28,12 @@ const canvas = (simulator: ReturnType<typeof open>) =>
   renderToString(<Canvas document={simulator.getSnapshot().document} selectedDeviceId={null} onSelect={noop} onOpenTerminal={noop} />);
 
 describe("장비 목록과 캔버스", () => {
-  test("장비 목록에 Firewall이 없다. PC, Server, Switch, L3 Switch, Hub, Router, LB뿐이다", () => {
+  test("장비 목록에 Firewall이 없다. PC, Server, 스위치 묶음, Hub, Router뿐이다", () => {
     const html = renderToString(<Palette deviceCount={0} onConnect={noop} />);
     expect(html).not.toContain("Firewall");
     expect(html).not.toContain("icon-firewall");
-    expect(html.match(/class="tool device-tool"/g)).toHaveLength(7);
+    expect(html.match(/class="tool device-tool"/g)).toHaveLength(4);
+    expect(html.match(/class="tool group-tool"/g)).toHaveLength(1);
   });
 
   test("서버에 규칙을 걸면 아이콘에 방패 배지가 붙고, 다 지우면 사라진다", async () => {

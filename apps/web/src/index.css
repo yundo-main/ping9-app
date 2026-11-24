@@ -1,1 +1,5 @@
 @import "./styles/editor.css";
+
+.tool.group-tool{color:inherit}
+.group-caret{margin-left:auto;color:var(--navy-60);font-size:10px}
+.tool.device-tool.sub{border-style:dashed;border-color:var(--line);background:#fff;padding-left:10px}
