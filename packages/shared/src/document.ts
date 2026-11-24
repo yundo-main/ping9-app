@@ -1,7 +1,7 @@
 // 저장되는 문서(Document)의 형태. 출처: docs/project-plan/03-system-design.md 3.4절 "Document 형태", AD-9.
 // 모든 값은 변경 불가능한 단순 JSON 자료다 (AD-16). 바꿀 때는 새 객체를 만든다.
 
-export const DEVICE_KINDS = ["pc", "server", "switch", "router"] as const;
+export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
@@ -24,6 +24,7 @@ export const PORT_NAMES = {
     "GigabitEthernet0/2",
     "GigabitEthernet0/3",
   ],
+  hub: ["Port0", "Port1", "Port2", "Port3", "Port4", "Port5", "Port6", "Port7"],
 } as const satisfies Record<DeviceKind, readonly string[]>;
 
 /** 그 종류의 장비에 있는 포트 이름인지 */
@@ -348,7 +349,15 @@ export interface RouterDevice extends DeviceBase {
   readonly config: RouterConfig;
 }
 
-export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice;
+/** Hub 구성 (T0.32). 관리가 없는 장비라 칸이 없다 — VLAN도 MAC 테이블도 없다 */
+export type HubConfig = Record<string, never>;
+
+export interface HubDevice extends DeviceBase {
+  readonly kind: "hub";
+  readonly config: HubConfig;
+}
+
+export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice;
 
 /** PC 장비인지. 객체를 `PcDevice`로 좁힌다 */
 export function isPcDevice(device: Device | undefined): device is PcDevice {
@@ -358,6 +367,11 @@ export function isPcDevice(device: Device | undefined): device is PcDevice {
 /** Server 장비인지. 객체를 `ServerDevice`로 좁힌다 */
 export function isServerDevice(device: Device | undefined): device is ServerDevice {
   return device !== undefined && device.kind === "server";
+}
+
+/** Hub 장비인지. 객체를 `HubDevice`로 좁힌다 */
+export function isHubDevice(device: Device | undefined): device is HubDevice {
+  return device !== undefined && device.kind === "hub";
 }
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */

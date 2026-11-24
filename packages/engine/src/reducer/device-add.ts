@@ -15,7 +15,7 @@ import type { Device, DeviceKind, OsKind, PcOsChoice, Position, TopologyDocument
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
 
-const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "SW", router: "R" };
+const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "SW", router: "R", hub: "HUB" };
 
 function nextName(document: TopologyDocument, kind: DeviceKind): string {
   const used = new Set(document.devices.map(device => device.name));
@@ -42,6 +42,8 @@ function newDevice(kind: DeviceKind, id: string, name: string, position: Positio
           staticRoutes: [],
         },
       };
+    case "hub":
+      return { ...base, kind, config: {} };
   }
 }
 

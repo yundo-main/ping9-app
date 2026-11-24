@@ -106,6 +106,12 @@ export interface SwitchView {
   readonly macTable: readonly MacTableEntryView[];
 }
 
+/** Hub의 표시용 값 (T0.32). 배울 표가 없어 포트 상태뿐이다 */
+export interface HubView {
+  readonly kind: "hub";
+  readonly ports: readonly PortView[];
+}
+
 export interface GreTunnelView {
   readonly name: string;
   readonly status: "up" | "down" | "admin-down";
@@ -136,7 +142,7 @@ export interface RouterView {
 }
 
 /** 장비 종류로 구분되는 표시용 값. web은 표현(아이콘, 표의 열)에 한해서만 `kind`로 분기한다 */
-export type DeviceView = PcView | ServerView | SwitchView | RouterView;
+export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView;
 
 /** `Simulator.getSnapshot()`이 돌려주는 값. 변경 불가능한 단순 자료다 */
 export interface Snapshot {

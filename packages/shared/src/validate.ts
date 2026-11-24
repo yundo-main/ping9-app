@@ -215,6 +215,8 @@ function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null
       return checkSwitchConfig(device.id, device.config, path);
     case "router":
       return checkRouterConfig(device.id, device.config, path);
+    case "hub":
+      return null;
   }
 }
 

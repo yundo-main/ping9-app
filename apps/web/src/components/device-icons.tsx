@@ -74,6 +74,25 @@ function Signpost() {
   );
 }
 
+/** 허브 (T0.32). 들어온 신호를 나머지 포트 모두로 반복하는 장비 — 가운데 노드에서 사방으로 퍼지는 선 */
+function Hub() {
+  const orange = "#B45309";
+  return (
+    <>
+      <ellipse cx="16" cy="27.6" rx="9.5" ry="1.8" fill="#FBEEDF" stroke={orange} strokeWidth="0.9" />
+      <rect x="7" y="10" width="18" height="12" rx="2" fill="#FDEEDA" stroke={orange} strokeWidth="1.1" {...LINE} />
+      <circle cx="16" cy="16" r="1.6" fill={orange} />
+      {[10.5, 13.7, 16.9, 20.1].map((y) => (
+        <path key={y} d={`M16 16L${8.8 + (y - 10.5) * 1.35} ${y + 4.2}`} fill="none" stroke={orange} strokeWidth="1" {...LINE} />
+      ))}
+      <circle cx="10.3" cy="12.5" r="0.9" fill={orange} />
+      <circle cx="13.5" cy="13.5" r="0.9" fill={orange} />
+      <circle cx="16.7" cy="14.5" r="0.9" fill={orange} />
+      <circle cx="19.9" cy="15.5" r="0.9" fill={orange} />
+    </>
+  );
+}
+
 /** 관문의 기둥과 지붕. 열린 문과 닫힌 문이 같이 쓴다 */
 function GateFrame() {
   const green = "#17725F";
@@ -180,7 +199,7 @@ export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : <GateOpen />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : <GateOpen />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

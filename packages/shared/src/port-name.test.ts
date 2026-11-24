@@ -8,6 +8,7 @@ test.each([
   ["FastEthernet0/8", "Fa0/8"],
   ["GigabitEthernet0/3", "Gi0/3"],
   ["Ethernet0", "Eth0"],
+  ["Port0", "P0"],
   // 모르는 이름은 그대로 둔다
   ["Serial0/0", "Serial0/0"],
   ["", ""],

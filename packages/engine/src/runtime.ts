@@ -23,6 +23,7 @@ import { PC_PORT, PcModel } from "./devices/pc/pc-model";
 import { SERVER_PORT, ServerModel } from "./devices/server/server-model";
 import { deviceRun } from "./devices/link";
 import type { DeviceModel } from "./devices/model";
+import { HubModel } from "./devices/hub/hub-model";
 import { RouterModel } from "./devices/router/router-model";
 import { SwitchModel } from "./devices/switch/switch-model";
 import { createKernel } from "./kernel";
@@ -134,6 +135,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const servers = new Map<string, ServerModel>();
   const routers = new Map<string, RouterModel>();
   const switches = new Map<string, SwitchModel>();
+  const hubs = new Map<string, HubModel>();
   // 가장 최근 것이 앞. 최대 LIMITS.maxTraces개
   let traces: readonly StoredTrace[] = [];
   // 마지막 경로 교환 뒤의 RIP 경로. 다음 교환과 비교한다 (T11.3.1)
@@ -181,6 +183,15 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     return model;
   };
 
+  const hubModel = (deviceId: string): HubModel | undefined => {
+    let model = hubs.get(deviceId);
+    if (model === undefined && findDevice(getDocument(), deviceId)?.kind === "hub") {
+      model = new HubModel(deviceId, getDocument);
+      hubs.set(deviceId, model);
+    }
+    return model;
+  };
+
   /** 실행을 시작할 때 앞 실행에서 남은 대기열과 응답 기록을 비운다 */
   const startModels = (): void => {
     for (const pc of pcs.values()) pc.startRun();
@@ -188,13 +199,14 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     for (const router of routers.values()) router.startRun();
   };
 
-  /** 이번 실행에 쓸 PC·Server·Switch·Router 모델 */
+  /** 이번 실행에 쓸 PC·Server·Switch·Router·Hub 모델 */
   const runModels = (): Map<string, DeviceModel> => {
     const models = new Map<string, DeviceModel>();
     for (const device of getDocument().devices) {
       if (device.kind === "pc") models.set(device.id, pcModel(device.id)!);
       else if (device.kind === "server") models.set(device.id, serverModel(device.id)!);
       else if (device.kind === "router") models.set(device.id, routerModel(device.id)!);
+      else if (device.kind === "hub") models.set(device.id, hubModel(device.id)!);
       else models.set(device.id, switchModel(device.id)!);
     }
     return models;

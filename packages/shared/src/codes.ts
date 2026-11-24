@@ -486,6 +486,12 @@ export interface EventParamsByCode {
     readonly mac: string;
     readonly port: string;
   };
+  /** Hub가 들어온 포트를 빼고 나머지 포트 모두로 보냄 — 허브에는 VLAN도 MAC 테이블도 없다 (T0.32) */
+  HUB_FLOODED: {
+    readonly device: DeviceRef;
+    readonly port: string;
+    readonly broadcast: boolean;
+  };
   /** 목적지를 모르거나 브로드캐스트여서 같은 VLAN의 다른 포트 모두로 보냄. 포트마다 이벤트 하나 */
   FRAME_FLOODED: {
     readonly device: DeviceRef;
@@ -571,6 +577,7 @@ const EVENT_CODE_SET = {
   FRAME_RECEIVED: true,
   MAC_LEARNED: true,
   FRAME_FORWARDED: true,
+  HUB_FLOODED: true,
   FRAME_FLOODED: true,
   TCP_SEGMENT_SENT: true,
   TCP_SEGMENT_RECEIVED: true,

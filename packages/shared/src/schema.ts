@@ -58,6 +58,9 @@ const switchConfigSchema = z.object({
   ports: z.record(shortString, switchPortConfigSchema),
 });
 
+/** Hub은 설정 칸이 없다 — 관리 없는 장비 (T0.32) */
+const hubConfigSchema = z.object({});
+
 const routerInterfaceConfigSchema = z.object({
   adminUp: z.boolean(),
   ip: shortString.optional(),
@@ -139,6 +142,7 @@ const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("server"), config: serverConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("switch"), config: switchConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("router"), config: routerConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("hub"), config: hubConfigSchema }),
 ]);
 
 const linkSchema = z.object({

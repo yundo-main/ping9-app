@@ -44,6 +44,9 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
       case "switch":
         views[device.id] = { kind: "switch", ports, macTable: [] };
         break;
+      case "hub":
+        views[device.id] = { kind: "hub", ports };
+        break;
       case "router":
         views[device.id] = { kind: "router", ports, arpTable: [], routingTable: routingTable(device.config, ports),
           ...(device.config.ipsec === undefined ? {} : { ipsec: new IpsecModule(() => device).view(ports, 0) }),

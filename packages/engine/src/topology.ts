@@ -44,6 +44,8 @@ export function isAdminUp(device: Device, port: string): boolean {
       return device.config.ports[port]?.adminUp ?? true;
     case "router":
       return device.config.interfaces[port]?.adminUp ?? false;
+    case "hub":
+      return true;
   }
 }
 

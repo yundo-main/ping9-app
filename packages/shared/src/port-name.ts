@@ -5,9 +5,10 @@ const SHORT_PREFIXES: readonly (readonly [full: string, short: string])[] = [
   ["FastEthernet", "Fa"],
   ["GigabitEthernet", "Gi"],
   ["Ethernet", "Eth"],
+  ["Port", "P"],
 ];
 
-/** `FastEthernet0/1` → `Fa0/1`, `GigabitEthernet0/0` → `Gi0/0`, `Ethernet0` → `Eth0`. 모르는 이름은 그대로 */
+/** `FastEthernet0/1` → `Fa0/1`, `GigabitEthernet0/0` → `Gi0/0`, `Ethernet0` → `Eth0`, `Port0` → `P0`. 모르는 이름은 그대로 */
 export function shortPortName(port: string): string {
   for (const [full, short] of SHORT_PREFIXES) {
     if (port.startsWith(full)) return short + port.slice(full.length);
