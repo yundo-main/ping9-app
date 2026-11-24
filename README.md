@@ -1,6 +1,6 @@
 # PING9
 
-데스크톱 앱(Tauri)에서 네트워크 장비(PC, Switch, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. `pnpm dev`로 웹 화면 개발도 가능합니다.
+네트워크 장비(PC, Switch, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. Windows·macOS용 Tauri 데스크톱 앱으로 배포합니다 — 웹 서버로는 실행하지 않습니다.
 
 | 내용 | 위치 |
 |---|---|
@@ -19,6 +19,7 @@ corepack enable        # pnpm 명령을 켭니다. 권한 오류가 나면: npm 
 pnpm install
 pnpm check             # lint, 타입 검사, 테스트, 빌드를 차례로 실행
 pnpm dev               # 화면 개발 서버 (http://localhost:5173, 점유 중이면 다음 포트)
+pnpm desktop:release   # 데스크톱 앱 빌드 — 산출물이 deploy/<버전>/에 모입니다
 ```
 
 시스템 기본 `node`가 24가 아닌 경우(예: Homebrew로 `node@24`를 keg-only로 설치한 Mac):
