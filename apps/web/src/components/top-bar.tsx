@@ -26,7 +26,7 @@ export interface SimControls {
   readonly onSpeed: (speed: Speed) => void;
 }
 
-export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange, sim }: {
+export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange, sim, onHelp }: {
   readonly name: string;
   /** 이름을 고친다 (T0.16). 없으면 이름을 글자로만 보인다 */
   readonly onRename?: ((name: string) => void) | undefined;
@@ -38,6 +38,8 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
   readonly onModeChange: (mode: Mode) => void;
   /** 시뮬레이션 모드에서만 준다. 없으면 멈춤·속도를 그리지 않는다 */
   readonly sim?: SimControls | undefined;
+  /** 도움말 창을 연다 (T0.30). 없으면 ? 버튼을 그리지 않는다 */
+  readonly onHelp?: (() => void) | undefined;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   return (
@@ -87,6 +89,9 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
             ))}
           </div>
         </div>
+      )}
+      {onHelp !== undefined && (
+        <button type="button" className="help-open" aria-label="도움말" title="도움말" onClick={onHelp}>?</button>
       )}
       <div className="mode" role="tablist" aria-label="모드">
         {MODES.map((item) => (

@@ -9,6 +9,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { Canvas, cableLength } from "./components/canvas";
 import { ConfirmDialog } from "./components/confirm-dialog";
+import { HelpDialog } from "./components/help-dialog";
 import { EventPanel, highlightOf, SideTabs } from "./components/event-panel";
 import type { SideTab } from "./components/event-panel";
 import { isRemoveKey, removeKeyAction } from "./components/canvas-keys";
@@ -79,6 +80,7 @@ export function App() {
   // 케이블이 연결된 장비를 지우기 전에 한 번 더 묻는 중인 장비 (T1.4.3)
   const [removeAsk, setRemoveAsk] = useState<string | null>(null);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const selectedLink = document.links.find(link => link.id === selectedLinkId);
 
@@ -207,6 +209,7 @@ export function App() {
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setCable(CABLE_OFF); setDragKind(null); setConnectionMessage(null); setRemoveAsk(null); setImportAsk(null);
+      setHelpOpen(false);
     };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
@@ -526,7 +529,9 @@ export function App() {
   return (
     <div className={`app mode-${mode}`}>
       <TopBar name={topologyName} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
+        onHelp={() => setHelpOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
