@@ -81,7 +81,7 @@ test("저장소에 있으면 안 되는 파일을 가려낸다", () => {
   for (const path of [".env", ".env.local", ".env.production", "apps/api/.env", "deploy/server.pem", "id_rsa.key", ".vercel/project.json"]) {
     assert.notEqual(forbiddenFileReason(path), null, path);
   }
-  for (const path of [".env.example", "apps/api/.env.example", "docs/environment.md", "vercel.json", "src/keyboard.ts", "packages/shared/src/index.ts"]) {
+  for (const path of [".env.example", "apps/api/.env.example", "docs/environment.md", "deploy/README.md", "src/keyboard.ts", "packages/shared/src/index.ts"]) {
     assert.equal(forbiddenFileReason(path), null, path);
   }
 });
