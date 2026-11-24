@@ -30,11 +30,11 @@ describe("종류와 서비스 읽기", () => {
     expect(isServer({ os: "linux" })).toBe(false);
   });
 
-  test("서비스 칸이 없으면 넷이 다 켜져 있다", () => {
-    expect(servicesOf({ os: "server" })).toEqual(["http", "dns", "ntp", "ftp"]);
+  test("서비스 칸이 없으면 다섯 개 다 켜져 있다", () => {
+    expect(servicesOf({ os: "server" })).toEqual(["http", "https", "dns", "ntp", "ftp"]);
     expect(servicesOf({ os: "server", services: ["ntp"] })).toEqual(["ntp"]);
     expect(servicesOf({ os: "server", services: [] })).toEqual([]);
-    expect(servicesOf({})).toEqual(["http", "dns", "ntp", "ftp"]);
+    expect(servicesOf({})).toEqual(["http", "https", "dns", "ntp", "ftp"]);
     expect(dnsRecordsOf({ os: "server" })).toEqual([]);
   });
 

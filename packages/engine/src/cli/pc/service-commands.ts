@@ -31,7 +31,7 @@ function withTrace(lines: readonly string[], traceId: number): ConsoleLine[] {
 }
 
 export interface ParsedUrl {
-  readonly scheme: "http" | "ftp";
+  readonly scheme: "http" | "https" | "ftp";
   readonly host: string;
   readonly port: number;
   /** `/`로 시작한다 */
@@ -39,14 +39,14 @@ export interface ParsedUrl {
 }
 
 /**
- * `curl`의 주소. `[http://|ftp://]<IP>[:포트][/경로]`. 이름 풀이가 없어 호스트는 IP 주소만 받는다.
+ * `curl`의 주소. `[http://|https://|ftp://]<IP>[:포트][/경로]`. 이름 풀이가 없어 호스트는 IP 주소만 받는다.
  * 경로는 영문자, 숫자, `.`, `_`, `-`, `/`만. 틀리면 null
  */
 export function parseUrl(value: string): ParsedUrl | null {
   // 방식 이름은 대소문자를 가리지 않는다 (`HTTP://`)
-  const match = /^(?:(http|ftp):\/\/)?([0-9.]+)(?::([0-9]{1,5}))?(\/[A-Za-z0-9._/-]{0,48})?$/i.exec(value);
+  const match = /^(?:(https?|ftp):\/\/)?([0-9.]+)(?::([0-9]{1,5}))?(\/[A-Za-z0-9._/-]{0,48})?$/i.exec(value);
   if (match === null) return null;
-  const scheme = match[1]?.toLowerCase() === "ftp" ? "ftp" : "http";
+  const scheme = (match[1]?.toLowerCase() ?? "http") as ParsedUrl["scheme"];
   const host = match[2]!;
   const port = match[3] === undefined ? SERVICE_PORTS[scheme].port : Number(match[3]);
   if (parseIpv4(host) === null || port < 1 || port > 65535) return null;
@@ -95,7 +95,7 @@ function runCurl(args: CommandArgs, context: CommandContext): CommandOutcome {
   const pc = pcOf(context);
   const url = parseUrl(String(args["url"]));
   if (pc === undefined || url === null) return {};
-  const message = url.scheme === "http" ? `GET ${url.path}` : url.path === "/" ? "LIST" : `RETR ${url.path.slice(1)}`;
+  const message = url.scheme === "ftp" ? (url.path === "/" ? "LIST" : `RETR ${url.path.slice(1)}`) : `GET ${url.path}`;
   const result = request(context, pc, url.scheme, "tcp", url.host, url.port, message);
   if (result === undefined) return {};
   if ("error" in result) return { lines: [errorLine(result.error)] };
@@ -189,7 +189,7 @@ function runW32tm(args: CommandArgs, context: CommandContext): CommandOutcome {
 }
 
 
-const urlParam = customParam("url", "Address: [http://|ftp://]<IP>[:port][/path]", readUrl);
+const urlParam = customParam("url", "Address: [http://|https://|ftp://]<IP>[:port][/path]", readUrl);
 const nameParam = customParam("name", "Host name to look up, e.g. www.ping9.test", readHostName);
 const serverParam = param("server", "ipv4", "DNS server address");
 const ipParam = param("ip", "ipv4", "NTP server address");
@@ -199,13 +199,13 @@ const pcCommand = (tokens: CommandDefinition["tokens"], help: string, run: Comma
   defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
 
 export const WINDOWS_SERVICE_COMMANDS: readonly CommandDefinition[] = [
-  pcCommand(["curl", urlParam], "Fetch a web page (http://) or a file list (ftp://) from a server", runCurl),
+  pcCommand(["curl", urlParam], "Fetch a web page (http(s)://) or a file list (ftp://) from a server", runCurl),
   pcCommand(["nslookup", nameParam, serverParam], "Ask a DNS server for the address of a name", runNslookup("windows")),
   pcCommand(["w32tm", "/stripchart", computerParam], "Ask an NTP server once", runW32tm),
 ];
 
 export const LINUX_SERVICE_COMMANDS: readonly CommandDefinition[] = [
-  pcCommand(["curl", urlParam], "Fetch a web page (http://) or a file list (ftp://) from a server", runCurl),
+  pcCommand(["curl", urlParam], "Fetch a web page (http(s)://) or a file list (ftp://) from a server", runCurl),
   pcCommand(["nslookup", nameParam, serverParam], "Ask a DNS server for the address of a name", runNslookup("linux")),
   pcCommand(["ntpdate", "-q", ipParam], "Ask an NTP server once", runNtpdate),
 ];

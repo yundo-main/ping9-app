@@ -18,7 +18,7 @@ const SECTIONS: readonly { readonly title: string; readonly items: readonly (rea
     items: [
       ["ip address / ip route", "주소와 게이트웨이를 보거나 바꿉니다"],
       ["ping <주소>", "목표까지 닿는지 확인합니다"],
-      ["nslookup / curl", "서버의 DNS·HTTP 서비스에 요청합니다 (server 장비에서 services 켜기)"],
+      ["nslookup / curl", "서버의 DNS·HTTP(S) 서비스에 요청합니다 (server 장비에서 services 켜기)"],
     ],
   },
   {

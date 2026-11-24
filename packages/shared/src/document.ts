@@ -75,12 +75,13 @@ export const PC_OS_CHOICES = ["windows", "linux", "server"] as const;
 export type PcOsChoice = (typeof PC_OS_CHOICES)[number];
 
 /** 서버가 돌리는 서비스 (T0.20) */
-export const SERVICE_KINDS = ["http", "dns", "ntp", "ftp"] as const;
+export const SERVICE_KINDS = ["http", "https", "dns", "ntp", "ftp"] as const;
 export type ServiceKind = (typeof SERVICE_KINDS)[number];
 
 /** 서비스가 듣는 프로토콜과 포트. FTP는 제어 연결(21)만 쓴다 */
 export const SERVICE_PORTS = {
   http: { protocol: "tcp", port: 80 },
+  https: { protocol: "tcp", port: 443 },
   dns: { protocol: "udp", port: 53 },
   ntp: { protocol: "udp", port: 123 },
   ftp: { protocol: "tcp", port: 21 },
@@ -365,7 +366,7 @@ export interface ServerConfig {
   readonly os?: "server";
   /** 포트 켜짐 (T0.14). 칸이 없으면 켜짐 */
   readonly adminUp?: boolean;
-  /** 켜 둔 서비스 (T0.20). 칸이 없으면 넷 다 켜짐. `SERVICE_KINDS`의 순서 */
+  /** 켜 둔 서비스 (T0.20). 칸이 없으면 다섯 개 다 켜짐. `SERVICE_KINDS`의 순서 */
   readonly services?: readonly ServiceKind[];
   /** DNS 서비스가 답하는 이름 (T0.20). 칸이 없으면 없음 */
   readonly dnsRecords?: readonly DnsRecord[];

@@ -32,7 +32,8 @@ function fileNamed(server: ServerDevice, name: string): string | undefined {
 export function serviceResponse(server: ServerDevice, service: ServiceKind, message: string): ServiceResponse {
   const [verb = "", argument = ""] = message.split(" ");
   switch (service) {
-    case "http": {
+    case "http":
+    case "https": {
       if (verb !== "GET") return { message: "400 Bad Request", data: "<h1>400 Bad Request</h1>" };
       const data = fileNamed(server, argument === "/" ? "index.html" : argument.replace(/^\//, ""));
       return data === undefined ? { message: "404 Not Found", data: "<h1>404 Not Found</h1>" } : { message: "200 OK", data };

@@ -8,7 +8,7 @@ import { useId, useState } from "react";
 
 import { formatError } from "../messages/errors";
 
-export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HTTP", dns: "DNS", ntp: "NTP", ftp: "FTP" };
+export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HTTP", https: "HTTPS", dns: "DNS", ntp: "NTP", ftp: "FTP" };
 
 /** 스위치를 눌렀을 때 낼 Command */
 export function serviceCommand(deviceId: string, service: ServiceKind, enabled: boolean): Command {

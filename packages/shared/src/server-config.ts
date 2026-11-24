@@ -1,5 +1,5 @@
 // 서버로 쓰는 PC의 구성 규칙 (T0.20). 문서 불러오기(validateDocument)와 reducer가 같은 함수를 쓴다.
-// PC의 종류를 `server`로 고르면 그 PC가 HTTP, DNS, NTP, FTP 서비스를 돌린다. 콘솔과 네트워크 동작은 Linux PC와 같다.
+// PC의 종류를 `server`로 고르면 그 PC가 HTTP, HTTPS, DNS, NTP, FTP 서비스를 돌린다. 콘솔과 네트워크 동작은 Linux PC와 같다.
 
 import { errorInfo } from "./codes";
 import type { ErrorInfo } from "./codes";
@@ -19,7 +19,7 @@ export function isServer(config: PcConfig | ServerConfig): boolean {
 }
 
 /**
- * 지금 켜져 있는 서비스. `services` 칸이 없으면 넷 다 켜져 있다
+ * 지금 켜져 있는 서비스. `services` 칸이 없으면 다섯 개 다 켜져 있다
  * (처음 서버로 두면 바로 쓸 수 있다)
  */
 export function servicesOf(config: ServerConfig): readonly ServiceKind[] {

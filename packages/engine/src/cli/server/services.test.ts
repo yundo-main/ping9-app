@@ -96,6 +96,17 @@ describe("서버의 서비스에 요청한다", () => {
     expect(texts(await pc("curl 10.0.2.10:8080"))).toEqual(["curl: (7) Failed to connect to 10.0.2.10 port 8080: Connection refused"]);
   });
 
+  test("HTTPS는 443 포트에서 HTTP와 같은 문서를 준다. TLS는 생략했다", async () => {
+    const { sim, pc, must, lastTrace } = await lab();
+    expect(texts(await pc("curl https://10.0.2.10/"))).toEqual([PAGE]);
+    expect(sim.getSnapshot().traces[0]).toMatchObject({ kind: "ping", service: "https", targetIp: "10.0.2.10", status: "success" });
+    expect(lastTrace().events.at(-1)!.frame.application).toMatchObject({ service: "https", message: "200 OK" });
+    // https를 끄면 443은 거절, http는 그대로
+    must({ type: "server/set-service", deviceId: SRV, service: "https", enabled: false });
+    expect(texts(await pc("curl https://10.0.2.10/"))).toEqual(["curl: (7) Failed to connect to 10.0.2.10 port 443: Connection refused"]);
+    expect(texts(await pc("curl http://10.0.2.10/"))).toEqual([PAGE]);
+  });
+
   test("FTP는 목록과 파일을 준다", async () => {
     const { pc } = await lab();
     expect(texts(await pc("curl ftp://10.0.2.10/"))).toEqual(["index.html", "readme.txt"]);
@@ -182,9 +193,10 @@ describe("서버의 콘솔", () => {
       "udp    UNCONN  0.0.0.0:123",
       "tcp    LISTEN  0.0.0.0:21",
       "tcp    LISTEN  0.0.0.0:80",
+      "tcp    LISTEN  0.0.0.0:443",
     ]);
     expect((await run(SRV, "systemctl stop httpd")).lines).toEqual([]);
-    expect(serverConfig().services).toEqual(["dns", "ntp", "ftp"]);
+    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp"]);
     expect(texts(await run(SRV, "systemctl status http"))).toEqual(["○ http.service - PING9 HTTP server", "     Active: inactive (dead)"]);
     expect(texts(await run(SRV, "ss -tuln"))).not.toContain("tcp    LISTEN  0.0.0.0:80");
     expect((await run(SRV, "systemctl start http.service")).lines).toEqual([]);
@@ -231,7 +243,7 @@ describe("주소와 이름 읽기", () => {
     ["FTP://10.0.2.10/x", { scheme: "ftp", host: "10.0.2.10", port: 21, path: "/x" }],
     ["ftp://10.0.2.10", { scheme: "ftp", host: "10.0.2.10", port: 21, path: "/" }],
     ["10.0.2.10:8080/x", { scheme: "http", host: "10.0.2.10", port: 8080, path: "/x" }],
-    ["https://10.0.2.10/", null],
+    ["https://10.0.2.10/", { scheme: "https", host: "10.0.2.10", port: 443, path: "/" }],
     ["http://www.ping9.test/", null],
     ["http://10.0.2.300/", null],
     ["http://10.0.2.10:0/", null],
@@ -268,13 +280,13 @@ describe("서비스 구성의 Command", () => {
     must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: false });
     must({ type: "server/set-service", deviceId: SRV, service: "http", enabled: false });
     must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: true });
-    expect(serverConfig().services).toEqual(["dns", "ntp", "ftp"]);
+    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp"]);
     must({ type: "server/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
     must({ type: "server/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
     must({ type: "server/set-os", deviceId: SRV, os: "windows" });
     must({ type: "interface/set-admin", deviceId: SRV, port: "Ethernet0", adminUp: false });
     must({ type: "pc/set-os", deviceId: SRV, os: "server" });
-    expect(serverConfig()).toMatchObject({ services: ["dns", "ntp", "ftp"], dnsRecords: [{ name: "a.test", address: "10.0.2.10" }] });
+    expect(serverConfig()).toMatchObject({ services: ["https", "dns", "ntp", "ftp"], dnsRecords: [{ name: "a.test", address: "10.0.2.10" }] });
 
     const saved = validateDocument(JSON.parse(JSON.stringify(sim.getSnapshot().document)));
     expect(saved.ok).toBe(true);
