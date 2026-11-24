@@ -3,11 +3,11 @@
 // OS는 고르는 즉시 server/set-os를, 포트 토글은 누르는 즉시 interface/set-admin을 dispatch한다. IP의 "적용"과 따로다.
 // 문구는 카탈로그에서 만들어 글자 그대로 넣는다 (AD-14, SEC-11).
 
-import { PC_OS_CHOICES, PORT_NAMES, osChoiceOf, osOf } from "@ping9/shared";
-import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, ServerDevice, PcOsChoice } from "@ping9/shared";
+import { PORT_NAMES, osOf } from "@ping9/shared";
+import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, ServerDevice } from "@ping9/shared";
 import { useId, useState } from "react";
 
-import { applyDraft, draftOf, OS_NAMES, SERVER_FIELDS, prefixLabel } from "../format/server-address";
+import { applyDraft, draftOf, SERVER_FIELDS, prefixLabel } from "../format/server-address";
 import type { FieldErrors, ServerDraft, ServerField } from "../format/server-address";
 import { formatError } from "../messages/errors";
 import { formatNotice } from "../messages/notices";
@@ -17,28 +17,6 @@ const LABELS: Readonly<Record<ServerField, string>> = {
   mask: "서브넷 마스크",
   gateway: "기본 게이트웨이",
 };
-
-/** OS 고르기. 라디오 버튼이라 화살표 키로 바꿀 수 있다 (NFR-12). Server를 고르면 서비스를 돌린다 (T0.20) */
-export function OsChoice({ os, onChange }: { readonly os: PcOsChoice; readonly onChange: (os: PcOsChoice) => void }) {
-  const name = useId();
-  return (
-    <fieldset className="os-choice">
-      <legend>OS</legend>
-      {PC_OS_CHOICES.map((kind) => (
-        <label key={kind}>
-          <input
-            type="radio"
-            name={name}
-            value={kind}
-            checked={os === kind}
-            onChange={() => onChange(kind)}
-          />
-          {OS_NAMES[kind]}
-        </label>
-      ))}
-    </fieldset>
-  );
-}
 
 const PC_PORT = PORT_NAMES.server[0];
 
@@ -234,20 +212,12 @@ export function ServerSettings({
     }
   };
 
-  // 포트 이름은 콘솔의 OS를 따른다 (Server는 Linux). 고르기에는 고른 종류를 그대로 보인다 (T0.20)
+  // 서버는 OS가 항상 Linux다. PC와 달리 OS를 고르는 칸이 없다 (T0.25)
   const os = osOf(device.config);
-  const choice = osChoiceOf(device.config);
   const adminUp = device.config.adminUp ?? true;
 
   return (
     <>
-      <OsChoice
-        os={choice}
-        onChange={(next) => {
-          // `server`를 고르면 변화가 없다. windows/linux를 고르면 장비가 PC가 된다
-          if (next !== "server" && next !== choice) onDispatch({ type: "server/set-os", deviceId: device.id, os: next });
-        }}
-      />
       <PortSwitch os={os} adminUp={adminUp} onChange={(next) => onDispatch(portAdminCommand(device.id, next))} />
       <ServerSettingsView
         draft={draft}

@@ -18,13 +18,13 @@ const LABELS: Readonly<Record<PcField, string>> = {
   gateway: "기본 게이트웨이",
 };
 
-/** OS 고르기. 라디오 버튼이라 화살표 키로 바꿀 수 있다 (NFR-12). Server를 고르면 서비스를 돌린다 (T0.20) */
+/** OS 고르기. 라디오 버튼이라 화살표 키로 바꿀 수 있다 (NFR-12). Server는 팔레트의 별도 장비라 여기서는 고르지 않는다 (T0.25) */
 export function OsChoice({ os, onChange }: { readonly os: PcOsChoice; readonly onChange: (os: PcOsChoice) => void }) {
   const name = useId();
   return (
     <fieldset className="os-choice">
       <legend>OS</legend>
-      {PC_OS_CHOICES.map((kind) => (
+      {PC_OS_CHOICES.filter((kind) => kind !== "server").map((kind) => (
         <label key={kind}>
           <input
             type="radio"

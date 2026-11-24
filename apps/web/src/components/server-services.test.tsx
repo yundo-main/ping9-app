@@ -26,9 +26,9 @@ const inspector = (simulator: ReturnType<typeof open>) =>
     onDispatch={() => ({ ok: true, notices: [] })} />).replaceAll("<!-- -->", "");
 
 describe("Server를 고른 PC", () => {
-  test("속성 패널: Server가 골라져 있고 서비스 넷이 켜져 있다", () => {
+  test("속성 패널: OS 고르기는 없고(서버는 별도 장비) 서비스 넷이 켜져 있다", () => {
     const html = inspector(open("server"));
-    expect(html).toMatch(/checked="" value="server"/);
+    expect(html).not.toContain("os-choice");
     expect(html).toContain("<h4>서비스</h4>");
     for (const [label, port] of [["HTTP", "tcp/80"], ["DNS", "udp/53"], ["NTP", "udp/123"], ["FTP", "tcp/21"]]) {
       expect(html).toContain(`<span class="port-name">${label}</span><span class="key">${port}</span>`);
