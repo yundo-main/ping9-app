@@ -15,7 +15,6 @@ catalog:
   # 테스트
   vitest: 5.1.0
   fast-check: 4.10.2
-  "@playwright/test": 1.64.1
 
   # 화면
   react: 19.3.1
@@ -24,26 +23,9 @@ catalog:
   "@types/react-dom": 19.3.0 # Stack 표에 없음
   vite: 8.3.5
   "@vitejs/plugin-react": 6.2.1
-  "@xyflow/react": 12.12.1
-  "@xterm/xterm": 6.0.0
-  "@xterm/addon-fit": 0.11.0
-  zustand: 5.0.16
-  react-router: 8.5.1
-  tailwindcss: 4.3.4
-  "@tailwindcss/vite": 4.3.4
 
   # 공통
   zod: 4.6.7
 
   # 데스크톱
   "@tauri-apps/cli": 2.12.5 # Stack 표에 없음. T17.1 데스크톱 앱 껍데기
-
-  # 서버
-  hono: 4.13.16
-  "@hono/node-server": 2.1.6
-  better-auth: 1.7.17
-  "@better-auth/drizzle-adapter": 1.7.17
-  drizzle-orm: 0.45.4
-  drizzle-kit: 0.31.11
-  pg: 8.23.1
-  pino: 10.4.0

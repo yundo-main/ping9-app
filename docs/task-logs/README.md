@@ -129,3 +129,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.24 Vercel 연동 제거와 저장소 이전 `yundo-main/ping9-app` (계획에 없는 새 ID. 배포는 Tauri 데스크톱 앱) | [T0.24-remove-vercel.md](T0.24-remove-vercel.md) | 배포, 문서 | jarrod | 병합됨 (팀원 검토 없이). Vercel 프로젝트·Neon DB 삭제는 대시보드에서 별도 작업 |
 | T0.25 서버를 PC에서 완전히 분리: `ServerConfig`, `server/*` 명령, 독립 콘솔·모델·리듀서 (계획에 없는 새 ID. T0.23 후속) | [T0.25-server-pc-separation.md](T0.25-server-pc-separation.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이). `pc/*` 서비스 명령은 PC에서 거절로 남음 — `server/*` 사용 |
 | T0.26 PC에서 서버 기능 제거: `PcConfig`의 서비스·필터 칸과 `pc/*` 서비스 명령 삭제, PC 모델의 서버 훅 제거 (계획에 없는 새 ID. T0.25 후속) | [T0.26-remove-server-from-pc.md](T0.26-remove-server-from-pc.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이) |
+| T0.27 프로젝트 최적화: 미사용 카탈로그 의존성 16개 제거, 이미지·청크 정리 (계획에 없는 새 ID) | [T0.27-project-optimization.md](T0.27-project-optimization.md) | 공통, 화면 | jarrod | 병합됨 (팀원 검토 없이) |
