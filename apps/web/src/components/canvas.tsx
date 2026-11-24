@@ -167,6 +167,7 @@ export function Canvas({
   paletteDragKind = null,
   onPaletteDragEnd,
   cableActive = false,
+  selectActive = false,
   firstPort = null,
   pickerDeviceId = null,
   onPickPort,
@@ -200,6 +201,8 @@ export function Canvas({
   readonly paletteDragKind?: PaletteKind | null;
   readonly onPaletteDragEnd?: () => void;
   readonly cableActive?: boolean;
+  /** 선택 도구가 켜져 있으면 빈 곳 드래그가 패닝 대신 범위 선택 (T0.43) */
+  readonly selectActive?: boolean;
   readonly firstPort?: PortRef | null;
   readonly pickerDeviceId?: string | null;
   readonly onPickPort?: (end: PortRef) => void;
@@ -522,7 +525,7 @@ export function Canvas({
   const addressTexts: ReactNode[] = [];
   return (
     <>
-      <svg ref={svgRef} className={`topo${panning ? " panning" : ""}${dragOver ? " drop-target" : ""}${cableActive ? " cable-mode" : ""}${hiddenClasses(hidden)}`}
+      <svg ref={svgRef} className={`topo${panning ? " panning" : ""}${dragOver ? " drop-target" : ""}${cableActive ? " cable-mode" : ""}${selectActive ? " select-mode" : ""}${hiddenClasses(hidden)}`}
         viewBox={viewBox} preserveAspectRatio="xMidYMin meet"
         onDragOver={event => {
           if (onDropDevice === undefined || !event.dataTransfer.types.includes(DEVICE_DRAG_TYPE)) return;
@@ -544,8 +547,8 @@ export function Canvas({
           event.preventDefault();
           onClosePortPicker?.();
           suppressClick.current = false;
-          if (event.shiftKey && onBoxSelect !== undefined) {
-            // Shift+드래그는 패닝 대신 범위 선택이다 (T0.42)
+          if ((event.shiftKey || selectActive) && onBoxSelect !== undefined) {
+            // Shift+드래그나 선택 도구는 패닝 대신 범위 선택이다 (T0.42, T0.43)
             const point = screenToWorld(matrix, { x: event.clientX, y: event.clientY });
             if (point === null) return;
             marqueeRef.current = { pointerId: event.pointerId, startClient: { x: event.clientX, y: event.clientY },

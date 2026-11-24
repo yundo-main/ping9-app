@@ -17,12 +17,15 @@ const NOTE: Readonly<Record<DragCancelState, string>> = {
   over: "놓으면 취소돼요",
 };
 
-export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = false, onDeviceDragStart,
+export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = false, selectActive = false, onSelectTool, onDeviceDragStart,
   dragCancel = "idle", zoneRef }: {
   readonly deviceCount: number;
   readonly linkCount?: number;
   readonly onConnect: () => void;
   readonly cableActive?: boolean;
+  /** 선택 도구: 켜져 있으면 빈 곳 드래그가 범위 선택 (T0.43) */
+  readonly selectActive?: boolean;
+  readonly onSelectTool?: () => void;
   readonly onDeviceDragStart?: (kind: PaletteKind) => void;
   /** 새 장비 끌기와 취소 영역의 상태 (T0.12) */
   readonly dragCancel?: DragCancelState;
@@ -67,7 +70,16 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       {tool("hub", "Hub")}
       {tool("router", "Router")}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>
-      <h4>연결</h4>
+      <h4>도구</h4>
+      <button type="button" className={selectActive ? "tool select-tool active" : "tool select-tool"}
+        aria-label="범위 선택" aria-pressed={selectActive} onClick={onSelectTool}
+        title="여러 장비·케이블을 상자로 고릅니다">
+        <svg viewBox="0 0 32 32" fill="none" stroke="#3B8EF0" strokeWidth="2">
+          <rect x="5" y="6" width="22" height="15" rx="1.5" strokeDasharray="4 3" />
+          <path d="M10 10l9 4.5-4 1.2-1.8 3.8z" fill="#3B8EF0" stroke="none" />
+        </svg>
+        선택{selectActive && <span className="tool-selected">선택됨</span>}
+      </button>
       <button type="button" className={cableActive ? "tool cable-tool active" : "tool cable-tool"}
         aria-label="케이블 연결" aria-pressed={cableActive} onClick={onConnect}
         disabled={!cableActive && (deviceCount < 2 || linkCount >= LIMITS.maxLinks)}>

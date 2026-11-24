@@ -55,7 +55,7 @@ describe("Router 배치와 표시", () => {
     const html = renderToString(<Palette deviceCount={2} onConnect={noop} />);
     // 스위치류는 "Switch" 묶음 버튼 뒤에 있다 (T0.39)
     for (const label of ["PC 추가", "Server 추가", "Switch 종류", "Hub 추가", "Router 추가"]) expect(html).toContain(`aria-label="${label}"`);
-    expect(html.match(/<button/g)).toHaveLength(6);
+    expect(html.match(/<button/g)).toHaveLength(7);
     expect(html.match(/draggable="false"/g)).toHaveLength(4);
     expect(html).not.toContain("disabled");
   });

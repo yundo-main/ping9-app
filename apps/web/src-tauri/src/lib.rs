@@ -24,6 +24,20 @@ pub fn run() {
           }
         }
       }
+      // 기본 "About PING9"는 네이티브 창이라 개발자 정보가 안 나온다.
+      // 정보 창을 여는 이벤트를 보내는 커스텀 항목으로 바꾼다 (T0.43)
+      let about = MenuItemBuilder::with_id("menu-about", "PING9에 관하여").build(app)?;
+      for kind in menu.items()? {
+        if let MenuItemKind::Submenu(sub) = kind {
+          for item in sub.items()? {
+            let is_about = matches!(&item, MenuItemKind::Predefined(pre) if pre.text()?.starts_with("About"));
+            if is_about {
+              sub.remove(&item)?;
+              sub.insert(&about, 0)?;
+            }
+          }
+        }
+      }
       match file {
         Some(sub) => {
           sub.append(&PredefinedMenuItem::separator(app)?)?;
@@ -51,7 +65,7 @@ pub fn run() {
     })
     .on_menu_event(|app, event| {
       match event.id().as_ref() {
-        "menu-import" | "menu-export" => {
+        "menu-import" | "menu-export" | "menu-about" => {
           let _ = app.emit(event.id().as_ref(), ());
         }
         _ => {}

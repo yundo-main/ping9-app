@@ -75,6 +75,8 @@ export function App() {
   // 가져오기 실패. 닫을 때까지 보인다 (FR-45)
   const [importError, setImportError] = useState<ErrorInfo | null>(null);
   const [cable, setCable] = useState<CableState>(CABLE_OFF);
+  // 선택 도구: 켜져 있으면 빈 곳 드래그가 범위 선택이 된다 (T0.43). 케이블 도구와 같이 켜지지 않는다
+  const [selectActive, setSelectActive] = useState(false);
   const [dragKind, setDragKind] = useState<PaletteKind | null>(null);
   // 오른쪽 패널 폭. 손잡이로 끌어 바꾼다 (T0.18)
   const side = useSideWidth();
@@ -244,7 +246,7 @@ export function App() {
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setCable(CABLE_OFF); setDragKind(null); setConnectionMessage(null); setRemoveAsk(null); setImportAsk(null);
-      setBoxSel(EMPTY_SEL); setMultiAsk(false);
+      setBoxSel(EMPTY_SEL); setMultiAsk(false); setSelectActive(false);
       setHelpOpen(false);
     };
     window.addEventListener("keydown", escape);
@@ -615,7 +617,8 @@ export function App() {
         });
       });
       const b = await listen("menu-export", () => menuActions.current.doExport());
-      off = () => { a(); b(); };
+      const c = await listen("menu-about", () => setAboutOpen(true));
+      off = () => { a(); b(); c(); };
     });
     return () => off?.();
   }, []);
@@ -630,8 +633,8 @@ export function App() {
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
-          onConnect={() => { setCable(cable.active ? CABLE_OFF : CABLE_READY); setConnectionMessage(null); setActionError(null); }}
-          onDeviceDragStart={kind => { setDragKind(kind); setCable(CABLE_OFF); setConnectionMessage(null); }}
+          onConnect={() => { setCable(cable.active ? CABLE_OFF : CABLE_READY); setSelectActive(false); setConnectionMessage(null); setActionError(null); }}
+          onDeviceDragStart={kind => { setDragKind(kind); setCable(CABLE_OFF); setSelectActive(false); setConnectionMessage(null); }}
           dragCancel={dragCancel} zoneRef={paletteRef} />
         <section className="canvas" onPointerDownCapture={releaseFocus}>
           {actionError !== null && <div className="canvas-error" role="alert">{formatError(actionError)}</div>}
@@ -655,7 +658,8 @@ export function App() {
             onDropDevice={addDevice} onMoveDevice={moveDevice}
             paletteDragKind={dragKind} onPaletteDragEnd={() => setDragKind(null)}
             onDeviceDrag={() => setCable(current => ({ ...current, pickerDeviceId: null }))}
-            cableActive={cable.active} firstPort={cable.first} pickerDeviceId={cable.pickerDeviceId}
+            cableActive={cable.active} selectActive={selectActive}
+            firstPort={cable.first} pickerDeviceId={cable.pickerDeviceId}
             onPickPort={pickPort} onClosePortPicker={() => setCable(current => ({ ...current, pickerDeviceId: null }))}
             replays={replayList} onCanvasClick={() => {
               // 빈 곳을 누르면 선택한 장비·케이블을 푼다 (T0.17)

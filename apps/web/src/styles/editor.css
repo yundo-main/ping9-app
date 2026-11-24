@@ -99,6 +99,8 @@ button { font: inherit; cursor: pointer; }
 .palette.cancel-over { background: var(--danger-bg); outline: 2px dashed var(--danger); outline-offset: -6px; }
 .palette.cancel-over .palette-note { color: var(--danger); font-weight: 700; }
 .palette.cancel-over .tool { opacity: .55; }
+.select-tool.active { color: #fff; background: var(--sky-700); border-color: var(--sky-700); box-shadow: 0 0 0 3px var(--ice-200); }
+.select-tool.active:hover:not(:disabled) { background: var(--sky-900); border-color: var(--sky-900); }
 .cable-tool.active { color: #fff; background: var(--sky-700); border-color: var(--sky-700); box-shadow: 0 0 0 3px var(--ice-200); }
 .cable-tool.active:hover:not(:disabled) { background: var(--sky-900); border-color: var(--sky-900); }
 .tool-selected { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; background: #fff; color: var(--sky-700); }
@@ -193,6 +195,7 @@ button { font: inherit; cursor: pointer; }
 
 .hint { position: absolute; left: 16px; bottom: 16px; font-size: 12px; color: var(--navy-60); background: rgba(255,255,255,.85); padding: 6px 10px; border-radius: 8px; pointer-events: none; }
 /* Shift+드래그 범위 선택 상자 (T0.42). 굵기는 배율과 무관하게 1px */
+.topo.select-mode { cursor: crosshair; }
 .marquee { fill: #3B8EF01F; stroke: var(--sky-500); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
 /* 묶음 선택 패널 (T0.42) */
 .multi-actions { margin-top: 16px; display: flex; gap: 8px; justify-content: center; }
