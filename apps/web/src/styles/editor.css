@@ -90,7 +90,6 @@ button { font: inherit; cursor: pointer; }
 .device-tool svg { pointer-events: none; }
 .tool-group { position: relative; }
 .tool.group-tool { color: inherit; }
-.group-caret { color: var(--navy-60); font-size: 10px; }
 /* 스위치 묶음을 펼치면 목록이 커지지 않게 옆에 플라이아웃으로 띄운다 (T0.39) */
 .switch-flyout { position: absolute; left: calc(100% + 8px); top: 0; z-index: 40; width: 112px; display: flex; flex-direction: column; gap: 10px; padding: 12px 8px; background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); }
 .palette-note { font-size: 11px; line-height: 1.4; text-align: center; color: var(--navy-60); }

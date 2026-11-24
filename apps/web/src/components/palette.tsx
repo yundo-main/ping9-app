@@ -55,7 +55,6 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
           title="눌러 스위치 종류를 고르세요" disabled={full}
           onClick={() => setSwitchesOpen(open => !open)}>
           <DeviceIcon kind="switch" hideLayerBadge />Switch
-          <span className="group-caret" aria-hidden="true">{switchesOpen ? "◂" : "▸"}</span>
         </button>
         {switchesOpen && (
           <div className="switch-flyout" role="group" aria-label="스위치 종류">
