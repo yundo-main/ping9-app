@@ -81,25 +81,19 @@ export interface DnsRecord {
 
 /**
  * PC 구성. IP가 없으면 세 값 모두 없다. `mask`는 `ip`와 함께만, `gateway`는 `ip`가 있을 때만 있다.
- * `os`는 IP와 상관없이 따로 있고, 없으면 `DEFAULT_OS`다
+ * `os`는 IP와 상관없이 따로 있고, 없으면 `DEFAULT_OS`다. 서버 기능은 `ServerConfig`에만 있다 (T0.25)
  */
 export interface PcConfig {
   readonly ip?: string;
   readonly mask?: string;
   readonly gateway?: string;
-  readonly os?: PcOsChoice;
+  readonly os?: OsKind;
   /** 포트 켜짐 (T0.14). 칸이 없으면 켜짐. 옛 문서는 그대로 읽힌다 */
   readonly adminUp?: boolean;
-  /** 켜 둔 서비스 (T0.20). `os`가 `server`일 때만 쓴다. 칸이 없으면 넷 다 켜짐. `SERVICE_KINDS`의 순서 */
-  readonly services?: readonly ServiceKind[];
-  /** DNS 서비스가 답하는 이름 (T0.20). 칸이 없으면 없음 */
-  readonly dnsRecords?: readonly DnsRecord[];
-  /** iptables의 필터 규칙 (T0.21). `os`가 `server`일 때만 쓴다. 칸이 없으면 세 체인 모두 ACCEPT에 규칙 없음 */
-  readonly filter?: PcFilter;
 }
 
-/** PC의 OS. 칸이 없으면 `DEFAULT_OS`. 서버는 Linux다 (T0.20) */
-export function osOf(config: PcConfig): OsKind {
+/** 장비의 OS. 칸이 없으면 `DEFAULT_OS`. 서버는 Linux다 (T0.20) */
+export function osOf(config: PcConfig | ServerConfig): OsKind {
   return config.os === "server" ? "linux" : (config.os ?? DEFAULT_OS);
 }
 

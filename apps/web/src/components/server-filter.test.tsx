@@ -1,7 +1,7 @@
 // 서버의 필터 규칙(iptables) 화면 표시 (T0.21): 장비 목록, 캔버스의 방패 배지, 속성 패널의 필터 규칙, 문구.
 // T14.2.1의 Firewall 장비는 없앴다. 규칙은 종류가 Server인 PC에 건다.
 import { createSimulator } from "@ping9/engine";
-import type { Reason } from "@ping9/shared";
+import type { Command, Reason } from "@ping9/shared";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
@@ -96,7 +96,8 @@ describe("속성 패널의 필터 규칙", () => {
     await simulator.console(ID).exec("iptables -A INPUT -p icmp -j DROP");
     expect(simulator.dispatch({ type: "server/set-os", deviceId: ID, os: "windows" }).ok).toBe(true);
     expect(inspector(simulator)).not.toContain("필터 규칙");
-    expect(simulator.dispatch({ type: "pc/set-os", deviceId: ID, os: "server" }).ok).toBe(true);
+    // 옛 명령 형식(`pc/set-os` + `server`)도 서버로 바꾼다 (저장 호환). 형식상 os는 OsKind라 캐스팅한다
+    expect(simulator.dispatch({ type: "pc/set-os", deviceId: ID, os: "server" } as unknown as Command).ok).toBe(true);
     expect(inspector(simulator)).toContain('<span class="code">1</span><span>-p icmp -j DROP</span>');
   });
 });

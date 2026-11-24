@@ -102,7 +102,7 @@ export const ERROR_MESSAGES: { readonly [C in ErrorCode]: (params: ErrorParamsBy
 
   // traceroute (T11.4.1)
   // 서버로 쓰는 PC (T0.20)
-  PC_NOT_SERVER: () => "이 PC는 서버가 아니에요. 상세 정보의 OS에서 Server를 골라 주세요",
+  PC_NOT_SERVER: () => "서버 장비만 서비스와 필터를 설정할 수 있어요",
   DNS_NAME_INVALID: ({ value }) => `DNS 이름은 영문 소문자, 숫자, -를 .으로 이어 45자까지 쓸 수 있어요: ${value}`,
   DNS_RECORD_NOT_FOUND: ({ name }) => `이 서버에는 ${name} 이름이 없어요`,
   SERVICE_URL_INVALID: ({ value }) => `주소를 읽을 수 없어요: ${value}. http://10.0.2.10/ 처럼 IP 주소로 적어 주세요 (이름은 nslookup으로 찾아요)`,

@@ -4,31 +4,30 @@
 import { errorInfo } from "./codes";
 import type { ErrorInfo } from "./codes";
 import { DEFAULT_OS, SERVICE_KINDS } from "./document";
-import type { DnsRecord, PcConfig, PcOsChoice, ServiceKind } from "./document";
+import type { DnsRecord, PcConfig, PcOsChoice, ServerConfig, ServiceKind } from "./document";
 import { LIMITS } from "./limits";
 import { checkHostIpv4 } from "./values";
 
 /** 속성 패널에서 고른 종류. 칸이 없으면 `DEFAULT_OS` */
-export function osChoiceOf(config: PcConfig): PcOsChoice {
+export function osChoiceOf(config: PcConfig | ServerConfig): PcOsChoice {
   return config.os ?? DEFAULT_OS;
 }
 
-/** 서버로 쓰는 PC인지 */
-export function isServer(config: PcConfig): boolean {
+/** 서버 구성인지 (`os`가 `server`) */
+export function isServer(config: PcConfig | ServerConfig): boolean {
   return config.os === "server";
 }
 
 /**
- * 지금 켜져 있는 서비스. 서버가 아니면 없다. 서버인데 `services` 칸이 없으면 넷 다 켜져 있다
- * (처음 서버로 바꾸면 바로 쓸 수 있다)
+ * 지금 켜져 있는 서비스. `services` 칸이 없으면 넷 다 켜져 있다
+ * (처음 서버로 두면 바로 쓸 수 있다)
  */
-export function servicesOf(config: PcConfig): readonly ServiceKind[] {
-  if (!isServer(config)) return [];
+export function servicesOf(config: ServerConfig): readonly ServiceKind[] {
   return config.services ?? SERVICE_KINDS;
 }
 
 /** DNS 서비스가 답하는 이름과 주소. 없으면 빈 목록 */
-export function dnsRecordsOf(config: PcConfig): readonly DnsRecord[] {
+export function dnsRecordsOf(config: ServerConfig): readonly DnsRecord[] {
   return config.dnsRecords ?? [];
 }
 
@@ -54,7 +53,7 @@ export function normalizeServices(services: readonly ServiceKind[]): readonly Se
 }
 
 /** 문서 불러오기와 reducer가 같은 규칙을 쓴다. 서비스 이름의 형태는 스키마가 본다 */
-export function checkPcServices(config: PcConfig, path: string): ErrorInfo | null {
+export function checkPcServices(config: ServerConfig, path: string): ErrorInfo | null {
   const shape = (where: string) => errorInfo("DOCUMENT_INVALID_SHAPE", { path: `${path}.${where}`.slice(0, 200) });
   const { services, dnsRecords } = config;
   if (services !== undefined && normalizeServices(services).join() !== services.join()) return shape("services");

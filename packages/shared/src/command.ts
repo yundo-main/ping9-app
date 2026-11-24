@@ -4,7 +4,7 @@
 
 import type { ErrorInfo, Notice } from "./codes";
 import type {
-  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, PcOsChoice, PortRef, Position,
+  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position,
   RouterConfig, ServiceKind, SwitchportMode, VlanRange, VpnMode,
 } from "./document";
 
@@ -20,7 +20,7 @@ export type Command =
   | { readonly type: "tunnel/remove"; readonly deviceId: string; readonly name: string }
   // 장비 (FR-9 ~ FR-11). 기본 이름(PC1, SW1, R1)과 기본 구성은 reducer가 붙인다.
   // `os`는 PC에만 쓴다 (T0.7). 없으면 DEFAULT_OS
-  | { readonly type: "device/add"; readonly id: string; readonly kind: DeviceKind; readonly position: Position; readonly os?: PcOsChoice }
+  | { readonly type: "device/add"; readonly id: string; readonly kind: DeviceKind; readonly position: Position; readonly os?: OsKind }
   | { readonly type: "device/move"; readonly deviceId: string; readonly position: Position }
   | { readonly type: "device/rename"; readonly deviceId: string; readonly name: string }
   | { readonly type: "device/remove"; readonly deviceId: string }
@@ -34,18 +34,13 @@ export type Command =
   | { readonly type: "interface/clear-ip"; readonly deviceId: string; readonly port: string }
   // PC의 IP (FR-25). `ip`가 null이면 IP를 지운다. 이때 `mask`와 `gateway`도 null이어야 한다
   | { readonly type: "pc/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
-  // PC의 OS (T0.7). IP 구성은 그대로 둔다. `server`를 고르면 장비가 `kind: "server"`로 바뀐다
-  | { readonly type: "pc/set-os"; readonly deviceId: string; readonly os: PcOsChoice }
-  // 서버로 쓰는 PC의 서비스 (T0.20). `os`가 `server`인 PC에만 쓴다
-  | { readonly type: "pc/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
-  // 같은 이름이 있으면 주소를 바꾼다
-  | { readonly type: "pc/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
-  | { readonly type: "pc/remove-dns-record"; readonly deviceId: string; readonly name: string }
+  // PC의 OS (T0.7). IP 구성은 그대로 둔다. 서버는 `kind`가 다른 장비라 여기서는 고르지 않는다 (T0.25)
+  | { readonly type: "pc/set-os"; readonly deviceId: string; readonly os: OsKind }
   // Server 장비의 명령 (T0.25). pc/* 명령에서 복사한 독립 명령이다
   // Server의 IP. `ip`가 null이면 IP를 지운다
   | { readonly type: "server/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
   // Server를 PC로 되돌리는 명령. 고른 OS로 `kind: "pc"`가 된다
-  | { readonly type: "server/set-os"; readonly deviceId: string; readonly os: Exclude<PcOsChoice, "server"> }
+  | { readonly type: "server/set-os"; readonly deviceId: string; readonly os: OsKind }
   // Server의 서비스
   | { readonly type: "server/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
   | { readonly type: "server/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
@@ -103,9 +98,6 @@ const COMMAND_TYPE_SET = {
   "interface/clear-ip": true,
   "pc/set-ip": true,
   "pc/set-os": true,
-  "pc/set-service": true,
-  "pc/add-dns-record": true,
-  "pc/remove-dns-record": true,
   "server/set-ip": true,
   "server/set-os": true,
   "server/set-service": true,

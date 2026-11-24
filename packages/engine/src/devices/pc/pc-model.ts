@@ -2,7 +2,7 @@
 // 구성(IP, OS, 링크)은 복사하지 않고 매번 지금 Document에서 읽는다. 그래서 IP를 바꿔도 모델을 다시 만들 필요가 없다.
 // 모델이 들고 있는 것은 Document에 없는 동적 상태(ARP 테이블)뿐이다.
 
-import { PORT_NAMES, filterOf, osOf } from "@ping9/shared";
+import { PORT_NAMES, osOf } from "@ping9/shared";
 import { isPcDevice } from "@ping9/shared";
 import type { DeviceView, PcDevice, TopologyDocument } from "@ping9/shared";
 
@@ -15,7 +15,6 @@ import { deviceRef, findDevice, isAdminUp, portLink, portMac } from "../../topol
 import { computeViews } from "../../views";
 import { transmit } from "../link";
 import type { ConfigChange, DeviceModel } from "../model";
-import { listeningService, serviceResponse } from "./services";
 
 export const PC_PORT = PORT_NAMES.pc[0];
 
@@ -37,7 +36,7 @@ export class PcModel implements DeviceModel {
   readonly deviceId: string;
   readonly arp: ArpModule;
   readonly ipv4: Ipv4Host;
-  /** TCP·UDP와 서비스 (T0.20). 서버로 쓰는 PC는 듣고, 모든 PC가 요청을 보낸다 */
+  /** TCP·UDP 요청 (T0.20). PC는 클라이언트다 — 서비스는 Server 장비가 듣는다 */
   readonly transport: TransportHost;
   readonly #getDocument: () => TopologyDocument;
 
@@ -77,8 +76,6 @@ export class PcModel implements DeviceModel {
         get ttl() {
           return TTL_BY_OS[osOf(pc().config)];
         },
-        // 서버로 쓰는 PC의 iptables 규칙 (T0.21). 서버가 아니면 빈 필터라 모두 지나간다
-        filter: () => filterOf(pc().config),
       },
       this.arp,
     );
@@ -88,8 +85,6 @@ export class PcModel implements DeviceModel {
       },
       port: PC_PORT,
       ipv4: this.ipv4,
-      listening: (protocol, port) => listeningService(pc(), protocol, port),
-      respond: (service, message) => serviceResponse(pc(), service, message),
     });
     this.ipv4.setTransport({
       onPacket: (ctx, port, frame, address) => { this.transport.onPacket(ctx, port, frame, address); },

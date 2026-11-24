@@ -711,7 +711,7 @@ export function Canvas({
               <DeviceIcon
                 kind={device.kind}
                 // 필터 규칙을 건 서버는 방패 배지를 단다 (T0.21)
-                {...((device.kind === "pc" || device.kind === "server") ? { os: osChoiceOf(device.config), filtering: hasActiveFilter(device.config) } : {})}
+                {...((device.kind === "pc" || device.kind === "server") ? { os: osChoiceOf(device.config), filtering: device.kind === "server" && hasActiveFilter(device.config) } : {})}
                 // 50에서 32로 줄였다. 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
                 x={24}
                 y={21}
@@ -727,7 +727,7 @@ export function Canvas({
         <PacketLayer replays={replays} pathOf={pathOf} positionOf={deviceId => positions.get(deviceId)}
           filtersAt={deviceId => {
             const device = document.devices.find(candidate => candidate.id === deviceId);
-            return device !== undefined && (device.kind === "pc" || device.kind === "server") && hasActiveFilter(device.config);
+            return device !== undefined && device.kind === "server" && hasActiveFilter(device.config);
           }}
           {...(replayTime !== undefined ? { time: replayTime } : {})} paused={replayPaused}
           {...(onPickPenguin ? { onPick: onPickPenguin } : {})} pickedKey={pickedPenguin?.key}

@@ -36,10 +36,10 @@ export interface TransportHostConfig {
   /** 이 호스트의 포트 (호스트는 포트가 하나다) */
   readonly port: string;
   readonly ipv4: Ipv4Host;
-  /** 그 프로토콜과 포트에서 듣는 서비스. 없으면 undefined */
-  listening(protocol: "tcp" | "udp", port: number): ServiceKind | undefined;
-  /** 서비스가 요청에 내는 응답 */
-  respond(service: ServiceKind, message: string): { readonly message: string; readonly data?: string };
+  /** 그 프로토콜과 포트에서 듣는 서비스. 훅이 없거나 undefined면 듣지 않는다 (클라이언트 전용 호스트) */
+  listening?(protocol: "tcp" | "udp", port: number): ServiceKind | undefined;
+  /** 서비스가 요청에 내는 응답. listening과 함께 둔다 */
+  respond?(service: ServiceKind, message: string): { readonly message: string; readonly data?: string };
 }
 
 /** 전달하는 장비(Router)가 프레임을 다시 만들 때 그대로 옮길 계층 */
@@ -145,7 +145,7 @@ export class TransportHost {
     const peer = ipv4.sourceIp;
 
     if (tcp !== undefined) {
-      const service = this.#config.listening("tcp", tcp.destinationPort);
+      const service = this.#config.listening?.("tcp", tcp.destinationPort);
       // 서버가 받을 것은 SYN, ACK, 요청(PSH-ACK)뿐이다. 그 밖의 것은 이미 끝난 요청의 것이다
       if (tcp.flags === "SYN-ACK" || tcp.flags === "RST") return;
       let received: number;
@@ -171,12 +171,12 @@ export class TransportHost {
         return;
       }
       this.#message(ctx, peer, "tcp", tcp.destinationPort, tcp.sourcePort, tcp.destinationPort,
-        { service, ...this.#config.respond(service, application.message) }, "response", received);
+        { service, ...(this.#config.respond?.(service, application.message) ?? { message: application.message }) }, "response", received);
       return;
     }
 
     if (udp === undefined || application === undefined) return;
-    const service = this.#config.listening("udp", udp.destinationPort);
+    const service = this.#config.listening?.("udp", udp.destinationPort);
     const received = ctx.record({ ...base, layer: "APP", action: "receive", reason: { code: "SERVICE_REQUEST_RECEIVED", params: {
       device, service: application.service, sourceIp: peer, targetIp: ipv4.destinationIp, port: udp.destinationPort,
       message: application.message,
@@ -191,7 +191,7 @@ export class TransportHost {
       return;
     }
     this.#message(ctx, peer, "udp", udp.destinationPort, udp.sourcePort, udp.destinationPort,
-      { service, ...this.#config.respond(service, application.message) }, "response", received);
+      { service, ...(this.#config.respond?.(service, application.message) ?? { message: application.message }) }, "response", received);
   }
 
   /** 내용 없는 TCP 세그먼트를 보낸다. `servicePort`는 이벤트에 적을 서버 쪽 포트다 */

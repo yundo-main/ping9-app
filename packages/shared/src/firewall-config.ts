@@ -7,7 +7,7 @@
 import { errorInfo } from "./codes";
 import type { ErrorInfo } from "./codes";
 import { FIREWALL_CHAINS, PORT_NAMES, isPortName } from "./document";
-import type { FirewallChain, FirewallChainConfig, FirewallRule, PcConfig, PcFilter } from "./document";
+import type { FirewallChain, FirewallChainConfig, FirewallRule, ServerConfig, PcFilter } from "./document";
 import { LIMITS } from "./limits";
 import { formatIpv4, parseIpv4 } from "./values";
 
@@ -18,16 +18,13 @@ export const EMPTY_FIREWALL_FILTER: PcFilter = {
   OUTPUT: { policy: "ACCEPT", rules: [] },
 };
 
-/**
- * 지금 적용되는 필터. 서버가 아니면 규칙이 문서에 남아 있어도 적용하지 않는다 (서비스와 같은 규칙).
- * 서버인데 `filter` 칸이 없으면 처음 상태다
- */
-export function filterOf(config: PcConfig): PcFilter {
-  return config.os === "server" ? (config.filter ?? EMPTY_FIREWALL_FILTER) : EMPTY_FIREWALL_FILTER;
+/** 지금 적용되는 필터. `filter` 칸이 없으면 처음 상태다 */
+export function filterOf(config: ServerConfig): PcFilter {
+  return config.filter ?? EMPTY_FIREWALL_FILTER;
 }
 
 /** 패킷을 막을 수 있는 필터인지: INPUT이나 OUTPUT에 규칙이 있거나 기본 정책이 ACCEPT가 아니다. 화면이 방패를 보일지 정한다 */
-export function hasActiveFilter(config: PcConfig): boolean {
+export function hasActiveFilter(config: ServerConfig): boolean {
   const filter = filterOf(config);
   return (["INPUT", "OUTPUT"] as const).some((chain) => filter[chain].rules.length > 0 || filter[chain].policy !== "ACCEPT");
 }
@@ -73,8 +70,8 @@ export function checkFirewallRule(deviceId: string, chain: FirewallChain, rule: 
     if (cidr !== undefined && normalizeCidr(cidr) !== cidr) return errorInfo("INVALID_IPV4", { value: cidr });
   }
   for (const port of [rule.inInterface, rule.outInterface]) {
-    if (port !== undefined && !isPortName("pc", port)) {
-      return errorInfo("UNKNOWN_PORT", { deviceId, kind: "pc", port });
+    if (port !== undefined && !isPortName("server", port)) {
+      return errorInfo("UNKNOWN_PORT", { deviceId, kind: "server", port });
     }
   }
   if (rule.inInterface !== undefined && chain === "OUTPUT") return errorInfo("FIREWALL_RULE_INVALID", { reason: "in-interface" });
@@ -89,7 +86,7 @@ export function checkFirewallRule(deviceId: string, chain: FirewallChain, rule: 
 }
 
 /** PC 구성의 `filter` 칸. 문서 불러오기와 reducer가 같은 규칙을 쓴다. 칸의 형태는 스키마가 본다 */
-export function checkPcFilter(deviceId: string, config: PcConfig): ErrorInfo | null {
+export function checkPcFilter(deviceId: string, config: ServerConfig): ErrorInfo | null {
   const { filter } = config;
   if (filter === undefined) return null;
   for (const chain of FIREWALL_CHAINS) {
@@ -137,7 +134,7 @@ export function normalizeFilter(filter: PcFilter): PcFilter {
 }
 
 /** 서버의 포트 하나 */
-const SERVER_PORT = PORT_NAMES.pc[0];
+const SERVER_PORT = PORT_NAMES.server[0];
 
 /** 콘솔에 보이는 인터페이스 이름. `Ethernet0` → `eth0`. 서버의 포트가 아니면 받은 글 그대로 */
 export function firewallInterfaceName(port: string): string {

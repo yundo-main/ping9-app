@@ -10,7 +10,7 @@ import {
   isUuid,
   validateDocument,
 } from "@ping9/shared";
-import type { Device, DeviceKind, PcOsChoice, Position, TopologyDocument } from "@ping9/shared";
+import type { Device, DeviceKind, OsKind, PcOsChoice, Position, TopologyDocument } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
@@ -28,8 +28,8 @@ function newDevice(kind: DeviceKind, id: string, name: string, position: Positio
   const base = { id, name, position };
   switch (kind) {
     case "pc":
-      // OS를 고르지 않았으면 칸을 두지 않는다 (DEFAULT_OS, T0.7)
-      return { ...base, kind, config: os === undefined ? {} : { os } };
+      // OS를 고르지 않았으면 칸을 두지 않는다 (DEFAULT_OS, T0.7). "server"는 kind를 바꿔 여기 오지 않는다
+      return { ...base, kind, config: os === undefined ? {} : { os: os as OsKind } };
     case "server":
       return { ...base, kind, config: { os: "server" } };
     case "switch":
@@ -64,8 +64,8 @@ export const addDevice: CommandHandler<"device/add"> = (document, command) => {
     return { ok: false, error: errorInfo("LIMIT_EXCEEDED", { limit: "devices", max: LIMITS.maxDevices }) };
   }
 
-  // 옛 호출 형식(`kind: "pc" + os: "server"`)도 서버를 만든다 (T0.23)
-  const kind = command.kind === "pc" && command.os === "server" ? "server" : command.kind;
+  // 옛 호출 형식(`kind: "pc" + os: "server"`)도 서버를 만든다 (T0.23). 형식상 os는 OsKind지만 경계 밖 값일 수 있다
+  const kind = command.kind === "pc" && (command.os as string) === "server" ? "server" : command.kind;
   const device = newDevice(kind, command.id, nextName(document, kind), command.position, command.os);
   // 위치와 문서 전체의 제약도 기존 검증기로 확인하고, 호출자의 객체와 공유하지 않는 값을 반환한다.
   const checked = validateDocument({ ...document, devices: [...document.devices, device] });

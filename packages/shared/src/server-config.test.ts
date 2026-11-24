@@ -2,7 +2,7 @@
 import { describe, expect, test } from "vitest";
 
 import { osOf } from "./document";
-import type { PcConfig, PcDevice, TopologyDocument } from "./document";
+import type { ServerConfig, ServerDevice, TopologyDocument } from "./document";
 import { pingRoundKind } from "./ping";
 import { checkHostName, dnsRecordsOf, isServer, normalizeServices, osChoiceOf, servicesOf } from "./server-config";
 import type { Trace, TraceEvent } from "./trace";
@@ -10,13 +10,13 @@ import { validateDocument, validateTrace } from "./validate";
 
 const ID = "22222222-2222-4222-8222-222222222222";
 
-function documentWith(config: PcConfig): TopologyDocument {
-  const device: PcDevice = { id: ID, name: "SRV1", kind: "pc", position: { x: 0, y: 0 }, config };
+function documentWith(config: ServerConfig): TopologyDocument {
+  const device: ServerDevice = { id: ID, name: "SRV1", kind: "server", position: { x: 0, y: 0 }, config };
   return { schemaVersion: 1, devices: [device], links: [] };
 }
 
 const codeOf = (config: unknown) => {
-  const result = validateDocument(documentWith(config as PcConfig));
+  const result = validateDocument(documentWith(config as ServerConfig));
   return result.ok ? "ok" : result.error.code;
 };
 
@@ -30,12 +30,11 @@ describe("종류와 서비스 읽기", () => {
     expect(isServer({ os: "linux" })).toBe(false);
   });
 
-  test("서버는 칸이 없으면 서비스 넷이 다 켜져 있다. 서버가 아니면 켜 둔 것이 있어도 없다", () => {
+  test("서비스 칸이 없으면 넷이 다 켜져 있다", () => {
     expect(servicesOf({ os: "server" })).toEqual(["http", "dns", "ntp", "ftp"]);
     expect(servicesOf({ os: "server", services: ["ntp"] })).toEqual(["ntp"]);
     expect(servicesOf({ os: "server", services: [] })).toEqual([]);
-    expect(servicesOf({ os: "linux", services: ["http"] })).toEqual([]);
-    expect(servicesOf({})).toEqual([]);
+    expect(servicesOf({})).toEqual(["http", "dns", "ntp", "ftp"]);
     expect(dnsRecordsOf({ os: "server" })).toEqual([]);
   });
 
@@ -67,8 +66,6 @@ describe("문서 검증", () => {
       os: "server", ip: "10.0.2.10", mask: "255.255.255.0", services: ["http", "ftp"],
       dnsRecords: [{ name: "www.ping9.test", address: "10.0.2.10" }],
     })).toBe("ok");
-    // 서버가 아니어도 서비스 구성은 남아 있을 수 있다 (종류를 바꿨다가 되돌릴 때)
-    expect(codeOf({ os: "linux", services: ["http"] })).toBe("ok");
   });
 
   test.each<[string, unknown, string]>([

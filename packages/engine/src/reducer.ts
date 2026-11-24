@@ -18,7 +18,6 @@ import { setInterfaceAdmin } from "./reducer/interface-admin";
 import { addLink, removeDevice, removeLink } from "./reducer/link";
 import { setPcIp } from "./reducer/pc-set-ip";
 import { setPcOs } from "./reducer/pc-set-os";
-import { addPcDnsRecord, removePcDnsRecord, setPcService } from "./reducer/pc-services";
 import { addServerDnsRecord, removeServerDnsRecord, setServerService } from "./reducer/server-services";
 import { setServerIp } from "./reducer/server-set-ip";
 import { setServerOs } from "./reducer/server-set-os";
@@ -68,9 +67,6 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "link/remove": removeLink,
   "pc/set-ip": setPcIp,
   "pc/set-os": setPcOs,
-  "pc/set-service": setPcService,
-  "pc/add-dns-record": addPcDnsRecord,
-  "pc/remove-dns-record": removePcDnsRecord,
   // Server 장비의 명령 (T0.25). pc/*에서 복사한 독립 처리기다
   "server/set-ip": setServerIp,
   "server/set-os": setServerOs,

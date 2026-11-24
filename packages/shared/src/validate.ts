@@ -92,15 +92,11 @@ function checkVersion(input: Record<string, unknown>): ErrorInfo | null {
 
 type ParsedDevice = ParsedDocument["devices"][number];
 
-function checkPcConfig(
-  deviceId: string,
-  config: Extract<ParsedDevice, { kind: "pc" }>["config"],
+/** 호스트 주소 칸(ip/mask/gateway)의 조합과 형식. PC와 Server가 같다 */
+function checkHostAddress(
+  config: { readonly ip?: string; readonly mask?: string; readonly gateway?: string },
   path: string,
 ): ErrorInfo | null {
-  // 서비스 구성과 필터 규칙은 주소와 상관없이 본다 (T0.20, T0.21)
-  const servicesError = checkPcServices(config, path) ?? checkPcFilter(deviceId, config);
-  if (servicesError) return servicesError;
-
   const { ip, mask, gateway } = config;
   if (ip === undefined) {
     return mask === undefined && gateway === undefined ? null : shapeError(`${path}.ip`);
@@ -111,6 +107,15 @@ function checkPcConfig(
     checkInterfaceAddress(ip, mask) ??
     (gateway === undefined ? null : checkGateway(gateway, ip, mask))
   );
+}
+
+function checkServerConfig(
+  deviceId: string,
+  config: Extract<ParsedDevice, { kind: "server" }>["config"],
+  path: string,
+): ErrorInfo | null {
+  // 서비스 구성과 필터 규칙은 주소와 상관없이 본다 (T0.20, T0.21)
+  return checkPcServices(config, path) ?? checkPcFilter(deviceId, config) ?? checkHostAddress(config, path);
 }
 
 function checkSwitchConfig(
@@ -203,8 +208,9 @@ function checkRouterConfig(
 function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null {
   switch (device.kind) {
     case "pc":
+      return checkHostAddress(device.config, path);
     case "server":
-      return checkPcConfig(device.id, device.config, path);
+      return checkServerConfig(device.id, device.config, path);
     case "switch":
       return checkSwitchConfig(device.id, device.config, path);
     case "router":

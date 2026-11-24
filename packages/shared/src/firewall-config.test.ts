@@ -1,7 +1,7 @@
 // 서버로 쓰는 PC의 필터 규칙 (T14.2.1, T0.21). 문서 불러오기와 reducer가 함께 쓰는 함수들이다.
 import { describe, expect, test } from "vitest";
 
-import type { PcConfig, PcDevice, PcFilter, RouterDevice, TopologyDocument } from "./document";
+import type { PcConfig, PcDevice, PcFilter, RouterDevice, ServerConfig, ServerDevice, TopologyDocument } from "./document";
 import {
   EMPTY_FIREWALL_FILTER,
   checkFirewallRule,
@@ -25,10 +25,15 @@ function documentWith(config: PcConfig): TopologyDocument {
   return { schemaVersion: 1, devices: [device], links: [] };
 }
 
+function serverDocumentWith(config: ServerConfig): TopologyDocument {
+  const device: ServerDevice = { id: ID, name: "SRV1", kind: "server", position: { x: 0, y: 0 }, config };
+  return { schemaVersion: 1, devices: [device], links: [] };
+}
+
 const withInput = (rules: PcFilter["INPUT"]["rules"], policy: "ACCEPT" | "DROP" = "ACCEPT"): PcFilter =>
   ({ ...EMPTY_FIREWALL_FILTER, INPUT: { policy, rules } });
 const codeOf = (config: unknown) => {
-  const result = validateDocument(documentWith(config as PcConfig));
+  const result = validateDocument(serverDocumentWith(config as ServerConfig));
   return result.ok ? "ok" : result.error.code;
 };
 
@@ -95,7 +100,7 @@ describe("규칙 하나의 검사", () => {
   test("맞춰지지 않은 주소, 서버에 없는 포트, 틀린 포트 번호를 거부한다", () => {
     expect(checkFirewallRule(ID, "INPUT", { source: "10.0.0.7/24", target: "DROP" })?.code).toBe("INVALID_IPV4");
     expect(checkFirewallRule(ID, "INPUT", { inInterface: "Ethernet1", target: "DROP" })).toEqual({
-      code: "UNKNOWN_PORT", params: { deviceId: ID, kind: "pc", port: "Ethernet1" },
+      code: "UNKNOWN_PORT", params: { deviceId: ID, kind: "server", port: "Ethernet1" },
     });
     expect(checkFirewallRule(ID, "INPUT", { protocol: "tcp", destinationPort: "99999", target: "DROP" })?.code).toBe("FIREWALL_PORT_INVALID");
   });
@@ -113,9 +118,8 @@ describe("규칙 하나의 검사", () => {
 describe("적용되는 필터", () => {
   const rules = withInput([{ protocol: "icmp", target: "DROP" }]);
 
-  test("서버가 아니면 규칙이 남아 있어도 적용하지 않는다. 서버인데 칸이 없으면 처음 상태다", () => {
+  test("칸이 없으면 처음 상태다. 있으면 그 규칙을 쓴다", () => {
     expect(filterOf({ os: "server", filter: rules })).toBe(rules);
-    expect(filterOf({ os: "linux", filter: rules })).toEqual(EMPTY_FIREWALL_FILTER);
     expect(filterOf({ os: "server" })).toEqual(EMPTY_FIREWALL_FILTER);
     expect(filterOf({})).toEqual(EMPTY_FIREWALL_FILTER);
   });
@@ -123,7 +127,6 @@ describe("적용되는 필터", () => {
   test("막을 수 있는 필터인지: INPUT이나 OUTPUT에 규칙이 있거나 정책이 DROP이다", () => {
     expect(hasActiveFilter({ os: "server" })).toBe(false);
     expect(hasActiveFilter({ os: "server", filter: rules })).toBe(true);
-    expect(hasActiveFilter({ os: "windows", filter: rules })).toBe(false);
     expect(hasActiveFilter({ os: "server", filter: { ...EMPTY_FIREWALL_FILTER, OUTPUT: { policy: "DROP", rules: [] } } })).toBe(true);
     // FORWARD는 서버가 전달하지 않아 맞는 패킷이 없다
     expect(hasActiveFilter({ os: "server", filter: { ...EMPTY_FIREWALL_FILTER, FORWARD: { policy: "DROP", rules: [{ target: "DROP" }] } } })).toBe(false);
@@ -145,8 +148,6 @@ describe("문서 검증", () => {
     expect(codeOf({})).toBe("ok");
     expect(codeOf({ os: "server" })).toBe("ok");
     expect(codeOf({ os: "server", filter: withInput([{ protocol: "tcp", destinationPort: "80", inInterface: "Ethernet0", target: "DROP" }], "DROP") })).toBe("ok");
-    // 서버가 아니어도 규칙은 남아 있을 수 있다 (종류를 바꿨다가 되돌릴 때)
-    expect(codeOf({ os: "linux", filter: withInput([{ target: "DROP" }]) })).toBe("ok");
   });
 
   test.each<[string, unknown, string]>([
@@ -163,8 +164,8 @@ describe("문서 검증", () => {
   });
 
   test("정의되지 않은 칸은 검증된 값에서 빠진다", () => {
-    const result = validateDocument(documentWith({ os: "server", filter: withInput([{ target: "DROP", comment: "x" } as never]) }));
-    expect(result.ok && (result.document.devices[0] as PcDevice).config.filter?.INPUT.rules).toEqual([{ target: "DROP" }]);
+    const result = validateDocument(serverDocumentWith({ os: "server", filter: withInput([{ target: "DROP", comment: "x" } as never]) }));
+    expect(result.ok && (result.document.devices[0] as ServerDevice).config.filter?.INPUT.rules).toEqual([{ target: "DROP" }]);
   });
 
   test("Firewall 장비는 이제 없는 종류다", () => {
@@ -240,7 +241,7 @@ describe("옛 문서의 Firewall 장비 (T0.21)", () => {
   });
 
   test("옛 `kind: pc + os: server`는 `kind: server`로 올린다 (T0.23)", () => {
-    const oldServer = documentWith({ os: "server" });
+    const oldServer = documentWith({ os: "server" } as unknown as PcConfig);
     const migrated = migrateDocument(oldServer) as TopologyDocument;
     expect(migrated.devices[0]).toMatchObject({ kind: "server", config: { os: "server" } });
     // `kind: server`인데 os가 어긋난 것도 `server`로 맞춘다

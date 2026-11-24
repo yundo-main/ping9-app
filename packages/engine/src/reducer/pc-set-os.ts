@@ -30,7 +30,7 @@ export const setPcOs: CommandHandler<"pc/set-os"> = (document, command) => {
   }
 
   // 같은 OS여도 성공이다. 문서는 같은 내용의 새 객체다
-  const os = command.os;
+  const os = command.os as PcOsChoice;
   // `server`를 고르면 장비가 `kind: "server"`로 바뀐다 (서비스·필터 구성도 그대로 넘어간다)
   const converted = os === "server"
     ? { ...device, kind: "server" as const, config: { ...device.config, os: "server" as const } }

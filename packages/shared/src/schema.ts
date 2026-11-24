@@ -7,7 +7,7 @@ import { z } from "zod";
 import { DROP_REASONS, REASON_CODES } from "./codes";
 import type { TopologyDocument } from "./document";
 import {
-  FIREWALL_ICMP_TYPES, FIREWALL_POLICIES, FIREWALL_PROTOCOLS, FIREWALL_TARGETS, PC_OS_CHOICES, SERVICE_KINDS, SWITCHPORT_MODES, VPN_MODES,
+  FIREWALL_ICMP_TYPES, FIREWALL_POLICIES, FIREWALL_PROTOCOLS, FIREWALL_TARGETS, OS_KINDS, SERVICE_KINDS, SWITCHPORT_MODES, VPN_MODES,
 } from "./document";
 import { LIMITS } from "./limits";
 import type { Trace } from "./trace";
@@ -28,11 +28,8 @@ const pcConfigSchema = z.object({
   ip: shortString.optional(),
   mask: shortString.optional(),
   gateway: shortString.optional(),
-  os: z.enum(PC_OS_CHOICES).optional(),
+  os: z.enum(OS_KINDS).optional(),
   adminUp: z.boolean().optional(),
-  services: z.array(z.enum(SERVICE_KINDS)).optional(),
-  dnsRecords: z.array(z.object({ name: shortString, address: shortString })).optional(),
-  filter: z.lazy(() => filterSchema).optional(),
 });
 
 /** Server 구성 (T0.25). pcConfigSchema에서 복사한 독립 스키마 — `os`는 `server`만 온다 */

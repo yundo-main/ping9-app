@@ -12,7 +12,6 @@ import { isPcDevice,
 } from "@ping9/shared";
 import type { ConsoleLine, ErrorInfo, OsKind, PcDevice, ServiceKind } from "@ping9/shared";
 
-import { listeningService, serviceResponse } from "../../devices/pc/services";
 import type { ServiceOutcome } from "../../runtime";
 import { customParam, defineCommand, param } from "../ios";
 import type { CommandArgs, CommandContext, CommandDefinition, CommandOutcome, ParamValue } from "../ios";
@@ -67,11 +66,9 @@ function readHostName(value: string): ParamValue {
   return error === null ? { ok: true, value: name } : { ok: false, error };
 }
 
-/** 자기 주소나 127.x로 보낸 요청은 링크를 지나지 않는다. 이 PC가 듣고 있으면 바로 답한다 */
-function localOutcome(pc: PcDevice, targetIp: string, protocol: "tcp" | "udp", port: number, message: string): ServiceOutcome | undefined {
-  if (targetIp !== pc.config.ip && !targetIp.startsWith("127.")) return undefined;
-  const service = listeningService(pc, protocol, port);
-  return service === undefined ? { kind: "refused", timeUs: 0 } : { kind: "response", ...serviceResponse(pc, service, message), timeUs: 0 };
+/** 자기 주소나 127.x로 보낸 요청은 링크를 지나지 않는다. PC는 서비스를 듣지 않아 모두 거절이다 */
+function localOutcome(pc: PcDevice, targetIp: string): ServiceOutcome | undefined {
+  return targetIp === pc.config.ip || targetIp.startsWith("127.") ? { kind: "refused", timeUs: 0 } : undefined;
 }
 
 interface Requested {
@@ -83,7 +80,7 @@ interface Requested {
 function request(
   context: CommandContext, pc: PcDevice, service: ServiceKind, protocol: "tcp" | "udp", targetIp: string, port: number, message: string,
 ): Requested | { readonly error: ErrorInfo } | undefined {
-  const local = localOutcome(pc, targetIp, protocol, port, message);
+  const local = localOutcome(pc, targetIp);
   if (local !== undefined) return { outcome: local };
   if (context.runtime === undefined) return undefined;
   const run = context.runtime.exchange({ deviceId: pc.id, service, protocol, targetIp, port, message });

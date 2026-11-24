@@ -252,13 +252,13 @@ describe("주소와 이름 읽기", () => {
 });
 
 describe("서비스 구성의 Command", () => {
-  test("서버가 아닌 PC의 서비스는 바꿀 수 없다", async () => {
+  test("PC에는 서비스 명령이 없다 — pc/set-service는 지워진 옛 명령이다", async () => {
     const { send } = await lab();
     expect(send({ type: "pc/set-service", deviceId: PC1, service: "http", enabled: false })).toEqual({
-      ok: false, error: { code: "PC_NOT_SERVER", params: { deviceId: PC1 } },
+      ok: false, error: { code: "UNKNOWN_COMMAND", params: { type: "pc/set-service" } },
     });
     expect(send({ type: "pc/add-dns-record", deviceId: MID, name: "a.test", address: "10.0.0.1" })).toMatchObject({
-      ok: false, error: { code: "DEVICE_KIND_MISMATCH" },
+      ok: false, error: { code: "UNKNOWN_COMMAND", params: { type: "pc/add-dns-record" } },
     });
   });
 

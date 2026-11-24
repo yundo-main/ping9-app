@@ -3,8 +3,8 @@
 // OS는 고르는 즉시 pc/set-os를, 포트 토글은 누르는 즉시 interface/set-admin을 dispatch한다. IP의 "적용"과 따로다.
 // 문구는 카탈로그에서 만들어 글자 그대로 넣는다 (AD-14, SEC-11).
 
-import { PC_OS_CHOICES, PORT_NAMES, osChoiceOf, osOf } from "@ping9/shared";
-import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, PcDevice, PcOsChoice } from "@ping9/shared";
+import { OS_KINDS, PORT_NAMES, osOf } from "@ping9/shared";
+import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, PcDevice } from "@ping9/shared";
 import { useId, useState } from "react";
 
 import { applyDraft, draftOf, OS_NAMES, PC_FIELDS, prefixLabel } from "../format/pc-address";
@@ -19,12 +19,12 @@ const LABELS: Readonly<Record<PcField, string>> = {
 };
 
 /** OS 고르기. 라디오 버튼이라 화살표 키로 바꿀 수 있다 (NFR-12). Server는 팔레트의 별도 장비라 여기서는 고르지 않는다 (T0.25) */
-export function OsChoice({ os, onChange }: { readonly os: PcOsChoice; readonly onChange: (os: PcOsChoice) => void }) {
+export function OsChoice({ os, onChange }: { readonly os: OsKind; readonly onChange: (os: OsKind) => void }) {
   const name = useId();
   return (
     <fieldset className="os-choice">
       <legend>OS</legend>
-      {PC_OS_CHOICES.filter((kind) => kind !== "server").map((kind) => (
+      {OS_KINDS.map((kind) => (
         <label key={kind}>
           <input
             type="radio"
@@ -236,7 +236,7 @@ export function PcSettings({
 
   // 포트 이름은 콘솔의 OS를 따른다 (Server는 Linux). 고르기에는 고른 종류를 그대로 보인다 (T0.20)
   const os = osOf(device.config);
-  const choice = osChoiceOf(device.config);
+  const choice = osOf(device.config);
   const adminUp = device.config.adminUp ?? true;
 
   return (
