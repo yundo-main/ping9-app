@@ -67,7 +67,20 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # src-tauri의 Rust 코드도 PR에서 컴파일 확인한다 — 릴리스 빌드까지 오류를 미루지 않게
+      - name: Build
+        run: pnpm build
+
+  # src-tauri의 Rust 코드도 PR에서 컴파일 확인한다 — 릴리스 빌드까지 오류를 미루지 않게.
+  # macOS에는 Tauri 시스템 의존성이 따로 필요 없어 설치 단계 없이 check가 된다.
+  # Ubuntu에서 하려면 libwebkit2gtk-4.1-dev 등을 apt로 깔아야 해서 mac을 택했다.
+  rust-check:
+    name: Rust check
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Cache Rust builds
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
@@ -75,6 +88,3 @@ jobs:
 
       - name: Check Rust code
         run: cargo check --manifest-path apps/web/src-tauri/Cargo.toml
-
-      - name: Build
-        run: pnpm build
