@@ -1,3 +1,4 @@
+import { shortPortName } from "@ping9/shared";
 import type { Link, TopologyDocument } from "@ping9/shared";
 import type { ReactNode } from "react";
 
@@ -16,7 +17,7 @@ export function LinkInspector({ document, link, onRemove, header }: {
         <div className="link-end" key={`${end.deviceId} ${end.port}`}>
           <h4>{index === 0 ? "첫 번째 연결점" : "두 번째 연결점"}</h4>
           <strong>{document.devices.find(device => device.id === end.deviceId)?.name ?? end.deviceId}</strong>
-          <p>{end.port}</p>
+          <p>{shortPortName(end.port)}</p>
         </div>
       ))}
       <button type="button" className="remove-link" onClick={onRemove}>케이블 삭제</button>

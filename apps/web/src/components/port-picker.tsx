@@ -1,3 +1,4 @@
+import { shortPortName } from "@ping9/shared";
 import type { Device, PortRef, TopologyDocument } from "@ping9/shared";
 
 import { availablePorts } from "../format/available-ports";
@@ -17,7 +18,7 @@ export function PortPicker({ document, device, first, onPick, onClose }: {
       {sameDevice ? <p>다른 장비를 선택해 두 번째 포트를 골라 주세요.</p> : ports.length === 0
         ? <p>사용할 수 있는 포트가 없어요. 다른 장비를 고르거나 기존 케이블을 삭제해 주세요.</p>
         : <div className="port-options">{ports.map(port => <button key={port} type="button"
-          onClick={() => onPick({ deviceId: device.id, port })}>{port}</button>)}</div>}
+          onClick={() => onPick({ deviceId: device.id, port })}>{shortPortName(port)}</button>)}</div>}
       <p className="port-step">{first === null ? "첫 번째 포트를 선택하세요" : "두 번째 포트를 선택하면 연결돼요"}</p>
     </div>
   );

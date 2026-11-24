@@ -149,3 +149,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.41 PING9에 관하여 창: 도움말 링크로 여는 앱 정보·개발자 표시 (계획에 없는 새 ID) | [T0.41-about-dialog.md](T0.41-about-dialog.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.42 캔버스 범위 선택: Shift+드래그 상자·수정자 토글·묶음 삭제 (계획에 없는 새 ID) | [T0.42-box-select.md](T0.42-box-select.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.43 선택 도구 버튼 + 메뉴바 PING9에 관하여 항목 (계획에 없는 새 ID) | [T0.43-select-tool-menu-about.md](T0.43-select-tool-menu-about.md) | 화면·앱 | jarrod | main 직접 커밋 |
+| T0.44 화면의 포트 이름 줄임 표기 확장: 링크 패널·포트 선택 창 (계획에 없는 새 ID) | [T0.44-short-port-names.md](T0.44-short-port-names.md) | 화면 | jarrod | main 직접 커밋 |

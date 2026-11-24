@@ -59,20 +59,20 @@ describe("장비 옆 포트 목록", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain("SW1의 빈 포트");
     expect(html).toContain("첫 번째 포트를 선택하세요");
-    expect(html).toContain("FastEthernet0/3");
-    expect(html).not.toContain("FastEthernet0/1");
-    expect(html).not.toContain("FastEthernet0/2");
-    expect(html).not.toContain("FastEthernet0/8");
+    expect(html).toContain("Fa0/3");
+    expect(html).not.toContain("Fa0/1");
+    expect(html).not.toContain("Fa0/2");
+    expect(html).not.toContain("Fa0/8");
   });
   test("두 번째 장비에는 포트를 고르면 연결된다는 안내가 있다", () => {
     const html = picker(sw1.id, { deviceId: ROUTER, port: PORT_NAMES.router[0] });
     expect(html).toContain("두 번째 포트를 선택하면 연결돼요");
-    expect(html).toContain("FastEthernet0/3");
+    expect(html).toContain("Fa0/3");
   });
   test("같은 장비의 다른 포트로는 연결할 수 없다", () => {
     const html = picker(ROUTER, { deviceId: ROUTER, port: PORT_NAMES.router[0] });
     expect(html).toContain("다른 장비를 선택해");
-    expect(html).not.toContain("GigabitEthernet0/1");
+    expect(html).not.toContain("Gi0/1");
   });
   test("빈 포트가 없으면 안내를 표시한다", () => {
     expect(picker(pc1.id)).toContain("사용할 수 있는 포트가 없어요");
@@ -101,7 +101,7 @@ describe("케이블 도구와 선택", () => {
   test("선택한 케이블의 양 끝 전체 포트 이름과 삭제 버튼을 보여준다", () => {
     const html = renderToString(<LinkInspector document={twoSwitchVlanDocument}
       link={twoSwitchVlanDocument.links[0]!} onRemove={noop} />);
-    for (const text of ["PC1", "SW1", "Ethernet0", "FastEthernet0/1", "케이블 삭제"]) expect(html).toContain(text);
+    for (const text of ["PC1", "SW1", "Eth0", "Fa0/1", "케이블 삭제"]) expect(html).toContain(text);
   });
   test("캔버스에서 링크 선택과 장비 옆 포트 목록을 함께 표시할 수 있다", () => {
     const document = open().getSnapshot().document;
