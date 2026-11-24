@@ -88,6 +88,11 @@ export function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const selectedLink = document.links.find(link => link.id === selectedLinkId);
+  // 범위 선택(Shift+드래그)으로 고른 장비·케이블 (T0.42). 하나만 걸리면 평소 선택이 된다
+  const EMPTY_SEL: { readonly devices: readonly string[]; readonly links: readonly string[] } = { devices: [], links: [] };
+  const [boxSel, setBoxSel] = useState(EMPTY_SEL);
+  const boxSelCount = boxSel.devices.length + boxSel.links.length;
+  const [multiAsk, setMultiAsk] = useState(false);
 
   const addDevice = (kind: PaletteKind, position: Position) => {
     setDragKind(null);
@@ -95,6 +100,7 @@ export function App() {
     const result = simulator.dispatch({ type: "device/add", id, kind, position });
     setActionError(result.ok ? null : result.error);
     if (result.ok) {
+      setBoxSel(EMPTY_SEL);
       setSelectedLinkId(null);
       dispatch({ type: "select", deviceId: id });
     }
@@ -131,6 +137,7 @@ export function App() {
   };
 
   const selectDevice = (deviceId: string) => {
+    setBoxSel(EMPTY_SEL);
     setSelectedLinkId(null);
     setActionError(null);
     setConnectionMessage(null);
@@ -139,6 +146,7 @@ export function App() {
   };
 
   const selectLink = (linkId: string) => {
+    setBoxSel(EMPTY_SEL);
     setSelectedLinkId(linkId);
     setCable(current => ({ ...current, pickerDeviceId: null }));
     dispatch({ type: "select", deviceId: null });
@@ -169,7 +177,29 @@ export function App() {
     if (selectedLink === undefined) return;
     const result = simulator.dispatch({ type: "link/remove", linkId: selectedLink.id });
     setActionError(result.ok ? null : result.error);
-    if (result.ok) setSelectedLinkId(null);
+    if (result.ok) { setBoxSel(EMPTY_SEL); setSelectedLinkId(null); }
+  };
+
+  // 범위 선택 결과를 상태에 담는다. 하나만 걸리면 평소 하나 고르기와 같다 (T0.42)
+  const applyBoxSelection = (devices: readonly string[], links: readonly string[]) => {
+    if (devices.length === 1 && links.length === 0 && devices[0] !== undefined) return selectDevice(devices[0]);
+    if (devices.length === 0 && links.length === 1 && links[0] !== undefined) return selectLink(links[0]);
+    setSelectedLinkId(null);
+    dispatch({ type: "select", deviceId: null });
+    setBoxSel(devices.length === 0 && links.length === 0 ? EMPTY_SEL : { devices, links });
+  };
+
+  // ⌘/Ctrl/Shift+누르기는 고른 묶음에서 빼거나 넣는다. 묶음이 비면 지금 고른 하나를 심는다
+  const toggleSelection = (deviceId: string | null, linkId: string | null) => {
+    const devices = new Set(boxSel.devices);
+    const links = new Set(boxSel.links);
+    if (devices.size + links.size === 0) {
+      if (ui.selectedDeviceId !== null) devices.add(ui.selectedDeviceId);
+      if (selectedLinkId !== null) links.add(selectedLinkId);
+    }
+    if (deviceId !== null) { if (devices.has(deviceId)) devices.delete(deviceId); else devices.add(deviceId); }
+    if (linkId !== null) { if (links.has(linkId)) links.delete(linkId); else links.add(linkId); }
+    applyBoxSelection([...devices], [...links]);
   };
 
   // 장비별 터미널의 화면 기록. 창을 닫았다 열어도 남는다 (FR-19).
@@ -214,6 +244,7 @@ export function App() {
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setCable(CABLE_OFF); setDragKind(null); setConnectionMessage(null); setRemoveAsk(null); setImportAsk(null);
+      setBoxSel(EMPTY_SEL); setMultiAsk(false);
       setHelpOpen(false);
     };
     window.addEventListener("keydown", escape);
@@ -417,7 +448,34 @@ export function App() {
     setRemoveAsk(null);
     setActionError(result.ok ? null : result.error);
     // 지운 장비나 그 케이블 위를 걷던 펭귄이 남지 않게 한다
-    if (result.ok) setReplays(new Map());
+    if (result.ok) { setBoxSel(EMPTY_SEL); setReplays(new Map()); }
+  };
+
+  /** 범위 선택 삭제 버튼이나 Delete 키. 케이블이 딸린 장비나 고른 케이블이 있으면 한 번 묻는다 (T0.42) */
+  const requestRemoveSelection = () => {
+    const hasLink = boxSel.links.length > 0 ||
+      document.links.some(link => link.ends.some(end => boxSel.devices.includes(end.deviceId)));
+    if (!hasLink) return removeSelection();
+    setMultiAsk(true);
+  };
+
+  const removeSelection = () => {
+    setMultiAsk(false);
+    let error: ErrorInfo | null = null;
+    for (const deviceId of boxSel.devices) {
+      running.current.get(deviceId)?.abort();
+      const result = simulator.dispatch({ type: "device/remove", deviceId });
+      if (!result.ok) error = result.error;
+    }
+    for (const linkId of boxSel.links) {
+      const result = simulator.dispatch({ type: "link/remove", linkId });
+      if (!result.ok) error = result.error;
+    }
+    setActionError(error);
+    setBoxSel(EMPTY_SEL);
+    setSelectedLinkId(null);
+    dispatch({ type: "select", deviceId: null });
+    setReplays(new Map());
   };
 
   /** 삭제 버튼이나 Delete 키. 케이블이 연결된 장비는 속성 패널에서 한 번 더 묻는다 (T1.4.3, FR-11) */
@@ -440,6 +498,15 @@ export function App() {
       if (!isRemoveKey(event) || cable.active || dragKind !== null || importAsk !== null) return;
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest("input, textarea, select, [contenteditable], .term") != null) return;
+      if (boxSelCount > 0) {
+        // 묶음을 고른 뒤에는 묶음을 지운다. 고르지 않은 장비·케이블에 포커스가 있으면 그것을 먼저 고른다 (T1.3.3 규칙)
+        const focused = target?.closest("g.node")?.getAttribute("data-device-id") ?? null;
+        const focusedLink = target?.closest("g.link")?.getAttribute("data-link-id") ?? null;
+        if (focused !== null && !boxSel.devices.includes(focused)) return selectDevice(focused);
+        if (focusedLink !== null && !boxSel.links.includes(focusedLink)) return selectLink(focusedLink);
+        event.preventDefault();
+        return requestRemoveSelection();
+      }
       const action = removeKeyAction({
         focusedDeviceId: target?.closest("g.node")?.getAttribute("data-device-id") ?? null,
         focusedLinkId: target?.closest("g.link")?.getAttribute("data-link-id") ?? null,
@@ -532,6 +599,7 @@ export function App() {
     setCable(CABLE_OFF); setDragKind(null); setSelectedLinkId(null); setRemoveAsk(null);
     setActionError(null); setConnectionMessage(null);
     setPickedTrace(null); setLastPlayed(null); setSelectedSeq(null); setSeenTrace(null);
+    setBoxSel(EMPTY_SEL); setMultiAsk(false);
   };
 
   // 데스크톱 앱의 파일 메뉴(가져오기/내보내기)가 보내는 이벤트를 같은 절차에 연결한다 (T0.40)
@@ -592,9 +660,14 @@ export function App() {
             replays={replayList} onCanvasClick={() => {
               // 빈 곳을 누르면 선택한 장비·케이블을 푼다 (T0.17)
               clearFinishedReplays();
+              setBoxSel(EMPTY_SEL);
               setSelectedLinkId(null);
               dispatch({ type: "select", deviceId: null });
             }}
+            selectedDeviceIds={new Set(boxSel.devices)} selectedLinkIds={new Set(boxSel.links)}
+            onBoxSelect={applyBoxSelection}
+            onToggleDevice={(deviceId) => toggleSelection(deviceId, null)}
+            onToggleLink={(linkId) => toggleSelection(null, linkId)}
             cancelZoneRef={paletteRef} onCancelZone={setDragCancel}
             replayTime={clock.now} replayPaused={clockState.paused}
             eventHighlight={eventHighlight}
@@ -637,6 +710,20 @@ export function App() {
             traceId={shownTrace} onPickTrace={(traceId) => { setPickedTrace(traceId); setSelectedSeq(null); }}
             replay={shownReplay} time={clock.now} paused={clockState.paused}
             selectedSeq={selectedSeq} onSelectSeq={setSelectedSeq} />
+        ) : boxSelCount >= 2 ? (
+          <aside className="inspector">
+            {sideHeader}
+            <div className="inspector-idle">
+              <div className="idle-text">
+                <b>{boxSel.devices.length}대의 장비</b>와 <b>{boxSel.links.length}개의 케이블</b>을 골랐어요.
+                <br />연결된 케이블은 장비와 함께 지워집니다.
+              </div>
+              <div className="multi-actions">
+                <button type="button" onClick={requestRemoveSelection}>모두 지우기</button>
+                <button type="button" onClick={() => setBoxSel(EMPTY_SEL)}>선택 해제</button>
+              </div>
+            </div>
+          </aside>
         ) : selectedLink !== undefined ? <LinkInspector document={document} link={selectedLink} onRemove={removeSelectedLink} header={sideHeader} /> : <Inspector
           header={sideHeader}
           snapshot={snapshot}
@@ -651,6 +738,12 @@ export function App() {
           onPlayExchange={mode === "simulation" ? (traceId) => play(RIP_REPLAY_KEY, traceId, true) : undefined}
         />}
       </main>
+      {multiAsk && (
+        <ConfirmDialog title="고른 항목을 지울까요?" confirmLabel="지우기"
+          onConfirm={removeSelection} onCancel={() => setMultiAsk(false)}>
+          <p>장비 {boxSel.devices.length}대와 케이블 {boxSel.links.length}개를 지웁니다. 장비에 연결된 케이블도 함께 지워져요.</p>
+        </ConfirmDialog>
+      )}
       {importAsk !== null && (
         <ConfirmDialog title="지금 토폴로지를 바꿀까요?" confirmLabel="바꾸기"
           onConfirm={() => replaceTopology(importAsk)} onCancel={() => setImportAsk(null)}>

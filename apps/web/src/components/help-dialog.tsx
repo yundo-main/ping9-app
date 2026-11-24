@@ -72,6 +72,8 @@ const SECTIONS: readonly { readonly title: string; readonly items: readonly (rea
     title: "단축키",
     items: [
       ["Enter", "선택한 장비의 콘솔을 엽니다"],
+      ["Shift+드래그", "빈 곳에서 끌어 여러 장비·케이블을 함께 고릅니다"],
+      ["⌘/Ctrl+누르기", "고른 묶음에서 장비·케이블을 빼거나 넣습니다"],
       ["Delete / Backspace", "선택한 장비·케이블을 지웁니다"],
       ["Esc", "케이블 도구·드래그·확인 창을 해제합니다"],
       ["? (터미널 안)", "그 장비의 명령 도움말을 봅니다"],

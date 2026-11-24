@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 
-import { clampCanvasPosition, containsPoint, readDraggedDevice, screenToWorld, wheelZoom, zoomAtPoint, zoomViewBox } from "./canvas-interaction";
+import { boxContents, clampCanvasPosition, containsPoint, readDraggedDevice, screenToWorld, wheelZoom, zoomAtPoint, zoomViewBox } from "./canvas-interaction";
 
 describe("끌던 것을 놓으면 취소되는 영역 (T0.12)", () => {
   const palette = { left: 0, top: 64, right: 112, bottom: 800 };
@@ -100,3 +100,30 @@ test("휠 확대 후에도 포인터 아래 지도 좌표는 같은 화면 위�
   expect(next.x + fraction.x * next.width).toBeCloseTo(world.x);
   expect(next.y + fraction.y * next.height).toBeCloseTo(world.y);
 });
+
+describe("범위 선택 boxContents (T0.42)", () => {
+  const document = {
+    name: "t", devices: [
+      { id: "a", kind: "pc", name: "PC1", position: { x: 0, y: 0 }, config: {} },
+      { id: "b", kind: "pc", name: "PC2", position: { x: 200, y: 0 }, config: {} },
+      { id: "c", kind: "pc", name: "PC3", position: { x: 200, y: 200 }, config: {} },
+    ],
+    links: [
+      { id: "l1", ends: [{ deviceId: "a", port: "eth0" }, { deviceId: "b", port: "eth0" }] },
+      { id: "l2", ends: [{ deviceId: "b", port: "eth1" }, { deviceId: "c", port: "eth0" }] },
+    ],
+  } as never;
+  const positions = new Map([["a", { x: 0, y: 0 }], ["b", { x: 200, y: 0 }], ["c", { x: 200, y: 200 }]]);
+
+  test("상자에 자리가 든 장비와 중점이 든 케이블을 고른다", () => {
+    // a만 든 상자 — l1의 중점(100,0)은 밖이라 케이블은 없다
+    expect(boxContents(document, positions, { left: -50, top: -50, right: 50, bottom: 50 }))
+      .toEqual({ devices: ["a"], links: [] });
+    // a와 b를 든 상자 — l1의 중점(100,0)이 안이다
+    expect(boxContents(document, positions, { left: -50, top: -50, right: 250, bottom: 50 }))
+      .toEqual({ devices: ["a", "b"], links: ["l1"] });
+    // 전체 상자 — 둘 다
+    expect(boxContents(document, positions, { left: -50, top: -50, right: 300, bottom: 300 }))
+      .toEqual({ devices: ["a", "b", "c"], links: ["l1", "l2"] });
+  });
+});;

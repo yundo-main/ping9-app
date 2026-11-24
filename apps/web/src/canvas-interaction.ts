@@ -1,5 +1,5 @@
 import { DEVICE_KINDS, LIMITS } from "@ping9/shared";
-import type { DeviceKind, Position } from "@ping9/shared";
+import type { DeviceKind, Position, TopologyDocument } from "@ping9/shared";
 
 export const DEVICE_DRAG_TYPE = "application/x-ping9-device";
 
@@ -82,4 +82,23 @@ export function zoomAtPoint(box: CanvasViewBox, size: { readonly width: number; 
   factor: number, world: Position, fraction: Position): CanvasViewBox {
   const next = zoomViewBox(box, size, factor);
   return { ...next, x: world.x - fraction.x * next.width, y: world.y - fraction.y * next.height };
+}
+
+/** Shift+드래그 범위 선택의 결과: 장비는 자리가, 케이블은 중점이 상자 안이면 고른다 (T0.42) */
+export function boxContents(
+  document: TopologyDocument,
+  positions: ReadonlyMap<string, Position>,
+  rect: { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number },
+): { readonly devices: readonly string[]; readonly links: readonly string[] } {
+  const devices = document.devices
+    .filter(device => { const p = positions.get(device.id); return p !== undefined && containsPoint(rect, p); })
+    .map(device => device.id);
+  const links = document.links
+    .filter(link => {
+      const a = positions.get(link.ends[0].deviceId);
+      const b = positions.get(link.ends[1].deviceId);
+      return a !== undefined && b !== undefined && containsPoint(rect, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    })
+    .map(link => link.id);
+  return { devices, links };
 }

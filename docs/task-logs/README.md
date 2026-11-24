@@ -147,3 +147,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.39 장비 목록의 스위치 묶음: L2·L3·LB를 "Switch" 버튼으로 접기 (계획에 없는 새 ID) | [T0.39-switch-group-palette.md](T0.39-switch-group-palette.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.40 메뉴바 파일 메뉴: 가져오기/내보내기를 네이티브 메뉴로 (계획에 없는 새 ID) | [T0.40-file-menu.md](T0.40-file-menu.md) | 앱 | jarrod | main 직접 커밋 |
 | T0.41 PING9에 관하여 창: 도움말 링크로 여는 앱 정보·개발자 표시 (계획에 없는 새 ID) | [T0.41-about-dialog.md](T0.41-about-dialog.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.42 캔버스 범위 선택: Shift+드래그 상자·수정자 토글·묶음 삭제 (계획에 없는 새 ID) | [T0.42-box-select.md](T0.42-box-select.md) | 화면 | jarrod | main 직접 커밋 |

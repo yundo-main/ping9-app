@@ -6,7 +6,7 @@ import type { Device, DeviceKind, PortRef, Position, TopologyDocument } from "@p
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
-import { DEVICE_DRAG_TYPE, MAX_CANVAS_ZOOM, MIN_CANVAS_ZOOM, clampCanvasPosition, containsPoint, readDraggedDevice, screenToWorld, wheelZoom, zoomAtPoint, zoomViewBox } from "../canvas-interaction";
+import { DEVICE_DRAG_TYPE, MAX_CANVAS_ZOOM, MIN_CANVAS_ZOOM, clampCanvasPosition, containsPoint, boxContents, readDraggedDevice, screenToWorld, wheelZoom, zoomAtPoint, zoomViewBox } from "../canvas-interaction";
 import type { CanvasViewBox, DragCancelState, PaletteKind } from "../canvas-interaction";
 import { cableLook } from "../format/cable-look";
 import { RING_DY, RING_RX, RING_RY, linkEnds, ringCenter } from "../format/link-ends";
@@ -155,6 +155,8 @@ const PENGUIN_CARD_WIDTH = 300;
 export function Canvas({
   document,
   selectedDeviceId,
+  selectedDeviceIds,
+  selectedLinkIds,
   onSelect,
   onOpenTerminal,
   selectedLinkId,
@@ -171,6 +173,9 @@ export function Canvas({
   onClosePortPicker,
   replays = [],
   onCanvasClick,
+  onBoxSelect,
+  onToggleDevice,
+  onToggleLink,
   cancelZoneRef,
   onCancelZone,
   replayTime,
@@ -182,6 +187,9 @@ export function Canvas({
 }: {
   readonly document: TopologyDocument;
   readonly selectedDeviceId: string | null;
+  /** 범위 선택(Shift+드래그)으로 고른 장비·케이블 (T0.42) */
+  readonly selectedDeviceIds?: ReadonlySet<string>;
+  readonly selectedLinkIds?: ReadonlySet<string>;
   readonly onSelect: (deviceId: string) => void;
   readonly onOpenTerminal: (deviceId: string) => void;
   readonly selectedLinkId?: string | null;
@@ -200,6 +208,11 @@ export function Canvas({
   readonly replays?: readonly Replay[];
   /** 장비와 케이블이 아닌 빈 곳을 눌렀을 때 */
   readonly onCanvasClick?: () => void;
+  /** Shift+드래그 상자에 걸린 장비·케이블 (T0.42) */
+  readonly onBoxSelect?: (deviceIds: readonly string[], linkIds: readonly string[]) => void;
+  /** ⌘/Ctrl/Shift+누르기로 하나씩 더하거나 뺀다 (T0.42) */
+  readonly onToggleDevice?: (deviceId: string) => void;
+  readonly onToggleLink?: (linkId: string) => void;
   /** 장비 목록에서 끌어 온 새 장비를 여기에 다시 놓으면 추가하지 않는다. 이미 놓인 장비를 옮길 때는 쓰지 않는다 (T0.12) */
   readonly cancelZoneRef?: RefObject<HTMLElement | null>;
   /** 새 장비 끌기와 취소 영역의 상태가 바뀔 때 */
@@ -227,6 +240,8 @@ export function Canvas({
   const viewBox = `${box.x} ${box.y} ${box.width} ${box.height}`;
   const dragRef = useRef<NodeDrag | null>(null);
   const panRef = useRef<{ pointerId: number; start: Position; box: CanvasViewBox; scale: number; moved: boolean } | null>(null);
+  const marqueeRef = useRef<{ pointerId: number; startClient: Position; start: Position; current: Position; moved: boolean } | null>(null);
+  const [marquee, setMarquee] = useState<{ readonly x: number; readonly y: number; readonly width: number; readonly height: number } | null>(null);
   const [panning, setPanning] = useState(false);
   // 보기 메뉴에서 끈 글자 (T6.4.2)
   const [hidden, toggleHidden] = useCanvasHidden();
@@ -419,6 +434,18 @@ export function Canvas({
   };
 
   const updateMove = (event: Pick<PointerEvent, "pointerId" | "clientX" | "clientY">) => {
+    const sel = marqueeRef.current;
+    if (sel !== null && sel.pointerId === event.pointerId) {
+      if (!sel.moved && Math.hypot(event.clientX - sel.startClient.x, event.clientY - sel.startClient.y) < 4) return;
+      const matrix = svgRef.current?.getScreenCTM();
+      const point = matrix ? screenToWorld(matrix, { x: event.clientX, y: event.clientY }) : null;
+      if (point === null) return;
+      sel.moved = true;
+      sel.current = point;
+      setMarquee({ x: Math.min(sel.start.x, point.x), y: Math.min(sel.start.y, point.y),
+        width: Math.abs(point.x - sel.start.x), height: Math.abs(point.y - sel.start.y) });
+      return;
+    }
     const pan = panRef.current;
     if (pan !== null && pan.pointerId === event.pointerId) {
       const dx = event.clientX - pan.start.x;
@@ -440,6 +467,20 @@ export function Canvas({
   };
 
   const finishMove = (event: PointerEvent) => {
+    const sel = marqueeRef.current;
+    if (sel !== null && sel.pointerId === event.pointerId) {
+      updateMove(event);
+      marqueeRef.current = null;
+      setMarquee(null);
+      suppressClick.current = sel.moved;
+      if (sel.moved && onBoxSelect !== undefined) {
+        const rect = { left: Math.min(sel.start.x, sel.current.x), right: Math.max(sel.start.x, sel.current.x),
+          top: Math.min(sel.start.y, sel.current.y), bottom: Math.max(sel.start.y, sel.current.y) };
+        const contents = boxContents(documentRef.current, positions, rect);
+        onBoxSelect(contents.devices, contents.links);
+      }
+      return;
+    }
     const pan = panRef.current;
     if (pan !== null && pan.pointerId === event.pointerId) {
       updateMove(event);
@@ -503,6 +544,14 @@ export function Canvas({
           event.preventDefault();
           onClosePortPicker?.();
           suppressClick.current = false;
+          if (event.shiftKey && onBoxSelect !== undefined) {
+            // Shift+드래그는 패닝 대신 범위 선택이다 (T0.42)
+            const point = screenToWorld(matrix, { x: event.clientX, y: event.clientY });
+            if (point === null) return;
+            marqueeRef.current = { pointerId: event.pointerId, startClient: { x: event.clientX, y: event.clientY },
+              start: point, current: point, moved: false };
+            return;
+          }
           panRef.current = { pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, box,
             scale: matrix.a, moved: false };
           setPanning(true);
@@ -537,13 +586,16 @@ export function Canvas({
             const { look, ends, geometry, centers } = linkShape(document, link, from, to);
 
             return (
-              <g key={link.id} className={`${link.id === selectedLinkId ? "link selected" : "link"}${link.id === eventHighlight?.linkId ? (eventHighlight.cause ? " ev-hl cause" : " ev-hl") : ""}`}
+              <g key={link.id} className={`${link.id === selectedLinkId || selectedLinkIds?.has(link.id) === true ? "link selected" : "link"}${link.id === eventHighlight?.linkId ? (eventHighlight.cause ? " ev-hl cause" : " ev-hl") : ""}`}
                 data-link-id={link.id}
                 role={onSelectLink === undefined ? undefined : "button"}
                 tabIndex={onSelectLink === undefined ? undefined : 0}
                 aria-label={onSelectLink === undefined ? undefined : `케이블 ${link.ends.map(end =>
                   `${document.devices.find(device => device.id === end.deviceId)?.name} ${shortPortName(end.port)}`).join(" ↔ ")}`}
-                onClick={() => onSelectLink?.(link.id)}
+                onClick={(event) => {
+                  if ((event.shiftKey || event.ctrlKey || event.metaKey) && onToggleLink !== undefined) onToggleLink(link.id);
+                  else onSelectLink?.(link.id);
+                }}
                 onKeyDown={event => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -666,7 +718,7 @@ export function Canvas({
           {orderedDevices.map((device) => (
             <g
               key={device.id}
-              className={`${device.id === selectedDeviceId || device.id === draft?.deviceId ? "node sel" : "node"}${
+              className={`${device.id === selectedDeviceId || device.id === draft?.deviceId || selectedDeviceIds?.has(device.id) === true ? "node sel" : "node"}${
                 device.id === firstPort?.deviceId ? " cable-source" : ""}${device.id === draft?.deviceId ? " dragging" : ""}${
                 device.id === eventHighlight?.deviceId ? (eventHighlight.cause ? " ev-hl cause" : " ev-hl") : ""}`}
               transform={`translate(${positions.get(device.id)!.x - HALF_WIDTH},${positions.get(device.id)!.y - ABOVE})`}
@@ -677,11 +729,12 @@ export function Canvas({
               aria-label={`${device.name}, ${KIND_NAME[device.kind]}, ${
                 (device.kind === "pc" || device.kind === "server") ? `${OS_NAMES[osChoiceOf(device.config)]}, ` : ""
               }콘솔 열기`}
-              aria-pressed={device.id === selectedDeviceId}
+              aria-pressed={device.id === selectedDeviceId || selectedDeviceIds?.has(device.id) === true}
               onPointerDown={event => startMove(event, device)}
               onDragStart={event => event.preventDefault()}
-              onClick={() => {
+              onClick={(event) => {
                 if (suppressClick.current) { suppressClick.current = false; return; }
+                if ((event.shiftKey || event.ctrlKey || event.metaKey) && onToggleDevice !== undefined) { onToggleDevice(device.id); return; }
                 raiseDevice(device.id);
                 onSelect(device.id);
               }}
@@ -750,6 +803,8 @@ export function Canvas({
               <text className="ip" x="40" y="86" textAnchor="middle">{cidrOf(device.config.ip, device.config.mask)}</text>}
           </g>)}
         </g>
+        {/* Shift+드래그 범위 선택 상자. 맨 위에 그린다 (T0.42) */}
+        {marquee !== null && <rect className="marquee" x={marquee.x} y={marquee.y} width={marquee.width} height={marquee.height} />}
       </svg>
       {/* 펭귄 카드 (T6.3.1). 확대 배율과 상관없이 같은 크기로, 화면 좌표에 띄운다.
           오른쪽에 자리가 없으면 펭귄 왼쪽에, 위아래는 캔버스 안에 들어오게 */}
