@@ -529,7 +529,7 @@ export function App() {
     <div className={`app mode-${mode}`}>
       <TopBar name={topologyName} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
-      <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `112px minmax(0, 1fr) ${side.width}px` }}>
+      <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
           onConnect={() => { setCable(cable.active ? CABLE_OFF : CABLE_READY); setConnectionMessage(null); setActionError(null); }}

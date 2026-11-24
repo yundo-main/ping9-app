@@ -33,7 +33,7 @@ test("캔버스와 속성 패널 사이에 패널 폭 손잡이가 있다 (T0.18
   expect(text).toContain('class="side-resize"');
   expect(text).toContain('role="separator"');
   // 기억한 폭이 없으면(서버 렌더링) 처음 폭 270px
-  expect(text).toContain("grid-template-columns:112px minmax(0, 1fr) 270px");
+  expect(text).toContain("grid-template-columns:76px minmax(0, 1fr) 270px");
   expect(text).toContain('aria-valuenow="270"');
 });
 
