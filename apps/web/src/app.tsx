@@ -1,7 +1,7 @@
 // 편집기 화면. 배치는 화면 시안을 따른다: 상단 막대, 왼쪽 장비 목록, 가운데 캔버스, 오른쪽 속성 패널.
 // 화면이 가진 상태는 선택, 열린 터미널, 터미널의 화면 기록뿐이다. 나머지는 engine의 스냅샷에서 읽는다 (AD-4).
 
-import { osOf, pingRoundKind, shortPortName } from "@ping9/shared";
+import { errorInfo, osOf, pingRoundKind, shortPortName } from "@ping9/shared";
 import type { ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
 import type { PaletteKind } from "./canvas-interaction";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
@@ -496,7 +496,10 @@ export function App() {
   // 지금 Document를 파일로 받는다 (T7.1.1). 장비가 없어도 받는다
   const exportTopology = () => {
     const file = exportFile(topologyName, simulator.getSnapshot().document);
-    void downloadText(file.fileName, file.text);
+    // 저장 창이 거절되거나 쓰기가 실패하면 배너로 보인다 (T17.5)
+    void downloadText(file.fileName, file.text).catch((reason: unknown) => {
+      setActionError(errorInfo("EXPORT_FAILED", { message: reason instanceof Error ? reason.message : String(reason) }));
+    });
   };
 
   // 고른 파일을 검증하고, 캔버스에 장비가 있으면 바꿀지 묻는다 (T7.1.2). 실패하면 지금 캔버스는 그대로

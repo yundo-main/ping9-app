@@ -44,6 +44,8 @@ export interface ErrorParamsByCode {
   DOCUMENT_INVALID_JSON: Record<string, never>;
   /** 가져온 파일이 내보낸 파일의 겉 포장(`kind: "topology-export"`)이 아님 (T7.1.2) */
   IMPORT_NOT_EXPORT_FILE: Record<string, never>;
+  /** 데스크톱의 저장 창·파일 쓰기가 거절됐을 때 (T17.5) */
+  EXPORT_FAILED: { readonly message: string };
   /** `__proto__`, `constructor`, `prototype` (SEC-8) */
   DOCUMENT_FORBIDDEN_KEY: { readonly key: string };
   DOCUMENT_TOO_DEEP: { readonly limit: number };
@@ -218,6 +220,7 @@ const ERROR_CODE_SET = {
   DOCUMENT_TOO_LARGE: true,
   DOCUMENT_INVALID_JSON: true,
   IMPORT_NOT_EXPORT_FILE: true,
+  EXPORT_FAILED: true,
   DOCUMENT_FORBIDDEN_KEY: true,
   DOCUMENT_TOO_DEEP: true,
   DOCUMENT_UNSUPPORTED_VERSION: true,
