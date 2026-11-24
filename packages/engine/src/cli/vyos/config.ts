@@ -1,5 +1,5 @@
 import { IPSEC_DEFAULT_POLICY, PORT_NAMES, checkHostIpv4, checkIpv4, checkMask, isIpsecName, maskToPrefixLength, networkAddress, prefixLengthToMask } from "@ping9/shared";
-import type { GreTunnelConfig, IpsecProfileConfig, RouterConfig, RouterInterfaceConfig, StaticRoute } from "@ping9/shared";
+import type { GreTunnelConfig, IpsecProfileConfig, NatStaticEntry, RouterConfig, RouterInterfaceConfig, StaticRoute } from "@ping9/shared";
 
 export type Settings = Readonly<Record<string, string>>;
 const NAME = "[A-Za-z0-9_-]{1,32}";
@@ -9,7 +9,11 @@ export const RULES: readonly { pattern: RegExp; flag: boolean; sample: string }[
   { pattern: /^interfaces tunnel tun[0-3] (?:encapsulation|source-address|remote) \S+$/, flag: false, sample: "interfaces tunnel tun0 encapsulation gre" },
   { pattern: /^protocols static route \S+ next-hop \S+$/, flag: true, sample: "protocols static route <prefix> next-hop <IPv4>" },
   { pattern: /^nat source rule [0-9]{1,3} outbound-interface eth[0-3]$/, flag: false, sample: "nat source rule 10 outbound-interface eth1" },
-  { pattern: /^nat source rule [0-9]{1,3} translation address masquerade$/, flag: false, sample: "nat source rule 10 translation address masquerade" },
+  { pattern: /^nat source rule [0-9]{1,3} source address \S+$/, flag: false, sample: "nat source rule 100 source address 192.168.1.10" },
+  { pattern: /^nat source rule [0-9]{1,3} translation address \S+$/, flag: false, sample: "nat source rule 10 translation address masquerade" },
+  { pattern: /^nat destination rule [0-9]{1,3} inbound-interface eth[0-3]$/, flag: false, sample: "nat destination rule 100 inbound-interface eth1" },
+  { pattern: /^nat destination rule [0-9]{1,3} destination address \S+$/, flag: false, sample: "nat destination rule 100 destination address 10.0.12.1" },
+  { pattern: /^nat destination rule [0-9]{1,3} translation address \S+$/, flag: false, sample: "nat destination rule 100 translation address 192.168.1.10" },
   { pattern: /^vpn ipsec interface eth[0-3]$/, flag: true, sample: "vpn ipsec interface eth1" },
   { pattern: new RegExp(`^vpn ipsec authentication psk ${NAME} id \\S+$`), flag: true, sample: "vpn ipsec authentication psk LAB id <peer-id>" },
   { pattern: new RegExp(`^vpn ipsec authentication psk ${NAME} secret \\S+$`), flag: false, sample: "vpn ipsec authentication psk LAB secret <lab-secret>" },
@@ -68,6 +72,19 @@ export function settingsOf(config: RouterConfig): Settings {
       result[`nat source rule ${(index + 1) * 10} outbound-interface`] = `eth${index}`;
       result[`nat source rule ${(index + 1) * 10} translation address`] = "masquerade";
     }
+  }
+  // 정적 대응은 DNAT(source rule이 아니라 destination rule)와 SNAT 두 규칙으로 나타낸다 (T16.2)
+  for (const [index, entry] of (config.natStatics ?? []).entries()) {
+    const match = PORT_NAMES.router.findIndex(p => config.interfaces[p]?.nat === "outside" && config.interfaces[p]?.ip === entry.outsideIp);
+    const eth = match >= 0 ? match : PORT_NAMES.router.findIndex(p => config.interfaces[p]?.nat === "outside");
+    if (eth < 0) continue; // outside 인터페이스가 없으면 규칙을 표현할 수 없다
+    const rule = 100 + index * 10;
+    result[`nat destination rule ${rule} inbound-interface`] = `eth${eth}`;
+    result[`nat destination rule ${rule} destination address`] = entry.outsideIp;
+    result[`nat destination rule ${rule} translation address`] = entry.insideIp;
+    result[`nat source rule ${rule} outbound-interface`] = `eth${eth}`;
+    result[`nat source rule ${rule} source address`] = entry.insideIp;
+    result[`nat source rule ${rule} translation address`] = entry.outsideIp;
   }
   for (const route of config.staticRoutes) {
     ensure(route.distance === undefined || route.distance === 1, "이 VyOS 지원 범위에서는 AD가 지정된 정적 경로를 변환할 수 없습니다");
@@ -137,15 +154,40 @@ export function compile(settings: Settings, base: RouterConfig): RouterConfig {
     const address = subnet(addresses[0]!.slice(`${root} address `.length));
     tunnels[tunnelPort(name)] = { mode: "gre", adminUp: settings[`${root} disable`] === undefined, source: source!, destination: destination!, ip: address.network, mask: address.mask };
   }
-  // `nat source rule N`: outbound-interface와 masquerade 변환이 함께 있으면 그 인터페이스가 NAT outside다 (T16.2)
+  // `nat source rule N`: masquerade는 인터페이스 outside, IPv4 변환은 정적 NAT의 SNAT 반쪽이다 (T16.2)
+  const natStatics: NatStaticEntry[] = [];
+  const addStatic = (insideIp: string, outsideIp: string): void => {
+    if (!natStatics.some(entry => entry.insideIp === insideIp && entry.outsideIp === outsideIp)) {
+      natStatics.push({ insideIp, outsideIp });
+    }
+  };
   for (const rule of names(settings, "nat source rule")) {
     const root = `nat source rule ${rule}`;
     const outbound = settings[`${root} outbound-interface`];
     const translation = settings[`${root} translation address`];
-    ensure(outbound !== undefined && translation === "masquerade", `${root}: outbound-interface와 translation address masquerade가 함께 필요합니다`);
+    ensure(outbound !== undefined && translation !== undefined, `${root}: outbound-interface와 translation address가 함께 필요합니다`);
     const port = /^eth([0-3])$/.test(outbound!) ? PORT_NAMES.router[Number(outbound![3])] : undefined;
     ensure(port !== undefined, `${root}: outbound-interface는 eth0~eth3입니다`);
     interfaces[port!] = { ...interfaces[port!]!, nat: "outside" };
+    if (translation === "masquerade") continue;
+    const source = settings[`${root} source address`];
+    ensure(source !== undefined && checkHostIpv4(source) === null && checkHostIpv4(translation!) === null,
+      `${root}: 주소 변환은 source address와 IPv4 translation address가 함께 필요합니다`);
+    addStatic(source!, translation!);
+  }
+  // `nat destination rule N`: outside로 들어온 패킷의 고정 DNAT — 정적 NAT의 반대쪽 반 (T16.2)
+  for (const rule of names(settings, "nat destination rule")) {
+    const root = `nat destination rule ${rule}`;
+    const inbound = settings[`${root} inbound-interface`];
+    const destination = settings[`${root} destination address`];
+    const translation = settings[`${root} translation address`];
+    ensure(inbound !== undefined && destination !== undefined && translation !== undefined
+      && checkHostIpv4(destination) === null && checkHostIpv4(translation) === null,
+      `${root}: inbound-interface·destination address·IPv4 translation address가 함께 필요합니다`);
+    const port = /^eth([0-3])$/.test(inbound!) ? PORT_NAMES.router[Number(inbound![3])] : undefined;
+    ensure(port !== undefined, `${root}: inbound-interface는 eth0~eth3입니다`);
+    interfaces[port!] = { ...interfaces[port!]!, nat: "outside" };
+    addStatic(translation!, destination!);
   }
   const staticRoutes: StaticRoute[] = [];
   for (const key of Object.keys(settings)) if (key.startsWith("protocols static route ")) {
@@ -184,6 +226,7 @@ export function compile(settings: Settings, base: RouterConfig): RouterConfig {
       lifetimeSeconds: duration(settings[`${esp} lifetime`], 3600), policy: JSON.stringify(policy) };
   }
   return { ...base, cliStyle: "vyos", vpnMode: undefined, interfaces, staticRoutes,
+    natStatics: natStatics.length === 0 ? undefined : natStatics,
     tunnels: Object.keys(tunnels).length ? tunnels : undefined, ipsec: Object.keys(ipsec).length ? ipsec : undefined,
     vyos: Object.fromEntries(Object.entries(settings).sort(([a], [b]) => a.localeCompare(b))) };
 }

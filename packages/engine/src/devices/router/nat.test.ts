@@ -154,3 +154,63 @@ describe("linux·vyos 스타일 NAT", () => {
     await con.exec("exit discard");
   });
 });
+
+describe("linux·vyos 스타일의 정적 NAT", () => {
+  const errors = (result: ConsoleResult) => result.lines.filter(line => line.kind === "error");
+  const textOf = (result: ConsoleResult) => result.lines.flatMap(line => line.kind === "text" ? [line.text] : []).join("\n");
+
+  test("linux의 DNAT 규칙은 정적 대응을 만들고 `-L`/`-S PREROUTING`에 보인다", async () => {
+    const sim = open();
+    sim.dispatch({ type: "interface/set-nat", deviceId: LAB.r1, port: "GigabitEthernet0/1", nat: "outside" });
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "linux" }).ok).toBe(true);
+    const con = sim.console(LAB.r1);
+    expect(errors(await con.exec("iptables -t nat -A PREROUTING -d 10.0.12.1 -j DNAT --to-destination 192.168.1.10"))).toEqual([]);
+    const configured = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(configured?.kind === "router" && configured.config.natStatics).toEqual([{ insideIp: "192.168.1.10", outsideIp: "10.0.12.1" }]);
+    expect(textOf(await con.exec("iptables -t nat -S PREROUTING"))).toContain("-A PREROUTING -d 10.0.12.1 -j DNAT --to-destination 192.168.1.10");
+    expect(textOf(await con.exec("iptables -t nat -L PREROUTING"))).toContain("DNAT");
+    // 바깥 PC가 바깥 주소를 찌르면 안쪽 호스트에 도달한다
+    expect(success((await sim.console(LAB.pc2).exec("ping -n 1 10.0.12.1")).lines)).toHaveLength(1);
+    expect(natEvents(sim).some(event => event.reason?.code === "NAT_TRANSLATED" &&
+      event.reason.params.direction === "outside-to-inside" && event.reason.params.insideIp === "192.168.1.10")).toBe(true);
+    expect(errors(await con.exec("iptables -t nat -D PREROUTING -d 10.0.12.1 -j DNAT --to-destination 192.168.1.10"))).toEqual([]);
+    const cleared = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(cleared?.kind === "router" && (cleared.config.natStatics ?? [])).toHaveLength(0);
+  });
+
+  test("vyos의 DNAT·SNAT 규칙 쌍은 commit 뒤 정적 대응이 되고 왕복으로 보인다", async () => {
+    const sim = open();
+    expect(sim.dispatch({ type: "router/set-cli-style", deviceId: LAB.r1, style: "vyos" }).ok).toBe(true);
+    const con = sim.console(LAB.r1);
+    for (const line of ["configure",
+      "set nat destination rule 100 inbound-interface eth1",
+      "set nat destination rule 100 destination address 10.0.12.1",
+      "set nat destination rule 100 translation address 192.168.1.10",
+      "set nat source rule 100 outbound-interface eth1",
+      "set nat source rule 100 source address 192.168.1.10",
+      "set nat source rule 100 translation address 10.0.12.1",
+      "commit", "exit"]) {
+      expect(errors(await con.exec(line)), line).toEqual([]);
+    }
+    const configured = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(configured?.kind === "router" && configured.config.interfaces["GigabitEthernet0/1"]?.nat).toBe("outside");
+    expect(configured?.kind === "router" && configured.config.natStatics).toEqual([{ insideIp: "192.168.1.10", outsideIp: "10.0.12.1" }]);
+    // 왕복 설정: 지우고 다시 들어가도 같은 규칙이 나온다
+    for (const line of ["configure", "delete nat", "commit", "exit"]) {
+      expect(errors(await con.exec(line)), line).toEqual([]);
+    }
+    const cleared = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(cleared?.kind === "router" && (cleared.config.natStatics ?? [])).toHaveLength(0);
+    const shown = textOf(await con.exec("show configuration commands"));
+    expect(shown).not.toContain("nat destination rule");
+    // outside 인터페이스만 남겨두고 정적만 돌려놓으면 source rule로도 같은 대응이 된다
+    for (const line of ["configure",
+      "set nat source rule 10 outbound-interface eth1", "set nat source rule 10 translation address masquerade",
+      "set nat source rule 100 outbound-interface eth1", "set nat source rule 100 source address 192.168.1.10",
+      "set nat source rule 100 translation address 10.0.12.1", "commit", "exit"]) {
+      expect(errors(await con.exec(line)), line).toEqual([]);
+    }
+    const restored = sim.getSnapshot().document.devices.find(d => d.id === LAB.r1);
+    expect(restored?.kind === "router" && restored.config.natStatics).toEqual([{ insideIp: "192.168.1.10", outsideIp: "10.0.12.1" }]);
+  });
+});

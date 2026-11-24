@@ -215,6 +215,9 @@ function showNatTable(_args: CommandArgs, context: CommandContext): CommandOutco
       lines.push(`MASQUERADE  all  --  anywhere             anywhere             /* eth${index} */`);
     }
   }
+  for (const entry of router.config.natStatics ?? []) {
+    lines.push(`SNAT       all  --  ${entry.insideIp.padEnd(20)} anywhere             to:${entry.outsideIp}`);
+  }
   return { lines: lines.map(text) };
 }
 
@@ -225,6 +228,39 @@ function showNatRules(_args: CommandArgs, context: CommandContext): CommandOutco
   const lines = ["-P POSTROUTING ACCEPT"];
   for (const [index, port] of PORT_NAMES.router.entries()) {
     if (router.config.interfaces[port]?.nat === "outside") lines.push(`-A POSTROUTING -o eth${index} -j MASQUERADE`);
+  }
+  for (const entry of router.config.natStatics ?? []) {
+    lines.push(`-A POSTROUTING -s ${entry.insideIp} -j SNAT --to-source ${entry.outsideIp}`);
+  }
+  return { lines: lines.map(text) };
+}
+
+/** 정적 대응 하나는 문서에서 DNAT·SNAT을 함께 뜻한다 — iptables의 두 규칙이 같은 명령으로 모인다 (T16.2) */
+const natStatic = (add: boolean) => (args: CommandArgs, context: CommandContext): CommandOutcome => ({
+  lines: linesFromDispatch(context.dispatch({
+    type: "router/set-static-nat", deviceId: context.device.id,
+    insideIp: String(args["inside"]), outsideIp: add ? String(args["outside"]) : null,
+  })),
+});
+
+/** `-t nat -L PREROUTING`: DNAT(정적 NAT) 규칙을 나열한다 */
+function showNatPrerouting(_args: CommandArgs, context: CommandContext): CommandOutcome {
+  const router = routerOf(context);
+  if (router === undefined) return {};
+  const lines = ["Chain PREROUTING (policy ACCEPT)", "target     prot opt source               destination"];
+  for (const entry of router.config.natStatics ?? []) {
+    lines.push(`DNAT       all  --  anywhere             ${entry.outsideIp.padEnd(20)} to:${entry.insideIp}`);
+  }
+  return { lines: lines.map(text) };
+}
+
+/** `-t nat -S PREROUTING`: DNAT 규칙을 명령 형태로 나열한다 */
+function showNatPreroutingRules(_args: CommandArgs, context: CommandContext): CommandOutcome {
+  const router = routerOf(context);
+  if (router === undefined) return {};
+  const lines = ["-P PREROUTING ACCEPT"];
+  for (const entry of router.config.natStatics ?? []) {
+    lines.push(`-A PREROUTING -d ${entry.outsideIp} -j DNAT --to-destination ${entry.insideIp}`);
   }
   return { lines: lines.map(text) };
 }
@@ -283,6 +319,8 @@ function runSysctl(args: CommandArgs, context: CommandContext): CommandOutcome {
 
 const cidrParam = customParam("cidr", "Network and prefix length, e.g. 10.0.0.0/24", readCidr);
 const ipParam = param("ip", "ipv4", "Destination IPv4 address");
+const insideParam = param("inside", "ipv4", "Inside local IPv4 address");
+const outsideParam = param("outside", "ipv4", "Inside global IPv4 address");
 const gatewayParam = param("gateway", "ipv4", "Next hop address");
 const countParam = customParam("count", "Number of echo requests (1-10)", readCount);
 const hopsParam = customParam("hops", "Maximum number of hops (1-30)", readMaxHops);
@@ -317,6 +355,12 @@ export const LINUX_ROUTER_COMMANDS: readonly CommandDefinition[] = [
   linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-o", ethParam, "-j", "MASQUERADE"], "Stop masquerading on the interface", natMasquerade(false)),
   linux(["iptables", "-t", "nat", "-L", "POSTROUTING"], "List NAT rules in POSTROUTING", showNatTable),
   linux(["iptables", "-t", "nat", "-S", "POSTROUTING"], "List NAT rules as commands", showNatRules),
+  linux(["iptables", "-t", "nat", "-A", "PREROUTING", "-d", outsideParam, "-j", "DNAT", "--to-destination", insideParam], "Static NAT: map the outside address to an inside host", natStatic(true)),
+  linux(["iptables", "-t", "nat", "-D", "PREROUTING", "-d", outsideParam, "-j", "DNAT", "--to-destination", insideParam], "Remove the static NAT mapping", natStatic(false)),
+  linux(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", insideParam, "-j", "SNAT", "--to-source", outsideParam], "Static NAT: map the inside address to an outside address", natStatic(true)),
+  linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", insideParam, "-j", "SNAT", "--to-source", outsideParam], "Remove the static NAT mapping", natStatic(false)),
+  linux(["iptables", "-t", "nat", "-L", "PREROUTING"], "List NAT rules in PREROUTING", showNatPrerouting),
+  linux(["iptables", "-t", "nat", "-S", "PREROUTING"], "List PREROUTING rules as commands", showNatPreroutingRules),
   linux(["ping", ipParam], "Send 4 echo requests", runPing),
   linux(["ping", "-c", countParam, ipParam], "Send the given number of echo requests", runPing),
   linux(["ping", ipParam, "-c", countParam], "Send the given number of echo requests", runPing),
