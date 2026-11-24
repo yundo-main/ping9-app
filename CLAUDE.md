@@ -13,14 +13,15 @@
 
 1. **Task 하나를 진행할 때마다 기록 문서를 새로 만든다.** 위치는 `docs/task-logs/`, 파일 이름은 `<Task ID>-<짧은-영문-설명>.md`, 형식은 [docs/task-logs/_TEMPLATE.md](docs/task-logs/_TEMPLATE.md). 진행 방식, 결과, 검증 출력, 계획과 달라진 점을 적는다. 기존 기록 문서에 다른 Task를 이어 쓰지 않는다.
 2. 기록 문서는 그 Task의 코드와 **같은 Pull Request**에 넣고, [docs/task-logs/README.md](docs/task-logs/README.md)의 목록에 한 줄을 추가한다.
-3. Task마다 브랜치를 만든다: `feat/<Task ID>-<설명>` (예: `feat/T1.3.1-device-commands`). 혼자 개발하는 동안은 `main`에 직접 커밋한다 — PR·검토 절차는 팀 작업으로 돌아갈 때 다시 살린다.
+3. Task마다 브랜치를 만든다: `feat/<Task ID>-<설명>` (예: `feat/T1.3.1-device-commands`). `main`에는 Pull Request로만 넣고, 다른 팀원 한 명이 검토한다.
 4. 완료 판단은 [개발 계획 4.3절의 공통 완료 조건](docs/project-plan/04-development-plan.md#43-분해-구조-읽는-법)을 따른다.
 5. **커밋 메시지와 Pull Request 제목·설명은 영어로 쓴다.** `Co-Authored-By: Claude ...`, "Generated with Claude Code" 같은 AI 표시 줄을 넣지 않는다. 문서 본문은 한국어로 쓴다.
 6. 계획 문서와 다르게 구현했으면 기록 문서의 "계획과 달라진 점"에 적는다. 계획 문서 본문은 팀이 합의한 뒤에 고친다.
 
 ## 검사와 배포
 
-- 커밋하기 전에 `pnpm check`(lint·타입 검사·테스트·빌드)와 `pnpm check:secrets`를 돌린다. 서버 측 자동 검사(GitHub Actions)는 없다 — 혼자 개발하며 `.github/`는 T0.24에서 제거했다.
+- PR을 올리면 GitHub Actions의 `check`가 돈다: 비밀값 형태 검사, 취약점 검사, lint, 타입 검사, 테스트, 빌드. 올리기 전에 `pnpm check`와 `pnpm check:secrets`로 미리 본다.
+- `main`에 들어온 커밋에도 같은 검사가 돈다. 과거에는 Vercel Git 연동이 배포했지만 T0.24에서 제거했다 (docs/task-logs/T0.4-public-repo-and-git-deploy.md).
 - 비밀값(토큰, DB 주소, `.env` 파일)은 저장소에 넣지 않는다.
 - 커밋에는 개인 이메일 대신 GitHub의 noreply 주소를 쓴다. GitHub 설정의 Emails에서 "Keep my email addresses private"와 "Block command line pushes that expose my email"을 켜고, `git config user.email`을 그 화면에 나오는 `<숫자>+<아이디>@users.noreply.github.com`으로 맞춘다.
 - 2026-11-05 전에 받은 폴더에서는 push하지 않는다. 옛 커밋이 공개 저장소에 올라간다. 저장소를 새로 받는다.
