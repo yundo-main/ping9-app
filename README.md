@@ -4,7 +4,7 @@
 
 | 내용 | 위치 |
 |---|---|
-| 지금 진행 중인 목표와 3인 분담 | [docs/project-plan/06-two-pc-ping-plan.md](docs/project-plan/06-two-pc-ping-plan.md) |
+| 지금 진행 중인 목표 | [docs/project-plan/06-two-pc-ping-plan.md](docs/project-plan/06-two-pc-ping-plan.md) |
 | 계획 문서 (요구사항, 설계, 개발 계획) | [docs/project-plan/](docs/project-plan/README.md) |
 | 작업 단위(Task) 상세 | [docs/project-plan/04-tasks/](docs/project-plan/04-tasks/) |
 | Task별 진행 기록 | [docs/task-logs/](docs/task-logs/README.md) |
