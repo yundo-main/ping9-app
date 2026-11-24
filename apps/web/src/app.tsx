@@ -1,8 +1,9 @@
 // 편집기 화면. 배치는 화면 시안을 따른다: 상단 막대, 왼쪽 장비 목록, 가운데 캔버스, 오른쪽 속성 패널.
 // 화면이 가진 상태는 선택, 열린 터미널, 터미널의 화면 기록뿐이다. 나머지는 engine의 스냅샷에서 읽는다 (AD-4).
 
-import { osOf, pingRoundKind, shortPortName } from "@ping9/shared";
-import type { DeviceKind, ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
+import { osChoiceOf, osOf, pingRoundKind, shortPortName } from "@ping9/shared";
+import type { ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
+import type { PaletteKind } from "./canvas-interaction";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -39,8 +40,9 @@ import { INITIAL_UI_STATE, uiReducer } from "./ui-state";
 
 type Terminals = Readonly<Record<string, TerminalState>>;
 
-const KIND_LABEL: Readonly<Record<DeviceKind, "PC" | "Switch" | "Router">> = {
+const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "Switch" | "Router">> = {
   pc: "PC",
+  server: "Server",
   switch: "Switch",
   router: "Router",
 };
@@ -68,7 +70,7 @@ export function App() {
   // 가져오기 실패. 닫을 때까지 보인다 (FR-45)
   const [importError, setImportError] = useState<ErrorInfo | null>(null);
   const [cable, setCable] = useState<CableState>(CABLE_OFF);
-  const [dragKind, setDragKind] = useState<DeviceKind | null>(null);
+  const [dragKind, setDragKind] = useState<PaletteKind | null>(null);
   // 오른쪽 패널 폭. 손잡이로 끌어 바꾼다 (T0.18)
   const side = useSideWidth();
   // 목록에서 끌어 온 새 장비를 왼쪽 장비 목록에 다시 놓으면 취소된다 (T0.12). 캔버스가 목록의 자리를 보고 상태를 알려 준다
@@ -80,14 +82,16 @@ export function App() {
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const selectedLink = document.links.find(link => link.id === selectedLinkId);
 
-  const addDevice = (kind: DeviceKind, position: Position) => {
+  const addDevice = (kind: PaletteKind, position: Position) => {
     setDragKind(null);
     const id = crypto.randomUUID();
-    const result = simulator.dispatch({ type: "device/add", id, kind, position });
+    // 목록의 Server는 OS가 Server인 PC다 (T0.23). PC를 놓은 뒤 바로 OS를 고른다
+    const result = simulator.dispatch({ type: "device/add", id, kind: kind === "server" ? "pc" : kind, position });
     setActionError(result.ok ? null : result.error);
     if (result.ok) {
       setSelectedLinkId(null);
       dispatch({ type: "select", deviceId: id });
+      if (kind === "server") simulator.dispatch({ type: "pc/set-os", deviceId: id, os: "server" });
     }
   };
 
@@ -579,7 +583,7 @@ export function App() {
               <TerminalWindow
                 key={placement.deviceId}
                 deviceName={device.name}
-                kindLabel={KIND_LABEL[device.kind]}
+                kindLabel={device.kind === "pc" && osChoiceOf(device.config) === "server" ? "Server" : KIND_LABEL[device.kind]}
                 state={state}
                 busy={busy.has(placement.deviceId)}
                 placement={placement}

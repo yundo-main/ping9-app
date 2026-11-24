@@ -3,7 +3,7 @@
 // 여기서 끌어 간 새 장비를 이 목록에 다시 놓으면 추가되지 않는다 (T0.12). 놓았는지는 캔버스가 `zoneRef`의 자리로 판단한다.
 
 import { LIMITS } from "@ping9/shared";
-import type { DeviceKind } from "@ping9/shared";
+import type { PaletteKind } from "../canvas-interaction";
 import type { RefObject } from "react";
 
 import type { DragCancelState } from "../canvas-interaction";
@@ -22,7 +22,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   readonly linkCount?: number;
   readonly onConnect: () => void;
   readonly cableActive?: boolean;
-  readonly onDeviceDragStart?: (kind: DeviceKind) => void;
+  readonly onDeviceDragStart?: (kind: PaletteKind) => void;
   /** 새 장비 끌기와 취소 영역의 상태 (T0.12) */
   readonly dragCancel?: DragCancelState;
   readonly zoneRef?: RefObject<HTMLElement | null>;
@@ -33,7 +33,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   return (
     <aside ref={zoneRef} className={dragCancel === "idle" ? "palette" : `palette cancel-${dragCancel}`}>
       <h4>장비</h4>
-      {([ ["pc", "PC"], ["switch", "Switch"], ["router", "Router"] ] as const).map(([kind, label]) => (
+      {([ ["pc", "PC"], ["server", "Server"], ["switch", "Switch"], ["router", "Router"] ] as const).map(([kind, label]) => (
         <button key={kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
           title={`${label}를 캔버스로 끌어서 놓으세요`} disabled={full} draggable={false}
           onPointerDown={event => {
@@ -41,7 +41,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
             event.preventDefault();
             onDeviceDragStart?.(kind);
           }}>
-          <DeviceIcon kind={kind} />{label}
+          {kind === "server" ? <DeviceIcon kind="pc" os="server" /> : <DeviceIcon kind={kind} />}{label}
         </button>
       ))}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>

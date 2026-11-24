@@ -19,7 +19,7 @@ describe("끌던 것을 놓으면 취소되는 영역 (T0.12)", () => {
 });
 
 describe("드래그 장비와 좌표", () => {
-  test.each(["pc", "switch", "router"])("장비 %s는 읽을 수 있다", kind => {
+  test.each(["pc", "switch", "router", "server"])("장비 목록의 %s는 읽을 수 있다", kind => {
     expect(readDraggedDevice(kind)).toBe(kind);
   });
   test.each(["", "Router", "hub", "firewall", "text/plain", "__proto__"])("장비가 아닌 %s는 거부한다", kind => {

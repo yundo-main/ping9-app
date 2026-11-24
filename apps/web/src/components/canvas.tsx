@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 
 import { DEVICE_DRAG_TYPE, MAX_CANVAS_ZOOM, MIN_CANVAS_ZOOM, clampCanvasPosition, containsPoint, readDraggedDevice, screenToWorld, wheelZoom, zoomAtPoint, zoomViewBox } from "../canvas-interaction";
-import type { CanvasViewBox, DragCancelState } from "../canvas-interaction";
+import type { CanvasViewBox, DragCancelState, PaletteKind } from "../canvas-interaction";
 import { cableLook } from "../format/cable-look";
 import { RING_DY, RING_RX, RING_RY, linkEnds, ringCenter } from "../format/link-ends";
 import { linkVlan } from "../format/link-vlan";
@@ -186,10 +186,10 @@ export function Canvas({
   readonly onOpenTerminal: (deviceId: string) => void;
   readonly selectedLinkId?: string | null;
   readonly onSelectLink?: (linkId: string) => void;
-  readonly onDropDevice?: (kind: DeviceKind, position: Position) => void;
+  readonly onDropDevice?: (kind: PaletteKind, position: Position) => void;
   readonly onMoveDevice?: (deviceId: string, position: Position) => void;
   readonly onDeviceDrag?: () => void;
-  readonly paletteDragKind?: DeviceKind | null;
+  readonly paletteDragKind?: PaletteKind | null;
   readonly onPaletteDragEnd?: () => void;
   readonly cableActive?: boolean;
   readonly firstPort?: PortRef | null;
@@ -711,11 +711,11 @@ export function Canvas({
                 kind={device.kind}
                 // 필터 규칙을 건 서버는 방패 배지를 단다 (T0.21)
                 {...(device.kind === "pc" ? { os: osChoiceOf(device.config), filtering: hasActiveFilter(device.config) } : {})}
-                // 50에서 32로 줄였다. 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
-                x={24}
-                y={21}
-                width={32}
-                height={32}
+                // 50에서 16으로 줄였다. 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
+                x={32}
+                y={37}
+                width={16}
+                height={16}
               />
 
             </g>
@@ -735,8 +735,10 @@ export function Canvas({
             return position === undefined ? [] : [{ x: position.x - HALF_WIDTH, y: position.y - ABOVE, width: CARD_WIDTH, height: CARD_HEIGHT }];
           })} />
         {paletteDragKind !== null && cursor !== null && (
-          <g className="placement-preview" transform={`translate(${cursor.x - 16},${cursor.y - 16})`}>
-            <DeviceIcon kind={paletteDragKind} width={32} height={32} />
+          <g className="placement-preview" transform={`translate(${cursor.x - 8},${cursor.y - 8})`}>
+            {paletteDragKind === "server"
+              ? <DeviceIcon kind="pc" os="server" width={16} height={16} />
+              : <DeviceIcon kind={paletteDragKind} width={16} height={16} />}
           </g>
         )}
         {/* 장비 이름·PC IP는 맨 위 */}
