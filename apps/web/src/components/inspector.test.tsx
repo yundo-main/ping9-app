@@ -27,7 +27,7 @@ describe("Switch", () => {
     const html = render(TWO_SWITCH_VLAN.sw1.id);
 
     expect(html).toContain("<h3>SW1</h3>");
-    expect(html).toContain('<span class="chip">Switch</span>');
+    expect(html).toContain('<span class="chip">L2 Switch</span>');
     expect(html).toContain("포트 8개 · 3개 연결");
   });
 

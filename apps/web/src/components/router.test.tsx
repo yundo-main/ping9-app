@@ -53,7 +53,7 @@ describe("Router 배치와 표시", () => {
 
   test("장비 목록은 장비 추가 버튼과 케이블 연결 버튼을 제공한다", () => {
     const html = renderToString(<Palette deviceCount={2} onConnect={noop} />);
-    for (const label of ["PC 추가", "Server 추가", "Switch 추가", "L3 Switch 추가", "Hub 추가", "Router 추가", "LB 추가"]) expect(html).toContain(`aria-label="${label}"`);
+    for (const label of ["PC 추가", "Server 추가", "L2 Switch 추가", "L3 Switch 추가", "Hub 추가", "Router 추가", "LB 추가"]) expect(html).toContain(`aria-label="${label}"`);
     expect(html.match(/<button/g)).toHaveLength(8);
     expect(html.match(/draggable="false"/g)).toHaveLength(7);
     expect(html).not.toContain("disabled");

@@ -6,7 +6,7 @@ import type { DeviceKind, ErrorCode, ErrorInfo, ErrorParamsByCode, LimitName } f
 
 import { withSubject, withTopic } from "./particles";
 
-const KIND_NAMES: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB" };
+const KIND_NAMES: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "L2 Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB" };
 
 const LIMIT_MESSAGES: Readonly<Record<LimitName, (max: number) => string>> = {
   devices: (max) => `장비는 토폴로지 하나에 ${max}대까지 놓을 수 있어요`,

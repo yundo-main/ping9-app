@@ -17,7 +17,7 @@ const view = (props: Partial<DeviceNameViewProps>) =>
   text(
     <DeviceNameView
       name="SW1"
-      kindLabel="Switch"
+      kindLabel="L2 Switch"
       draft={null}
       error={null}
       onStart={() => {}}
@@ -47,7 +47,7 @@ describe("이름 바꾸기 (T1.3.3)", () => {
     const html = view({});
 
     expect(html).toContain("<h3>SW1</h3>");
-    expect(html).toContain('<span class="chip">Switch</span>');
+    expect(html).toContain('<span class="chip">L2 Switch</span>');
     expect(html).toMatch(/<button type="button" class="rename" aria-label="SW1 이름 바꾸기"/);
     expect(html).not.toContain("<input");
   });

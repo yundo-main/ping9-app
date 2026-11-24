@@ -203,6 +203,17 @@ export function FilterBadge({ state }: { readonly state: ShieldState }) {
   );
 }
 
+/** 오른쪽 아래에 달리는 계층 배지 (T0.37). L1 허브, L2 스위치, L3 스위치, L4·L7 LB */
+function LayerBadge({ text }: { readonly text: string }) {
+  return (
+    <g transform="translate(18.4 23.4)">
+      <rect width="12" height="7" rx="2" fill="#1E293B" stroke="#FFFFFF" strokeWidth="0.8" />
+      <text x="6" y="5.3" textAnchor="middle" fontSize="4.8" fontWeight="700" fill="#FFFFFF"
+        fontFamily="system-ui, -apple-system, sans-serif">{text}</text>
+    </g>
+  );
+}
+
 /**
  * 서버(종류가 Server인 PC). 세워 둔 랙 — 이글루(집)와 실루엣이 완전히 다르다 (T0.23).
  * 세 층의 검은 서랍에 초록 불빛이 켜져 있다. 작게 그려도 PC와 바로 구분되도록 둥근 지붕이 없다.
@@ -235,6 +246,10 @@ export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
       {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : kind === "lb" ? <Lb /> : <GateOpen />}
+      {kind === "hub" && <LayerBadge text="L1" />}
+      {kind === "switch" && <LayerBadge text="L2" />}
+      {kind === "l3switch" && <LayerBadge text="L3" />}
+      {kind === "lb" && <LayerBadge text="L4·7" />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

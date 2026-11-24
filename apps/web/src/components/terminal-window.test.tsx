@@ -20,7 +20,7 @@ const render = (hidden = false, busy = false) =>
   renderToString(
     <TerminalWindow
       deviceName="SW1"
-      kindLabel="Switch"
+      kindLabel="L2 Switch"
       state={STATE}
       busy={busy}
       placement={{ deviceId: "x", x: 10, y: 20, hidden }}
@@ -56,7 +56,7 @@ test("제목 막대에 장비 이름과 종류, 닫기 버튼이 있고 입력�
   const html = render();
 
   expect(html).toContain('<span class="t-name">SW1</span>');
-  expect(html).toContain('<span class="t-chip">Switch</span>');
+  expect(html).toContain('<span class="t-chip">L2 Switch</span>');
   expect(html).toContain('aria-label="닫기"');
   expect(html).toMatch(/class="term-in"><span class="p">SW1#<\/span><input/);
 });

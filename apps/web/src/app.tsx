@@ -41,10 +41,10 @@ import { INITIAL_UI_STATE, uiReducer } from "./ui-state";
 
 type Terminals = Readonly<Record<string, TerminalState>>;
 
-const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "Switch" | "Router" | "Hub" | "L3 Switch" | "LB">> = {
+const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "L2 Switch" | "Router" | "Hub" | "L3 Switch" | "LB">> = {
   pc: "PC",
   server: "Server",
-  switch: "Switch",
+  switch: "L2 Switch",
   router: "Router",
   hub: "Hub",
   l3switch: "L3 Switch",

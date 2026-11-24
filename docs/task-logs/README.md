@@ -142,3 +142,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.34 LB 장비: L4 가중 라운드로빈 로드밸런서 — VIP DNAT, 리눅스 콘솔 (계획에 없는 새 ID) | [T0.34-lb-device.md](T0.34-lb-device.md) | 공통, 엔진, 화면 | jarrod | main 직접 커밋 |
 | T0.35 LB L7 모드: HTTP 프록시 + 경로 접두 백엔드 (pathPrefix), L7_REQUEST_ROUTED (계획에 없는 새 ID) | [T0.35-lb-l7-proxy.md](T0.35-lb-l7-proxy.md) | 공통, 엔진, 화면 | jarrod | main 직접 커밋 |
 | T0.36 도움말 갱신: L3 스위치·허브·LB 장비와 명령 사용법 (계획에 없는 새 ID) | [T0.36-help-new-devices.md](T0.36-help-new-devices.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.37 장비 표시 정리: L2 Switch 라벨 + L1/L2/L3/L4·7 계층 배지 아이콘 (계획에 없는 새 ID) | [T0.37-l2-label-layer-badges.md](T0.37-l2-label-layer-badges.md) | 화면 | jarrod | main 직접 커밋 |
