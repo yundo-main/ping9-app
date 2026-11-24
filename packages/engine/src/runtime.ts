@@ -16,7 +16,7 @@ import type {
   Trace,
   TraceSummary,
 } from "@ping9/shared";
-import { errorInfo } from "@ping9/shared";
+import { errorInfo, isPcLikeDevice } from "@ping9/shared";
 
 import { PC_PORT, PcModel } from "./devices/pc/pc-model";
 import { deviceRun } from "./devices/link";
@@ -137,7 +137,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   /** 문서의 PC마다 모델이 있게 한다. 모델은 처음 쓸 때 만든다 */
   const pcModel = (deviceId: string): PcModel | undefined => {
     let model = pcs.get(deviceId);
-    if (model === undefined && findDevice(getDocument(), deviceId)?.kind === "pc") {
+    if (model === undefined && isPcLikeDevice(findDevice(getDocument(), deviceId))) {
       model = new PcModel(deviceId, getDocument);
       pcs.set(deviceId, model);
     }
@@ -172,7 +172,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const runModels = (): Map<string, DeviceModel> => {
     const models = new Map<string, DeviceModel>();
     for (const device of getDocument().devices) {
-      if (device.kind === "pc") models.set(device.id, pcModel(device.id)!);
+      if (isPcLikeDevice(device)) models.set(device.id, pcModel(device.id)!);
       else if (device.kind === "router") models.set(device.id, routerModel(device.id)!);
       else models.set(device.id, switchModel(device.id)!);
     }
@@ -270,7 +270,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
         changed ||= model.arpTable().length !== before.length;
       }
       for (const [deviceId, model] of pcs) {
-        if (findDevice(document, deviceId)?.kind !== "pc") {
+        if (!isPcLikeDevice(findDevice(document, deviceId))) {
           pcs.delete(deviceId);
           // 지운 장비의 ARP 항목은 화면에서도 사라진다
           changed ||= model.arp.view().length > 0;

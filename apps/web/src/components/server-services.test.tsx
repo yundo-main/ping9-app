@@ -61,9 +61,9 @@ describe("Server를 고른 PC", () => {
   test("캔버스와 아이콘: Server 그림과 이름", () => {
     const simulator = open("server");
     const html = renderToString(<Canvas document={simulator.getSnapshot().document} selectedDeviceId={null} onSelect={noop} onOpenTerminal={noop} />);
-    expect(html).toContain('class="icon icon-pc icon-os-server"');
-    expect(html).toContain("PC1, PC, Server, 콘솔 열기");
-    const icon = renderToString(<DeviceIcon kind="pc" os="server" />);
+    expect(html).toContain('class="icon icon-server icon-os-server"');
+    expect(html).toContain("Server1, Server, Server, 콘솔 열기");
+    const icon = renderToString(<DeviceIcon kind="server" />);
     expect(icon).toContain('class="rack-server"');
     expect(icon).not.toMatch(/igloo-(linux|windows)/);
   });

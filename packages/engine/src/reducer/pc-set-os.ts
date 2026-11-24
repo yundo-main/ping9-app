@@ -1,7 +1,8 @@
-// reducer: `pc/set-os` (T0.7). PC의 OS를 바꾼다. Server도 여기서 고른다 (T0.20).
+// reducer: `pc/set-os` (T0.7). PC의 OS를 바꾼다. `server`를 고르면 kind가 `server`인 장비로 바뀌고,
+// 서버에서 `windows`/`linux`를 고르면 kind가 `pc`인 장비로 바뀐다 (T0.23).
 // IP 구성과 링크는 그대로 둔다. 바뀌는 것은 콘솔의 명령어와 출력 형식, 화면의 아이콘이다.
 
-import { PC_OS_CHOICES, errorInfo } from "@ping9/shared";
+import { PC_OS_CHOICES, errorInfo, isPcKind } from "@ping9/shared";
 import type { PcOsChoice } from "@ping9/shared";
 
 import { describeValue } from "../describe";
@@ -16,7 +17,7 @@ export const setPcOs: CommandHandler<"pc/set-os"> = (document, command) => {
   if (device === undefined) {
     return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId: describeValue(command.deviceId) }) };
   }
-  if (device.kind !== "pc") {
+  if (!isPcKind(device.kind)) {
     return {
       ok: false,
       error: errorInfo("DEVICE_KIND_MISMATCH", { deviceId: device.id, expected: "pc", actual: device.kind }),
@@ -30,12 +31,13 @@ export const setPcOs: CommandHandler<"pc/set-os"> = (document, command) => {
 
   // 같은 OS여도 성공이다. 문서는 같은 내용의 새 객체다
   const os = command.os;
+  const kind = os === "server" ? "server" : "pc";
   return {
     ok: true,
     document: {
       ...document,
       devices: document.devices.map((candidate) =>
-        candidate.id === device.id ? { ...device, config: { ...device.config, os } } : candidate,
+        candidate.id === device.id ? { ...device, kind, config: { ...device.config, os } } : candidate,
       ),
     },
     notices: [],

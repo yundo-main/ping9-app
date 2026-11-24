@@ -1,12 +1,18 @@
 // 저장되는 문서(Document)의 형태. 출처: docs/project-plan/03-system-design.md 3.4절 "Document 형태", AD-9.
 // 모든 값은 변경 불가능한 단순 JSON 자료다 (AD-16). 바꿀 때는 새 객체를 만든다.
 
-export const DEVICE_KINDS = ["pc", "switch", "router"] as const;
+export const DEVICE_KINDS = ["pc", "server", "switch", "router"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
+
+/** PC처럼 끝단 장비인지. Server는 kind가 따로 있지만 PC의 구성·포트·동작을 그대로 쓴다 (T0.23) */
+export function isPcKind(kind: DeviceKind | undefined): kind is "pc" | "server" {
+  return kind === "pc" || kind === "server";
+}
 
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
 export const PORT_NAMES = {
   pc: ["Ethernet0"],
+  server: ["Ethernet0"],
   switch: [
     "FastEthernet0/1",
     "FastEthernet0/2",
@@ -268,6 +274,12 @@ export interface PcDevice extends DeviceBase {
   readonly config: PcConfig;
 }
 
+/** 서버. PC와 같은 구성(`PcConfig`)을 쓰는 별도 장비다 (T0.23). `config.os`는 항상 `server`다 */
+export interface ServerDevice extends DeviceBase {
+  readonly kind: "server";
+  readonly config: PcConfig;
+}
+
 export interface SwitchDevice extends DeviceBase {
   readonly kind: "switch";
   readonly config: SwitchConfig;
@@ -278,7 +290,15 @@ export interface RouterDevice extends DeviceBase {
   readonly config: RouterConfig;
 }
 
-export type Device = PcDevice | SwitchDevice | RouterDevice;
+export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice;
+
+/** PC와 Server. 둘 다 `PcConfig`를 쓰고 포트가 `Ethernet0` 하나다 */
+export type PcLikeDevice = PcDevice | ServerDevice;
+
+/** PC 계열 장비인지 (Server 포함). 객체를 `PcLikeDevice`로 좁힌다 */
+export function isPcLikeDevice(device: Device | undefined): device is PcLikeDevice {
+  return device !== undefined && isPcKind(device.kind);
+}
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */
 export interface Link {

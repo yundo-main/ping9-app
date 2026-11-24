@@ -135,7 +135,7 @@ test("막힌 뒤에 규칙을 지워도, 그 추적의 재생은 막힌 장면 �
   const cleared: TopologyDocument = {
     ...document,
     devices: document.devices.map((device) => {
-      if (device.kind !== "pc") return device;
+      if (device.kind !== "server") return device;
       const config: { filter?: unknown } & typeof device.config = { ...device.config };
       delete config.filter;
       return { ...device, config };

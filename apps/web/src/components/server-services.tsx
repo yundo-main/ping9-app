@@ -3,7 +3,7 @@
 // 모양은 포트 스위치(T0.14)와 IP 설정(T1.5.2)의 것을 그대로 쓴다. 문구는 카탈로그에서 만든다 (AD-14).
 
 import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf } from "@ping9/shared";
-import type { Command, DispatchResult, ErrorInfo, PcDevice, ServiceKind } from "@ping9/shared";
+import type { Command, DispatchResult, ErrorInfo, PcLikeDevice, ServiceKind } from "@ping9/shared";
 import { useId, useState } from "react";
 
 import { formatError } from "../messages/errors";
@@ -44,7 +44,7 @@ function ServiceSwitch({ service, enabled, onChange }: {
 }
 
 export function ServerServices({ device, onDispatch }: {
-  readonly device: PcDevice;
+  readonly device: PcLikeDevice;
   readonly onDispatch: (command: Command) => DispatchResult;
 }) {
   const id = useId();

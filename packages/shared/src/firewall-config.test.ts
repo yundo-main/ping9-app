@@ -235,8 +235,17 @@ describe("옛 문서의 Firewall 장비 (T0.21)", () => {
     const before = JSON.stringify(old);
     migrateDocument(old);
     expect(JSON.stringify(old)).toBe(before);
-    const plain = documentWith({ os: "server" });
+    const plain = documentWith({ os: "linux" });
     expect(migrateDocument(plain)).toBe(plain);
+  });
+
+  test("옛 `kind: pc + os: server`는 `kind: server`로 올린다 (T0.23)", () => {
+    const oldServer = documentWith({ os: "server" });
+    const migrated = migrateDocument(oldServer) as TopologyDocument;
+    expect(migrated.devices[0]).toMatchObject({ kind: "server", config: { os: "server" } });
+    // `kind: server`인데 os가 어긋난 것도 `server`로 맞춘다
+    const skewed = { schemaVersion: 1, devices: [{ id: ID, name: "S1", position: { x: 0, y: 0 }, kind: "server", config: { os: "windows" } }], links: [] };
+    expect((migrateDocument(skewed) as TopologyDocument).devices[0]).toMatchObject({ kind: "server", config: { os: "server" } });
   });
 
   test.each([null, 5, "x", [], { devices: 5 }, { devices: [null, 5, { kind: "firewall" }, { kind: "firewall", config: 7 }], links: "x" },

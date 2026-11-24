@@ -32,7 +32,7 @@ describe("device/add", () => {
     const simulator = createSimulator();
     expect(simulator.dispatch(command({ kind })).ok).toBe(true);
     const device = simulator.getSnapshot().document.devices[0]!;
-    const names = { pc: "PC1", switch: "SW1", router: "R1" };
+    const names = { pc: "PC1", server: "Server1", switch: "SW1", router: "R1" };
     expect(device.name).toBe(names[kind]);
     expect(validateDocument(simulator.getSnapshot().document).ok).toBe(true);
   });

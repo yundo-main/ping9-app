@@ -1,7 +1,7 @@
 // 오른쪽 속성 패널. 시안의 selectDevice가 만드는 마크업과 클래스를 따른다.
 // 구성 값은 스냅샷의 Document에서, 포트 상태와 테이블은 스냅샷의 views에서 읽는다 (AD-7).
 
-import { LIMITS, filterOf, isServer, shortPortName } from "@ping9/shared";
+import { LIMITS, filterOf, isPcLikeDevice, shortPortName } from "@ping9/shared";
 import type { Command, DeviceKind, DispatchResult, PortView, RouteChangeView, Snapshot, TopologyDocument } from "@ping9/shared";
 import type { ReactNode } from "react";
 
@@ -15,7 +15,7 @@ import { SwitchMacTable, SwitchVlanList } from "./switch-inspector";
 import { SwitchPortTag, trunkAllowedText } from "./switch-port-tag";
 import { VpnSettings } from "./vpn-settings";
 
-const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", switch: "Switch", router: "Router" };
+const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router" };
 
 /** 링크 반대쪽 장비의 이름. 링크가 없으면 undefined */
 function peerName(document: TopologyDocument, deviceId: string, port: PortView): string | undefined {
@@ -90,8 +90,8 @@ export function Inspector({
         포트 {view.ports.length}개 · {linked}개 연결
       </div>
 
-      {device.kind === "pc" && <PcSettings key={device.id} device={device} onDispatch={onDispatch} />}
-      {device.kind === "pc" && isServer(device.config) &&
+      {isPcLikeDevice(device) && <PcSettings key={device.id} device={device} onDispatch={onDispatch} />}
+      {device.kind === "server" &&
         <ServerServices key={`services ${device.id}`} device={device} onDispatch={onDispatch} />}
       {device.kind === "switch" && <SwitchVlanList config={device.config} />}
       {device.kind === "router" && <VpnSettings key={device.id} device={device} onDispatch={onDispatch} />}
@@ -133,7 +133,7 @@ export function Inspector({
 
       {view.kind === "switch" && <SwitchMacTable view={view} />}
       {view.kind === "router" && <RouterRoutingTable view={view} changes={changes} />}
-      {device.kind === "pc" && isServer(device.config) && <FilterRules filter={filterOf(device.config)} />}
+      {device.kind === "server" && <FilterRules filter={filterOf(device.config)} />}
       {rip !== undefined && <RouteExchange document={document} summary={rip} changes={changes} onPlay={onPlayExchange} />}
 
       <button className="open-term" onClick={() => onOpenTerminal(device.id)}>

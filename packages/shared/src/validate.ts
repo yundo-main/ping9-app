@@ -203,6 +203,7 @@ function checkRouterConfig(
 function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null {
   switch (device.kind) {
     case "pc":
+    case "server":
       return checkPcConfig(device.id, device.config, path);
     case "switch":
       return checkSwitchConfig(device.id, device.config, path);
@@ -343,8 +344,21 @@ const routerPortFor = (port: unknown): unknown => {
  */
 export function migrateDocument(input: unknown): unknown {
   if (!isRecord(input) || !Array.isArray(input.devices)) return input;
+  const inputDevices = input.devices;
+  // T0.23: Server는 이제 `kind: "server"`다. 옛 `kind: "pc" + os: "server"`는 kind를 올리고,
+  // `kind: "server"`인데 os가 어긋난 것은 `server`로 맞춘다 (server의 os는 항상 server)
+  const serverMigrated = inputDevices.map((device: unknown): unknown => {
+    if (!isRecord(device) || !isRecord(device.config)) return device;
+    if (device.kind === "pc" && device.config.os === "server") return { ...device, kind: "server" };
+    if (device.kind === "server" && device.config.os !== "server") {
+      return { ...device, config: { ...device.config, os: "server" } };
+    }
+    return device;
+  });
+  const migrated = serverMigrated.every((device, index) => device === inputDevices[index])
+    ? inputDevices : serverMigrated;
   const firewallIds = new Set<unknown>();
-  const devices = input.devices.map((device: unknown): unknown => {
+  const devices = migrated.map((device: unknown): unknown => {
     if (!isRecord(device) || device.kind !== "firewall" || !isRecord(device.config)) return device;
     const { interfaces, staticRoutes } = device.config;
     if (!isRecord(interfaces) || Object.keys(interfaces).some((port) => !FIREWALL_PORT.test(port))) return device;
@@ -358,7 +372,7 @@ export function migrateDocument(input: unknown): unknown {
       },
     };
   });
-  if (firewallIds.size === 0) return input;
+  if (firewallIds.size === 0) return migrated === inputDevices ? input : { ...input, devices };
   const links = !Array.isArray(input.links) ? input.links : input.links.map((link: unknown): unknown => {
     if (!isRecord(link) || !Array.isArray(link.ends)) return link;
     return {

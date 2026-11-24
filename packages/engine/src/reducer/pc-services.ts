@@ -9,12 +9,13 @@ import {
   checkHostName,
   dnsRecordsOf,
   errorInfo,
+  isPcLikeDevice,
   isServer,
   normalizeServices,
   servicesOf,
   validateDocument,
 } from "@ping9/shared";
-import type { ErrorInfo, PcConfig, PcDevice, ServiceKind, TopologyDocument } from "@ping9/shared";
+import type { ErrorInfo, PcConfig, PcLikeDevice, ServiceKind, TopologyDocument } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler, ReduceResult } from "../reducer";
@@ -22,18 +23,18 @@ import type { CommandHandler, ReduceResult } from "../reducer";
 const fail = (error: ErrorInfo): ReduceResult => ({ ok: false, error });
 
 function findServer(document: TopologyDocument, deviceId: unknown):
-  | { readonly ok: true; readonly device: PcDevice }
+  | { readonly ok: true; readonly device: PcLikeDevice }
   | { readonly ok: false; readonly error: ErrorInfo } {
   const device = document.devices.find((candidate) => candidate.id === deviceId);
   if (device === undefined) return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId: describeValue(deviceId) }) };
-  if (device.kind !== "pc") {
+  if (!isPcLikeDevice(device)) {
     return { ok: false, error: errorInfo("DEVICE_KIND_MISMATCH", { deviceId: device.id, expected: "pc", actual: device.kind }) };
   }
   if (!isServer(device.config)) return { ok: false, error: errorInfo("PC_NOT_SERVER", { deviceId: device.id }) };
   return { ok: true, device };
 }
 
-function withConfig(document: TopologyDocument, device: PcDevice, config: PcConfig): ReduceResult {
+function withConfig(document: TopologyDocument, device: PcLikeDevice, config: PcConfig): ReduceResult {
   const checked = validateDocument({
     ...document,
     devices: document.devices.map((candidate) => (candidate.id === device.id ? { ...device, config } : candidate)),

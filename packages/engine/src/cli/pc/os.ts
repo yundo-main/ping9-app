@@ -2,7 +2,7 @@
 // 네트워크 동작은 OS와 상관없이 같다. 문서 안의 포트 이름도 OS와 상관없이 `Ethernet0`이다.
 
 import { osOf } from "@ping9/shared";
-import type { OsKind, PcDevice } from "@ping9/shared";
+import type { OsKind, PcLikeDevice } from "@ping9/shared";
 
 import { defineCommand } from "../ios";
 import type { CommandDefinition } from "../ios";
@@ -27,7 +27,7 @@ function usageOf(definition: CommandDefinition): string {
 function helpCommand(commands: () => readonly CommandDefinition[]): CommandDefinition {
   return defineCommand({
     modes: ["user"],
-    devices: ["pc"],
+    devices: ["pc", "server"],
     tokens: ["help"],
     help: "Show all commands",
     run: () => {
@@ -71,7 +71,7 @@ const SERVER_COMMANDS: readonly CommandDefinition[] = [
 ].map((definition) => ({ ...definition, caseSensitive: true }));
 
 /** 이 PC의 콘솔이 쓰는 명령 정의 목록 */
-export function pcCommandsFor(pc: PcDevice): readonly CommandDefinition[] {
+export function pcCommandsFor(pc: PcLikeDevice): readonly CommandDefinition[] {
   if (hasServerCommands(pc)) return SERVER_COMMANDS;
   return osOf(pc.config) === "linux" ? LINUX_COMMANDS : WINDOWS_COMMANDS;
 }
@@ -80,7 +80,7 @@ export function pcCommandsFor(pc: PcDevice): readonly CommandDefinition[] {
  * 프롬프트 (T0.19 설계안 결정 4, D안): 장비 이름과 지금 폴더 이름만.
  * Windows `PC1 User>`, `PC1 C:\>`. Linux `user@PC2 ~ $`, `user@PC2 / $`
  */
-export function pcPrompt(pc: PcDevice, files: PcFiles): string {
+export function pcPrompt(pc: PcLikeDevice, files: PcFiles): string {
   const label = folderLabel(files);
   return osOf(pc.config) === "linux" ? `user@${pc.name} ${label} $` : `${pc.name} ${label}>`;
 }

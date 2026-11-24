@@ -1,7 +1,7 @@
 // 가운데 캔버스. 드래그 중 위치만 임시로 그리고, 놓을 때 원본 변경 명령을 보낸다.
 // 노드는 장비 아이콘과 이름이다 (T0.6). 흰 카드는 보이지 않고 클릭 영역으로만 남는다. 캔버스는 자체 상태로 장비 목록을 들고 있지 않다 (AD-4).
 
-import { hasActiveFilter, osChoiceOf, shortPortName } from "@ping9/shared";
+import { hasActiveFilter, isPcLikeDevice, osChoiceOf, shortPortName } from "@ping9/shared";
 import type { Device, DeviceKind, PortRef, Position, TopologyDocument } from "@ping9/shared";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
@@ -47,7 +47,7 @@ interface NodeDrag {
   moved: boolean;
 }
 /** 화면 낭독기가 읽는 장비 종류 */
-const KIND_NAME: Readonly<Record<DeviceKind, string>> = { pc: "PC", switch: "Switch", router: "Router" };
+const KIND_NAME: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "Switch", router: "Router" };
 
 /**
  * 타원 받침. 안(fill)과 테두리(edge)를 따로 그린다. 테두리는 길이 들어오는 자리를 mask로 지운다 (시안 C).
@@ -623,7 +623,7 @@ export function Canvas({
                 { left: p.x - 30, top: p.y - 30, right: p.x + 30, bottom: p.y + 16 },
                 textBox(p.x, p.y + 32, device.name, 9, 14, "middle"),
               ];
-              if (device.kind === "pc" && device.config.ip !== undefined) {
+              if (isPcLikeDevice(device) && device.config.ip !== undefined) {
                 boxes.push(textBox(p.x, p.y + 50, cidrOf(device.config.ip, device.config.mask), 7, 12, "middle"));
               }
               return boxes;
@@ -638,7 +638,7 @@ export function Canvas({
                 <CableLabels ends={ends} look={look} geometry={geometry} />
                 {labels.get(link.id)!.map(({ at, name, box, address }, index) => {
                   // Router 포트는 전체 주소/길이. PC는 이름 아래에 이미 주소가 있어 케이블에는 쓰지 않는다 (T6.4.2)
-                  const isPc = document.devices.find(device => device.id === link.ends[index]!.deviceId)?.kind === "pc";
+                  const isPc = isPcLikeDevice(document.devices.find(device => device.id === link.ends[index]!.deviceId));
                   const text = address === null || isPc ? null : `${address.ip}/${address.prefix}`;
                   const obstacles = [...deviceBoxes, ...portBoxes.filter(other => other !== box)];
                   const below = text !== null && addressBelow(
@@ -674,7 +674,7 @@ export function Canvas({
               tabIndex={0}
               role="button"
               aria-label={`${device.name}, ${KIND_NAME[device.kind]}, ${
-                device.kind === "pc" ? `${OS_NAMES[osChoiceOf(device.config)]}, ` : ""
+                isPcLikeDevice(device) ? `${OS_NAMES[osChoiceOf(device.config)]}, ` : ""
               }콘솔 열기`}
               aria-pressed={device.id === selectedDeviceId}
               onPointerDown={event => startMove(event, device)}
@@ -710,7 +710,7 @@ export function Canvas({
               <DeviceIcon
                 kind={device.kind}
                 // 필터 규칙을 건 서버는 방패 배지를 단다 (T0.21)
-                {...(device.kind === "pc" ? { os: osChoiceOf(device.config), filtering: hasActiveFilter(device.config) } : {})}
+                {...(isPcLikeDevice(device) ? { os: osChoiceOf(device.config), filtering: hasActiveFilter(device.config) } : {})}
                 // 50에서 32로 줄였다. 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
                 x={24}
                 y={21}
@@ -726,7 +726,7 @@ export function Canvas({
         <PacketLayer replays={replays} pathOf={pathOf} positionOf={deviceId => positions.get(deviceId)}
           filtersAt={deviceId => {
             const device = document.devices.find(candidate => candidate.id === deviceId);
-            return device?.kind === "pc" && hasActiveFilter(device.config);
+            return device !== undefined && isPcLikeDevice(device) && hasActiveFilter(device.config);
           }}
           {...(replayTime !== undefined ? { time: replayTime } : {})} paused={replayPaused}
           {...(onPickPenguin ? { onPick: onPickPenguin } : {})} pickedKey={pickedPenguin?.key}
@@ -736,9 +736,7 @@ export function Canvas({
           })} />
         {paletteDragKind !== null && cursor !== null && (
           <g className="placement-preview" transform={`translate(${cursor.x - 16},${cursor.y - 16})`}>
-            {paletteDragKind === "server"
-              ? <DeviceIcon kind="pc" os="server" width={32} height={32} />
-              : <DeviceIcon kind={paletteDragKind} width={32} height={32} />}
+            <DeviceIcon kind={paletteDragKind} width={32} height={32} />
           </g>
         )}
         {/* 장비 이름·PC IP는 맨 위 */}
@@ -747,7 +745,7 @@ export function Canvas({
           {orderedDevices.map(device => <g key={device.id} className="device-label"
             transform={`translate(${positions.get(device.id)!.x - HALF_WIDTH},${positions.get(device.id)!.y - ABOVE})`}>
             <text className="lbl" x="40" y="68" textAnchor="middle">{device.name}</text>
-            {device.kind === "pc" && device.config.ip !== undefined &&
+            {isPcLikeDevice(device) && device.config.ip !== undefined &&
               <text className="ip" x="40" y="86" textAnchor="middle">{cidrOf(device.config.ip, device.config.mask)}</text>}
           </g>)}
         </g>

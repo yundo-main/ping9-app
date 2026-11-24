@@ -15,7 +15,7 @@ import type { Device, DeviceKind, PcOsChoice, Position, TopologyDocument } from 
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
 
-const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", switch: "SW", router: "R" };
+const PREFIX: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "SW", router: "R" };
 
 function nextName(document: TopologyDocument, kind: DeviceKind): string {
   const used = new Set(document.devices.map(device => device.name));
@@ -30,6 +30,8 @@ function newDevice(kind: DeviceKind, id: string, name: string, position: Positio
     case "pc":
       // OS를 고르지 않았으면 칸을 두지 않는다 (DEFAULT_OS, T0.7)
       return { ...base, kind, config: os === undefined ? {} : { os } };
+    case "server":
+      return { ...base, kind, config: { os: "server" } };
     case "switch":
       return { ...base, kind, config: { vlans: [{ id: DEFAULT_VLAN_ID, name: DEFAULT_VLAN_NAME }], ports: {} } };
     case "router":
@@ -47,8 +49,9 @@ export const addDevice: CommandHandler<"device/add"> = (document, command) => {
   if (typeof command.kind !== "string" || !DEVICE_KINDS.includes(command.kind)) {
     return { ok: false, error: errorInfo("DOCUMENT_INVALID_SHAPE", { path: "kind" }) };
   }
-  // `os`는 PC에만 있다 (T0.7)
-  if (command.os !== undefined && (command.kind !== "pc" || !PC_OS_CHOICES.includes(command.os))) {
+  // `os`는 PC에만 있다 (T0.7). Server는 os가 항상 `server`라 따로 받지 않는다
+  if (command.os !== undefined &&
+    (command.kind !== "pc" || !PC_OS_CHOICES.includes(command.os))) {
     return { ok: false, error: errorInfo("DOCUMENT_INVALID_SHAPE", { path: "os" }) };
   }
   if (typeof command.id !== "string" || !isUuid(command.id)) {
@@ -61,7 +64,9 @@ export const addDevice: CommandHandler<"device/add"> = (document, command) => {
     return { ok: false, error: errorInfo("LIMIT_EXCEEDED", { limit: "devices", max: LIMITS.maxDevices }) };
   }
 
-  const device = newDevice(command.kind, command.id, nextName(document, command.kind), command.position, command.os);
+  // 옛 호출 형식(`kind: "pc" + os: "server"`)도 서버를 만든다 (T0.23)
+  const kind = command.kind === "pc" && command.os === "server" ? "server" : command.kind;
+  const device = newDevice(kind, command.id, nextName(document, kind), command.position, command.os);
   // 위치와 문서 전체의 제약도 기존 검증기로 확인하고, 호출자의 객체와 공유하지 않는 값을 반환한다.
   const checked = validateDocument({ ...document, devices: [...document.devices, device] });
   return checked.ok ? { ok: true, document: checked.document, notices: [] } : checked;

@@ -4,7 +4,7 @@
 // 문구는 카탈로그에서 만들어 글자 그대로 넣는다 (AD-14, SEC-11).
 
 import { PC_OS_CHOICES, PORT_NAMES, osChoiceOf, osOf } from "@ping9/shared";
-import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, PcDevice, PcOsChoice } from "@ping9/shared";
+import type { Command, DispatchResult, ErrorInfo, Notice, OsKind, PcLikeDevice, PcOsChoice } from "@ping9/shared";
 import { useId, useState } from "react";
 
 import { applyDraft, draftOf, OS_NAMES, PC_FIELDS, prefixLabel } from "../format/pc-address";
@@ -89,7 +89,7 @@ export function PortSwitch({
 const MAX_LENGTH = 18;
 
 /** 구성 값이 바뀌었는지 비교할 열쇠 */
-const configKey = (device: PcDevice) => PC_FIELDS.map((field) => device.config[field] ?? "").join("|");
+const configKey = (device: PcLikeDevice) => PC_FIELDS.map((field) => device.config[field] ?? "").join("|");
 
 /** 마지막 적용의 결과 한 줄. 칸을 다시 고치면 사라진다 */
 export type ApplyStatus = "applied" | "unchanged" | null;
@@ -185,7 +185,7 @@ export function PcSettings({
   device,
   onDispatch,
 }: {
-  readonly device: PcDevice;
+  readonly device: PcLikeDevice;
   readonly onDispatch: (command: Command) => DispatchResult;
 }) {
   const [draft, setDraft] = useState<PcDraft>(() => draftOf(device.config));

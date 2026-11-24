@@ -41,7 +41,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
             event.preventDefault();
             onDeviceDragStart?.(kind);
           }}>
-          {kind === "server" ? <DeviceIcon kind="pc" os="server" /> : <DeviceIcon kind={kind} />}{label}
+          <DeviceIcon kind={kind} />{label}
         </button>
       ))}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>

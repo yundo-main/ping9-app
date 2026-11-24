@@ -3,7 +3,7 @@
 // 이름 풀이는 없다: `curl`은 IP 주소만 받고, 이름은 `nslookup <이름> <서버>`로 직접 물어본다.
 // os.ts가 OS별 명령 목록 뒤에 이 목록을 붙인다.
 
-import {
+import { isPcLikeDevice,
   SERVICE_KINDS,
   SERVICE_PORTS,
   checkHostName,
@@ -12,7 +12,7 @@ import {
   parseIpv4,
   servicesOf,
 } from "@ping9/shared";
-import type { ConsoleLine, ErrorInfo, OsKind, PcDevice, ServiceKind } from "@ping9/shared";
+import type { ConsoleLine, ErrorInfo, OsKind, PcLikeDevice, ServiceKind } from "@ping9/shared";
 
 import { listeningService, serviceResponse } from "../../devices/pc/services";
 import type { ServiceOutcome } from "../../runtime";
@@ -24,8 +24,8 @@ const text = (value: string): ConsoleLine => ({ kind: "text", text: value });
 const errorLine = (error: ErrorInfo): ConsoleLine => ({ kind: "error", ...error });
 const clip = (value: string): string => (value.length > 64 ? value.slice(0, 64) : value);
 
-function pcOf(context: CommandContext): PcDevice | undefined {
-  return context.device.kind === "pc" ? context.device : undefined;
+function pcOf(context: CommandContext): PcLikeDevice | undefined {
+  return isPcLikeDevice(context.device) ? context.device : undefined;
 }
 
 /** 첫 줄 바로 뒤에 추적 줄을 둔다. 화면이 그 추적을 재생한 뒤에 첫 줄을 보인다 (ping의 회차와 같은 길) */
@@ -71,7 +71,7 @@ function readHostName(value: string): ParamValue {
 }
 
 /** 자기 주소나 127.x로 보낸 요청은 링크를 지나지 않는다. 이 PC가 듣고 있으면 바로 답한다 */
-function localOutcome(pc: PcDevice, targetIp: string, protocol: "tcp" | "udp", port: number, message: string): ServiceOutcome | undefined {
+function localOutcome(pc: PcLikeDevice, targetIp: string, protocol: "tcp" | "udp", port: number, message: string): ServiceOutcome | undefined {
   if (targetIp !== pc.config.ip && !targetIp.startsWith("127.")) return undefined;
   const service = listeningService(pc, protocol, port);
   return service === undefined ? { kind: "refused", timeUs: 0 } : { kind: "response", ...serviceResponse(pc, service, message), timeUs: 0 };
@@ -84,7 +84,7 @@ interface Requested {
 }
 
 function request(
-  context: CommandContext, pc: PcDevice, service: ServiceKind, protocol: "tcp" | "udp", targetIp: string, port: number, message: string,
+  context: CommandContext, pc: PcLikeDevice, service: ServiceKind, protocol: "tcp" | "udp", targetIp: string, port: number, message: string,
 ): Requested | { readonly error: ErrorInfo } | undefined {
   const local = localOutcome(pc, targetIp, protocol, port, message);
   if (local !== undefined) return { outcome: local };
@@ -261,7 +261,7 @@ const computerParam = customParam("computer", "NTP server, e.g. /computer:10.0.2
 const serviceParam = customParam("service", "Service: http, dns, ntp or ftp", readService);
 
 const pcCommand = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
 
 export const WINDOWS_SERVICE_COMMANDS: readonly CommandDefinition[] = [
   pcCommand(["curl", urlParam], "Fetch a web page (http://) or a file list (ftp://) from a server", runCurl),
@@ -286,4 +286,4 @@ export const SERVER_ONLY_COMMANDS: readonly CommandDefinition[] = [
 ];
 
 /** 서버가 아닌 PC에서 서버 명령을 쓸 수 없게, 목록을 고르는 쪽(os.ts)이 이 판정을 쓴다 */
-export const hasServerCommands = (pc: PcDevice): boolean => isServer(pc.config);
+export const hasServerCommands = (pc: PcLikeDevice): boolean => isServer(pc.config);

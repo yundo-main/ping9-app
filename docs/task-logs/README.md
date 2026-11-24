@@ -124,4 +124,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T16.1 리눅스 네이티브 라우터: 라우터 CLI 형식에 Linux를 넣고 `ip`·`sysctl` 명령 (계획에 없는 새 ID. 제안서 linux-native-router.md의 첫 단계) | [T16.1-linux-native-router.md](T16.1-linux-native-router.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이). `ip_forward` 기본값을 제안서의 보류에서 켜짐으로 정함 — 팀 확인 필요 |
 | T17.1 Tauri 데스크톱 껍데기: PING9을 .app·.dmg로 만든다 (계획에 없는 새 ID) | [T17.1-tauri-desktop-shell.md](T17.1-tauri-desktop-shell.md) | 화면, 배포 | jarrod | 병합됨 (팀원 검토 없이). Windows exe와 서명은 T17.2~T17.3 — 팀 확인 필요 |
 | T17.2 배포 디렉터리와 버전 관리: dmg를 deploy/에 모은다 (계획에 없는 새 ID. T17.1의 예고 번호가 밀림) | [T17.2-desktop-release-dir.md](T17.2-desktop-release-dir.md) | 배포 | jarrod | 병합됨 (팀원 검토 없이) |
-| T0.23 서버를 별도 목록 아이콘으로 분리하고 캔버스 아이콘을 32px로 줄인다 (계획에 없는 새 ID) | [T0.23-server-rack-icon.md](T0.23-server-rack-icon.md) | 화면 | jarrod | 병합됨 (팀원 검토 없이). T0.20의 "임시" 서버 그림을 랙으로 확정 — 디자인 담당 확인 필요 |
+| T0.23 서버를 별도 장비 종류(`kind: "server"`)로 분리하고 캔버스·목록 아이콘을 줄인다 (계획에 없는 새 ID) | [T0.23-server-rack-icon.md](T0.23-server-rack-icon.md) | 화면, 엔진, 스키마 | jarrod | 병합됨 (팀원 검토 없이). 옛 파일의 `pc + os server`는 마이그레이션 — 새 형식은 이 버전부터 읽는다 |

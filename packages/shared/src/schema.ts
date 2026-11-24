@@ -114,6 +114,7 @@ const deviceBase = { id: shortString, name: shortString, position: positionSchem
 
 const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("pc"), config: pcConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("server"), config: pcConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("switch"), config: switchConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("router"), config: routerConfigSchema }),
 ]);

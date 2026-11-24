@@ -2,8 +2,8 @@
 // 이 명령어들은 Document를 바꾸지 않고 Runtime만 쓴다 (`CommandContext.runtime`).
 // os.ts가 OS별 기본 명령 목록 뒤에 이 목록을 붙인다.
 
-import { errorInfo, osOf, parseIpv4 } from "@ping9/shared";
-import type { ConsoleLine, ErrorInfo, OsKind, PcDevice } from "@ping9/shared";
+import { isPcLikeDevice, errorInfo, osOf, parseIpv4 } from "@ping9/shared";
+import type { ConsoleLine, ErrorInfo, OsKind, PcLikeDevice } from "@ping9/shared";
 
 import { TTL_BY_OS } from "../../devices/pc/pc-model";
 import { customParam, defineCommand, param } from "../ios";
@@ -26,8 +26,8 @@ export const PING_COUNT_MAX = 10;
 const text = (value: string): ConsoleLine => ({ kind: "text", text: value });
 const errorLine = (error: ErrorInfo): ConsoleLine => ({ kind: "error", ...error });
 
-function pcOf(context: CommandContext): PcDevice | undefined {
-  return context.device.kind === "pc" ? context.device : undefined;
+function pcOf(context: CommandContext): PcLikeDevice | undefined {
+  return isPcLikeDevice(context.device) ? context.device : undefined;
 }
 
 /** `-n 4`, `-c 4`의 횟수 */
@@ -45,7 +45,7 @@ export function readCount(value: string): ParamValue {
 }
 
 /** 255.255.255.255이거나 이 PC 네트워크의 브로드캐스트 주소 (MAL-6) */
-export function isBroadcast(target: string, pc: PcDevice): boolean {
+export function isBroadcast(target: string, pc: PcLikeDevice): boolean {
   if (target === "255.255.255.255") return true;
   const { ip, mask } = pc.config;
   if (ip === undefined || mask === undefined) return false;
@@ -58,7 +58,7 @@ export function isBroadcast(target: string, pc: PcDevice): boolean {
 }
 
 /** 링크를 지나지 않는 주소: 자기 IP, 127.0.0.0/8 */
-export function isLoopback(target: string, pc: PcDevice): boolean {
+export function isLoopback(target: string, pc: PcLikeDevice): boolean {
   return target === pc.config.ip || target.startsWith("127.");
 }
 
@@ -115,7 +115,7 @@ const ipParam = param("ip", "ipv4", "Destination IPv4 address");
 const countParam = customParam("count", `Number of echo requests (${PING_COUNT_MIN}-${PING_COUNT_MAX})`, readCount);
 
 const pcCommand = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
 
 const windowsPing = (args: CommandArgs, context: CommandContext) => runPing("windows", args, context);
 const linuxPing = (args: CommandArgs, context: CommandContext) => runPing("linux", args, context);

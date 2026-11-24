@@ -4,6 +4,7 @@
 // 장비 위치·이름, PC의 주소와 OS는 넣지 않는다. 끌어서 옮길 때마다 교환이 돌지 않게 한다.
 // PC의 필터 규칙(T0.21)도 넣지 않는다. 규칙을 칠 때마다 교환이 돌지 않는다.
 
+import { isPcLikeDevice } from "@ping9/shared";
 import type { TopologyDocument } from "@ping9/shared";
 
 /** RIP를 켠 Router가 있는가 */
@@ -14,7 +15,7 @@ export function hasRipRouter(document: TopologyDocument): boolean {
 /** 두 문서에서 이 값이 다르면 경로 교환 결과가 달라질 수 있다 */
 export function routingInputs(document: TopologyDocument): string {
   return JSON.stringify({
-    devices: document.devices.map(device => device.kind === "pc"
+    devices: document.devices.map(device => isPcLikeDevice(device)
       // 값이 없는 것과 true는 같은 켜짐이다. 달라진 것이 없으면 교환하지 않는다
       ? { id: device.id, kind: device.kind, up: device.config.adminUp ?? true }
       : { id: device.id, kind: device.kind, config: device.config }),

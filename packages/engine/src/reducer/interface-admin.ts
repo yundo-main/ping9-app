@@ -1,7 +1,7 @@
 // reducer: `interface/set-admin` (T3.3.2, FR-18). 포트를 끄고 켠다.
 // Switch의 포트와 Router의 인터페이스(T4.1.1), PC의 포트(T0.14)를 다룬다.
 
-import { errorInfo, isPortName, isTunnelName } from "@ping9/shared";
+import { errorInfo, isPcLikeDevice, isPortName, isTunnelName } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler } from "../reducer";
@@ -10,10 +10,10 @@ import { updateTunnel } from "./router-tunnel";
 
 export const setInterfaceAdmin: CommandHandler<"interface/set-admin"> = (document, command) => {
   const pc = document.devices.find(device => device.id === command.deviceId);
-  if (pc?.kind === "pc") {
-    if (typeof command.port !== "string" || !isPortName("pc", command.port)) {
+  if (isPcLikeDevice(pc)) {
+    if (typeof command.port !== "string" || !isPortName(pc.kind, command.port)) {
       return { ok: false, error: errorInfo("UNKNOWN_PORT", {
-        deviceId: pc.id, kind: "pc", port: describeValue(command.port),
+        deviceId: pc.id, kind: pc.kind, port: describeValue(command.port),
       }) };
     }
     if (typeof command.adminUp !== "boolean") {

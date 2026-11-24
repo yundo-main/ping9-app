@@ -2,7 +2,7 @@
 // 설정 패널과 콘솔의 `ipconfig <IP> <마스크>`가 같은 Command로 이 처리기를 부른다 (AD-3).
 // 값 하나의 형식은 shared의 검증 함수가 판정하고, 여기서는 장비 확인, 세 값의 조합, 중복 IP만 다룬다.
 
-import { checkGateway, checkInterfaceAddress, errorInfo } from "@ping9/shared";
+import { checkGateway, checkInterfaceAddress, errorInfo, isPcLikeDevice } from "@ping9/shared";
 import type {
   CommandOf,
   Device,
@@ -37,6 +37,7 @@ function readField(value: unknown): string | null | undefined {
 function usesIp(device: Device, ip: string): boolean {
   switch (device.kind) {
     case "pc":
+    case "server":
       return device.config.ip === ip;
     case "router":
       return Object.values(device.config.interfaces).some((iface) => iface.ip === ip);
@@ -53,7 +54,7 @@ export function setPcIp(
   if (device === undefined) {
     return fail(errorInfo("DEVICE_NOT_FOUND", { deviceId: echo(command.deviceId) }));
   }
-  if (device.kind !== "pc") {
+  if (!isPcLikeDevice(device)) {
     return fail(
       errorInfo("DEVICE_KIND_MISMATCH", { deviceId: device.id, expected: "pc", actual: device.kind }),
     );

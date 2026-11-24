@@ -1,8 +1,8 @@
 // T11.4.1: PC의 traceroute 명령어. Windows `tracert`, Linux `traceroute`.
 // ping처럼 Document를 바꾸지 않고 Runtime만 쓴다. os.ts가 OS별 명령 목록 뒤에 붙인다.
 
-import { errorInfo } from "@ping9/shared";
-import type { ConsoleLine, OsKind, PcDevice } from "@ping9/shared";
+import { isPcLikeDevice, errorInfo } from "@ping9/shared";
+import type { ConsoleLine, OsKind, PcLikeDevice } from "@ping9/shared";
 
 import { customParam, defineCommand, param } from "../ios";
 import type { CommandArgs, CommandContext, CommandDefinition, CommandOutcome, ParamValue } from "../ios";
@@ -30,7 +30,7 @@ export function readMaxHops(value: string): ParamValue {
 }
 
 function runTraceroute(os: OsKind, numeric: boolean, args: CommandArgs, context: CommandContext): CommandOutcome {
-  const pc: PcDevice | undefined = context.device.kind === "pc" ? context.device : undefined;
+  const pc: PcLikeDevice | undefined = isPcLikeDevice(context.device) ? context.device : undefined;
   if (pc === undefined || context.runtime === undefined) return {};
   const targetIp = String(args["ip"]);
   const maxHops = args["hops"] === undefined ? DEFAULT_MAX_HOPS : Number(args["hops"]);
@@ -53,7 +53,7 @@ const ipParam = param("ip", "ipv4", "Destination IPv4 address");
 const hopsParam = customParam("hops", `Maximum number of hops (${MAX_HOPS_MIN}-${MAX_HOPS_MAX})`, readMaxHops);
 
 const pcCommand = (tokens: CommandDefinition["tokens"], help: string, run: CommandDefinition["run"]) =>
-  defineCommand({ modes: ["user"], devices: ["pc"], tokens, help, run });
+  defineCommand({ modes: ["user"], devices: ["pc", "server"], tokens, help, run });
 
 // 이름 풀이가 없어 `-d`, `-n`이 있어도 없어도 주소로 쓴다. Windows는 출력이 같고, Linux는 `(주소)`를 뺀다
 const windows = (args: CommandArgs, context: CommandContext) => runTraceroute("windows", true, args, context);

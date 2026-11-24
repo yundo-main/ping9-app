@@ -1,7 +1,7 @@
 // 캔버스의 포트 주소와 케이블 대역 (T6.4.1: 포트 위에 주소 끝자리, 케이블 가운데에 대역, 케이블 바깥에 놓기).
 // 값은 문서의 설정에서 읽기만 한다. 대역 계산은 shared의 함수를 쓴다.
 
-import { maskToPrefixLength, networkAddress } from "@ping9/shared";
+import { isPcLikeDevice, maskToPrefixLength, networkAddress } from "@ping9/shared";
 import type { PortRef, TopologyDocument } from "@ping9/shared";
 
 export interface PortAddress {
@@ -16,7 +16,7 @@ export function portAddress(document: TopologyDocument, ref: PortRef): PortAddre
   if (device === undefined) return null;
   let ip: string | undefined;
   let mask: string | undefined;
-  if (device.kind === "pc") {
+  if (isPcLikeDevice(device)) {
     ip = device.config.ip;
     mask = device.config.mask;
   } else if (device.kind === "router") {

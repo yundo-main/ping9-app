@@ -37,6 +37,7 @@ export function portLink(document: TopologyDocument, ref: PortRef): PortLink | u
 export function isAdminUp(device: Device, port: string): boolean {
   switch (device.kind) {
     case "pc":
+    case "server":
       return device.config.adminUp ?? true;
     case "switch":
       // 구성에 없는 포트는 기본값(켜짐)이다

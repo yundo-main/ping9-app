@@ -4,6 +4,7 @@
 // 캔버스와 왼쪽 장비 목록이 같은 그림을 쓴다. 모두 32×32 기준이다.
 
 import type { SVGProps } from "react";
+import { isPcKind } from "@ping9/shared";
 import type { DeviceKind, PcOsChoice } from "@ping9/shared";
 
 type Box = Pick<SVGProps<SVGSVGElement>, "x" | "y" | "width" | "height">;
@@ -176,11 +177,11 @@ function Rack() {
 export function DeviceIcon({ kind, os, filtering = false, ...box }: {
   readonly kind: DeviceKind; readonly os?: PcOsChoice; readonly filtering?: boolean;
 } & Box) {
-  const osClass = kind === "pc" && os !== undefined ? ` icon-os-${os}` : "";
+  const osClass = isPcKind(kind) && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "switch" ? <Signpost /> : <GateOpen />}
-      {kind === "pc" && filtering && <FilterBadge state="idle" />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : <GateOpen />}
+      {isPcKind(kind) && filtering && <FilterBadge state="idle" />}
     </svg>
   );
 }

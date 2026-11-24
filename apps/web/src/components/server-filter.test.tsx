@@ -64,7 +64,7 @@ describe("장비 목록과 캔버스", () => {
 describe("속성 패널의 필터 규칙", () => {
   test("서버: 체인 셋의 기본 정책을 보인다. 규칙이 없으면 규칙 줄이 없다", () => {
     const html = inspector(open());
-    expect(html).toContain('<span class="chip">PC</span>');
+    expect(html).toContain('<span class="chip">Server</span>');
     expect(html).toContain("<h4>필터 규칙 (iptables)</h4>");
     for (const chain of ["INPUT", "FORWARD", "OUTPUT"]) {
       expect(html).toContain(`<div class="if-row">${chain}<span class="ip">기본 정책 ACCEPT</span></div>`);

@@ -3,11 +3,11 @@ import type { DeviceKind, Position } from "@ping9/shared";
 
 export const DEVICE_DRAG_TYPE = "application/x-ping9-device";
 
-/** 장비 목록에서 끌어 놓는 종류. "server"는 OS가 Server인 PC를 놓는다 — 진짜 장비 종류가 아니다 (T0.23) */
-export type PaletteKind = DeviceKind | "server";
+/** 장비 목록에서 끌어 놓는 종류. Server도 `DeviceKind`다 (T0.23) */
+export type PaletteKind = DeviceKind;
 
 export function readDraggedDevice(value: string): PaletteKind | null {
-  return value === "server" || (DEVICE_KINDS as readonly string[]).includes(value) ? value as PaletteKind : null;
+  return (DEVICE_KINDS as readonly string[]).includes(value) ? value as PaletteKind : null;
 }
 
 export interface ScreenMatrix {

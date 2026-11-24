@@ -4,8 +4,8 @@
 // 목록이 없는 종류는 아직 모든 명령어가 알 수 없는 명령어다. 담당이 자기 목록을 아래에 더한다.
 // `complete`와 `help`는 E3(T3.2.x)에서 같은 명령 정의로 계산한다.
 
-import { LIMITS, errorInfo, isServer, osOf } from "@ping9/shared";
-import type { ConsoleLine, ConsoleResult, Device, DeviceKind, HelpEntry, OsKind, PcDevice } from "@ping9/shared";
+import { LIMITS, errorInfo, isPcLikeDevice, isServer, osOf } from "@ping9/shared";
+import type { ConsoleLine, ConsoleResult, Device, DeviceKind, HelpEntry, OsKind, PcLikeDevice } from "@ping9/shared";
 
 import { iosCandidates, iosComplete, iosExec, iosHelp, iosPrompt } from "./cli/ios";
 import type { PathCompleter } from "./cli/ios";
@@ -34,7 +34,7 @@ export interface ConsolePort {
 }
 
 /** 장비 종류별 명령 정의 목록. 없는 종류는 아직 CLI가 없다. PC는 OS에 따라 고른다 (T0.7) */
-const DEFINITIONS_BY_KIND: Partial<Record<Exclude<DeviceKind, "pc">, readonly CommandDefinition[]>> = {
+const DEFINITIONS_BY_KIND: Partial<Record<Exclude<DeviceKind, "pc" | "server">, readonly CommandDefinition[]>> = {
   router: ROUTER_COMMANDS,
   switch: SWITCH_COMMANDS,
 };
@@ -56,16 +56,16 @@ function pcUnknownCommand(lines: readonly ConsoleLine[], text: string, os: OsKin
 
 function definitionsFor(device: Device): readonly CommandDefinition[] | undefined {
   if (device.kind === "router" && device.config.cliStyle === "linux") return LINUX_ROUTER_COMMANDS;
-  return device.kind === "pc" ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
+  return isPcLikeDevice(device) ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
 }
 
 export function createConsolePort(deviceId: string, env: IosConsoleEnv): ConsolePort {
   const findDevice = () => env.getDocument().devices.find((device) => device.id === deviceId);
   // PC의 경로 자리에서 Tab이 파일·폴더 이름을 채운다 (T0.19)
   const pathsOf = (device: Device): PathCompleter | undefined =>
-    device.kind === "pc" ? (typed, dirsOnly) => pathCompletions(filesOf(device), typed, dirsOnly) : undefined;
+    isPcLikeDevice(device) ? (typed, dirsOnly) => pathCompletions(filesOf(device), typed, dirsOnly) : undefined;
   // 파일 트리가 없는 환경(일부 테스트)에서는 늘 처음 상태다
-  const filesOf = (pc: PcDevice): PcFiles => env.getFiles?.(pc.id, osOf(pc.config)) ?? initialFiles(osOf(pc.config));
+  const filesOf = (pc: PcLikeDevice): PcFiles => env.getFiles?.(pc.id, osOf(pc.config)) ?? initialFiles(osOf(pc.config));
 
   const prompt = (): string => {
     const device = findDevice();
@@ -74,7 +74,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
     // 리눅스 네이티브 라우터는 root 셸 프롬프트 (T16.1)
     if (device.kind === "router" && device.config.cliStyle === "linux") return `root@${device.name}:~#`;
     // PC에는 모드가 없고 OS마다 프롬프트가 다르다 (Windows `PC1 User>`, Linux `user@PC2 ~ $`, T0.19)
-    if (device.kind === "pc") return pcPrompt(device, filesOf(device));
+    if (isPcLikeDevice(device)) return pcPrompt(device, filesOf(device));
     return definitionsFor(device) === undefined ? `${device.name}>` : iosPrompt(device, env);
   };
 
@@ -83,7 +83,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
   // 서버에서는 앞의 `sudo`를 같은 길이의 빈칸으로 바꿔 읽는다. 오류의 `^` 위치가 그대로다 (T14.2.1, T0.21)
   const SUDO = /^(\s*)sudo(?=\s)/;
   const withoutSudo = (device: Device, line: string): string =>
-    device.kind === "pc" && isServer(device.config) ? line.replace(SUDO, "$1    ") : line;
+    isPcLikeDevice(device) && isServer(device.config) ? line.replace(SUDO, "$1    ") : line;
 
   // 완성과 도움말을 계산할 수 있는 경우만 돌려준다. 장비가 없거나, 명령 정의가 없는 종류거나,
   // 글이 아니거나 너무 긴 줄이면 완성도 도움말도 없다 (예외를 던지지 않는다, AD-16)
@@ -116,7 +116,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
 
       if (device.kind === "router" && device.config.cliStyle === "vyos") return vyosExec(text, device, env);
       // `echo <글>`, `echo <글> > <파일>`은 리다이렉트 기호 검사의 예외다 (T0.19 설계안 결정 3)
-      if (device.kind === "pc") {
+      if (isPcLikeDevice(device)) {
         const echo = parseEcho(text, osOf(device.config));
         if (echo !== undefined) {
           const outcome = runEcho(filesOf(device), echo);
@@ -126,7 +126,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       }
 
       // PC 콘솔은 한 줄에 명령 하나다. 파이프, 리다이렉트, 명령 연결은 실행하지 않는다 (T0.9)
-      if (device.kind === "pc") {
+      if (isPcLikeDevice(device)) {
         const blocked = unsupportedSyntaxAt(text);
         if (blocked !== undefined) {
           return result({
@@ -138,7 +138,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       }
 
       // 서버의 `iptables`는 옵션 순서가 자유로워 명령 정의로 읽지 않고 따로 읽는다 (T14.2.1, T0.21)
-      if (device.kind === "pc" && isServer(device.config)) {
+      if (isPcLikeDevice(device) && isServer(device.config)) {
         const [first, ...rest] = splitWords(text);
         if (first?.text === "iptables") return result(...runIptables(rest, device, env.dispatch));
       }
@@ -147,7 +147,7 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
       if (definitions !== undefined) {
         const executed = iosExec(text, device, definitions, env);
         // iosExec의 프롬프트는 IOS 모드의 것이다. PC는 실행 뒤의 문서로 OS별 프롬프트를 다시 만든다
-        if (device.kind === "pc") return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
+        if (isPcLikeDevice(device)) return { lines: pcUnknownCommand(executed.lines, text, osOf(device.config)), prompt: prompt() };
         if (device.kind === "router" && device.config.cliStyle === "linux") return { lines: executed.lines, prompt: prompt() };
         return executed;
       }

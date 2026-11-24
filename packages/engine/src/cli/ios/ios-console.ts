@@ -11,6 +11,7 @@ import type {
   OsKind,
   TopologyDocument,
 } from "@ping9/shared";
+import { isPcKind } from "@ping9/shared";
 
 import { completeLine, completionLabels, helpFor } from "./assist";
 import type { PathCompleter } from "./assist";
@@ -119,6 +120,6 @@ export function iosExec(
 /** PC면 그 장비의 파일 트리를 읽고 바꾸는 길 (T0.19) */
 export function fileAccess(device: Device, env: IosConsoleEnv): { readonly files: FileAccess } | undefined {
   const { getFiles, setFiles } = env;
-  if (device.kind !== "pc" || getFiles === undefined || setFiles === undefined) return undefined;
+  if (!isPcKind(device.kind) || getFiles === undefined || setFiles === undefined) return undefined;
   return { files: { get: (os) => getFiles(device.id, os), set: (files) => setFiles(device.id, files) } };
 }

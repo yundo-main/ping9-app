@@ -13,13 +13,14 @@ import {
   LIMITS,
   checkFirewallRule,
   errorInfo,
+  isPcLikeDevice,
   isServer,
   normalizeCidr,
   normalizeFilter,
   normalizeFirewallRule,
   validateDocument,
 } from "@ping9/shared";
-import type { ErrorInfo, FirewallChain, FirewallRule, PcDevice, PcFilter, TopologyDocument } from "@ping9/shared";
+import type { ErrorInfo, FirewallChain, FirewallRule, PcFilter, PcLikeDevice, TopologyDocument } from "@ping9/shared";
 
 import { describeValue } from "../describe";
 import type { CommandHandler, ReduceResult } from "../reducer";
@@ -28,11 +29,11 @@ const fail = (error: ErrorInfo): ReduceResult => ({ ok: false, error });
 const shape = (path: string): ReduceResult => fail(errorInfo("DOCUMENT_INVALID_SHAPE", { path }));
 
 function findServer(document: TopologyDocument, deviceId: unknown):
-  | { readonly ok: true; readonly device: PcDevice; readonly filter: PcFilter }
+  | { readonly ok: true; readonly device: PcLikeDevice; readonly filter: PcFilter }
   | { readonly ok: false; readonly error: ErrorInfo } {
   const device = document.devices.find((candidate) => candidate.id === deviceId);
   if (device === undefined) return { ok: false, error: errorInfo("DEVICE_NOT_FOUND", { deviceId: describeValue(deviceId) }) };
-  if (device.kind !== "pc") {
+  if (!isPcLikeDevice(device)) {
     return { ok: false, error: errorInfo("DEVICE_KIND_MISMATCH", { deviceId: device.id, expected: "pc", actual: device.kind }) };
   }
   if (!isServer(device.config)) return { ok: false, error: errorInfo("PC_NOT_SERVER", { deviceId: device.id }) };
@@ -40,7 +41,7 @@ function findServer(document: TopologyDocument, deviceId: unknown):
 }
 
 /** 바꾼 필터를 정규화해 넣고 공통 문서 검증기로 전체 제약을 확인한다 */
-function withFilter(document: TopologyDocument, device: PcDevice, filter: PcFilter): ReduceResult {
+function withFilter(document: TopologyDocument, device: PcLikeDevice, filter: PcFilter): ReduceResult {
   const checked = validateDocument({
     ...document,
     devices: document.devices.map((candidate) => candidate.id === device.id
