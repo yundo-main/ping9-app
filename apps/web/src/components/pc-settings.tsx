@@ -43,7 +43,8 @@ export function OsChoice({ os, onChange }: { readonly os: OsKind; readonly onCha
 const PC_PORT = PORT_NAMES.pc[0];
 
 /** 패널에 보이는 포트 이름. Linux는 콘솔과 같은 `eth0`, 문서 안의 이름은 OS와 상관없이 `Ethernet0`이다 */
-const PORT_LABELS: Readonly<Record<OsKind, string>> = { windows: PC_PORT, linux: "eth0" };
+/** 패널에 보이는 포트 이름 — OS의 실제 인터페이스 이름 (문서 안의 이름은 OS와 상관없이 `Ethernet0`) */
+const PORT_LABELS: Readonly<Record<OsKind, string>> = { windows: "로컬 영역 연결", linux: "eth0" };
 
 /** 토글을 눌렀을 때 낼 Command (T0.14) */
 export function portAdminCommand(deviceId: string, adminUp: boolean): Command {

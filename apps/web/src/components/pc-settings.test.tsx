@@ -159,7 +159,7 @@ describe("포트 켜고 끄기 (T0.14)", () => {
     const at = (part: string) => html.indexOf(part);
     expect(at("<legend>OS</legend>")).toBeLessThan(at('class="port-row"'));
     expect(at('class="port-row"')).toBeLessThan(at("<h4>IP 설정</h4>"));
-    expect(html).toMatch(/role="switch" aria-checked="true" aria-label="포트 Ethernet0"><span class="state">켜짐<\/span>/);
+    expect(html).toMatch(/role="switch" aria-checked="true" aria-label="포트 로컬 영역 연결"><span class="state">켜짐<\/span>/);
   });
 
   test("끈 PC는 꺼짐, 회색 줄. 아래 인터페이스 점도 회색", () => {

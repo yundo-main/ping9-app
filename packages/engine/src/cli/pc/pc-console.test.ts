@@ -33,7 +33,7 @@ describe("ipconfig", () => {
     const { port } = open();
 
     expect(texts(await port.exec("ipconfig"))).toEqual([
-      "Ethernet adapter Ethernet0:",
+      "Ethernet adapter 로컬 영역 연결:",
       "",
       "   Physical Address. . . . . . . . . : 02:00:00:00:01:00",
       "   IPv4 Address. . . . . . . . . . . : 192.168.1.1",
@@ -73,7 +73,7 @@ describe("ipconfig /all", () => {
     const { port } = open();
 
     expect(texts(await port.exec("ipconfig /all"))).toEqual([
-      "Ethernet adapter Ethernet0:",
+      "Ethernet adapter 로컬 영역 연결:",
       "",
       "   Host Name . . . . . . . . . . . . : PC1",
       "   Media State . . . . . . . . . . . : Connected",
@@ -132,7 +132,7 @@ describe("ipconfig <ip> <mask> [<gateway>]", () => {
     await port.exec("ipconfig 10.0.0.1 255.255.255.0 10.0.0.254");
 
     expect(texts(await port.exec("ipconfig"))).toEqual([
-      "Ethernet adapter Ethernet0:",
+      "Ethernet adapter 로컬 영역 연결:",
       "",
       "   Physical Address. . . . . . . . . : 02:00:00:00:01:00",
       "   IPv4 Address. . . . . . . . . . . : 10.0.0.1",

@@ -56,7 +56,7 @@ function addressLines(pc: PcDevice): ConsoleLine[] {
 function showIpconfig(_args: CommandArgs, context: CommandContext): CommandOutcome {
   const pc = pcOf(context);
   if (pc === undefined) return {};
-  return { lines: [text(`Ethernet adapter ${PC_PORT}:`), text(""), ...addressLines(pc)] };
+  return { lines: [text("Ethernet adapter 로컬 영역 연결:"), text(""), ...addressLines(pc)] };
 }
 
 function showIpconfigAll(_args: CommandArgs, context: CommandContext): CommandOutcome {
@@ -69,7 +69,7 @@ function showIpconfigAll(_args: CommandArgs, context: CommandContext): CommandOu
 
   return {
     lines: [
-      text(`Ethernet adapter ${PC_PORT}:`),
+      text("Ethernet adapter 로컬 영역 연결:"),
       text(""),
       row(LABEL.hostName, pc.name),
       row(LABEL.mediaState, MEDIA_STATE[status]),

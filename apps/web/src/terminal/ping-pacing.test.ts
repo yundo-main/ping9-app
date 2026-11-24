@@ -180,7 +180,7 @@ describe("runLinePaced", () => {
 
     expect(waits).toEqual([]);
     expect(shown).toEqual([]);
-    expect(outputOf(final)[0]).toBe("Ethernet adapter Ethernet0:");
+    expect(outputOf(final)[0]).toBe("Ethernet adapter 로컬 영역 연결:");
   });
 
   describe("tracert (T11.4.1)", () => {
