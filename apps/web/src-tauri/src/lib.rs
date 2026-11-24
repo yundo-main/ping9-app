@@ -27,6 +27,8 @@ pub fn run() {
       // 기본 "About PING9"는 네이티브 창이라 개발자 정보가 안 나온다.
       // 정보 창을 여는 이벤트를 보내는 커스텀 항목으로 바꾼다 (T0.43)
       let about = MenuItemBuilder::with_id("menu-about", "PING9에 관하여").build(app)?;
+      // Help 메뉴에도 같은 창을 여는 항목을 넣는다. 항목은 한 메뉴에만 속할 수 있어 id가 다른 복사본을 만든다
+      let about_help = MenuItemBuilder::with_id("menu-about-help", "PING9에 관하여").build(app)?;
       for kind in menu.items()? {
         if let MenuItemKind::Submenu(sub) = kind {
           for item in sub.items()? {
@@ -35,6 +37,12 @@ pub fn run() {
               sub.remove(&item)?;
               sub.insert(&about, 0)?;
             }
+          }
+          if sub.text()? == "Help" {
+            if !sub.items()?.is_empty() {
+              sub.append(&PredefinedMenuItem::separator(app)?)?;
+            }
+            sub.append(&about_help)?;
           }
         }
       }
@@ -67,6 +75,10 @@ pub fn run() {
       match event.id().as_ref() {
         "menu-import" | "menu-export" | "menu-about" => {
           let _ = app.emit(event.id().as_ref(), ());
+        }
+        // Help 메뉴의 복사본은 앱 메뉴 항목과 같은 이벤트로 변환한다
+        "menu-about-help" => {
+          let _ = app.emit("menu-about", ());
         }
         _ => {}
       }

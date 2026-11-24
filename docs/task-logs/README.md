@@ -152,3 +152,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.44 화면의 포트 이름 줄임 표기 확장: 링크 패널·포트 선택 창 (계획에 없는 새 ID) | [T0.44-short-port-names.md](T0.44-short-port-names.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.45 Windows 포트 이름을 "로컬 영역 연결"로: 패널 라벨·ipconfig 출력 (계획에 없는 새 ID) | [T0.45-windows-adapter-name.md](T0.45-windows-adapter-name.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.46 서버에 HTTPS 서비스 추가: tcp/443, curl https://·systemctl·ss 지원 (계획에 없는 새 ID) | [T0.46-https-service.md](T0.46-https-service.md) | 엔진·화면 | jarrod | main 직접 커밋 |
+| T0.47 Help 메뉴에 PING9에 관하여 항목 추가 (계획에 없는 새 ID) | [T0.47-help-menu-about.md](T0.47-help-menu-about.md) | 앱 | jarrod | main 직접 커밋 |
