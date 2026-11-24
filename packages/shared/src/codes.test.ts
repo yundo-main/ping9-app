@@ -65,7 +65,11 @@ describe("코드 목록", () => {
     expect(COMMAND_TYPES.filter((type) => !added.includes(type) && !vpn(type))).toHaveLength(20);
     expect(COMMAND_TYPES).toEqual(expect.arrayContaining(added));
     expect(COMMAND_TYPES.filter(type => type.startsWith("tunnel/"))).toEqual(["tunnel/set", "tunnel/remove"]);
-    expect(COMMAND_TYPES.filter(type => type.startsWith("router/")).sort()).toEqual(["router/commit-vyos", "router/set-cli-style", "router/set-ip-forward", "router/set-static-nat", "router/set-vpn-mode"]);
+    expect(COMMAND_TYPES.filter(type => type.startsWith("router/")).sort()).toEqual([
+      "router/commit-vyos", "router/remove-access-list", "router/remove-nat-source",
+      "router/set-access-list", "router/set-cli-style", "router/set-ip-forward",
+      "router/set-nat-pool", "router/set-nat-source", "router/set-static-nat", "router/set-vpn-mode",
+    ]);
     expect(COMMAND_TYPES).toContain("pc/set-ip");
     expect(COMMAND_TYPES).toContain("link/add");
   });

@@ -19,6 +19,8 @@ export interface ArpHost {
   readonly device: DeviceRef;
   /** 포트의 자기 IP. IP가 없는 포트면 undefined */
   ipOf(port: string): string | undefined;
+  /** 포트의 자기 IP는 아니지만 ARP에 대답할 주소 (라우터의 NAT 풀·정적 outside 주소, T16.3) */
+  ownsIp?(port: string, ip: string): boolean;
   macOf(port: string): string;
   /** 포트에 연결된 링크. 보냄 이벤트의 `linkId`에 쓴다. 없으면 undefined */
   linkOf(port: string): string | undefined;
@@ -190,7 +192,8 @@ export class ArpModule {
   #onRequest(ctx: SimContext, port: string, frame: Frame, arp: ArpPacket): void {
     const { device, deviceId } = this.#hostRef();
     const ownIp = this.#host.ipOf(port);
-    const forMe = ownIp !== undefined && arp.targetIp === ownIp;
+    const forMe = (ownIp !== undefined && arp.targetIp === ownIp)
+      || (this.#host.ownsIp?.(port, arp.targetIp) ?? false);
     const received = ctx.record({
       frame, deviceId, inPort: port, layer: "ARP", action: "receive",
       reason: {
@@ -213,12 +216,12 @@ export class ArpModule {
     const ownMac = this.#host.macOf(port);
     const reply = ctx.createFrame({
       ethernet: { sourceMac: ownMac, destinationMac: arp.senderMac },
-      arp: { operation: "reply", senderMac: ownMac, senderIp: ownIp, targetMac: arp.senderMac, targetIp: arp.senderIp },
+      arp: { operation: "reply", senderMac: ownMac, senderIp: arp.targetIp, targetMac: arp.senderMac, targetIp: arp.senderIp },
     });
     // LEARNED와 REPLY_SENT의 부모는 둘 다 RECEIVED다 (예시 seq 2·3)
     ctx.record({
       frame: reply, deviceId, outPort: port, ...this.#link(port), layer: "ARP", action: "reply", parentSeq: received,
-      reason: { code: "ARP_REPLY_SENT", params: { device, ip: ownIp, mac: ownMac } },
+      reason: { code: "ARP_REPLY_SENT", params: { device, ip: arp.targetIp, mac: ownMac } },
     });
     this.#host.transmit(ctx, port, reply);
   }

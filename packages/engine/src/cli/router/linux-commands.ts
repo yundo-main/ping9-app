@@ -5,9 +5,12 @@
 
 import {
   PORT_NAMES,
+  checkHostIpv4,
   errorInfo,
+  formatIpv4,
   maskToPrefixLength,
   normalizeCidr,
+  parseIpv4,
   portIndex,
   prefixLengthToMask,
 } from "@ping9/shared";
@@ -205,6 +208,46 @@ const natMasquerade = (add: boolean) => (args: CommandArgs, context: CommandCont
   })),
 });
 
+/** `-s <net>/<len>` 자리를 {network, wildcard}로 나눈다. 접두사가 없으면 호스트 한 개다 (T16.3) */
+function splitMatch(value: string): { network: string; wildcard: string } {
+  const [network, length] = value.split("/");
+  const mask = length === undefined ? "255.255.255.255" : prefixLengthToMask(Number(length))!;
+  return { network: network!, wildcard: formatIpv4(4294967295 - parseIpv4(mask)!) };
+}
+
+/** `-s <net> -o ethN -j SNAT --to-source a[-b]`: 출발지 범위를 주소 풀로 1:1 변환하는 동적 NAT 규칙 (T16.3) */
+const natDynamic = (add: boolean) => (args: CommandArgs, context: CommandContext): CommandOutcome => {
+  const { network, wildcard } = splitMatch(String(args["cidr"]));
+  const [start, end] = String(args["range"]).split("-");
+  if (add) {
+    const outside = context.dispatch({ type: "interface/set-nat", deviceId: context.device.id, port: String(args["eth"]), nat: "outside" });
+    if (!outside.ok) return { lines: linesFromDispatch(outside) };
+  }
+  return { lines: linesFromDispatch(context.dispatch(add
+    ? { type: "router/set-nat-source", deviceId: context.device.id,
+        listId: null, network, wildcard, pool: null, poolStart: start!, poolEnd: end ?? null,
+        interface: null, overload: false }
+    : { type: "router/remove-nat-source", deviceId: context.device.id,
+        listId: null, network, wildcard, pool: null, poolStart: start!, poolEnd: end ?? null,
+        interface: null })) };
+};
+
+/** `-s <net> -o ethN -j MASQUERADE`: 출발지 범위만 골라 인터페이스 주소로 포트를 나눠 쓰는 overload 규칙 (T16.3) */
+const natScopedMasquerade = (add: boolean) => (args: CommandArgs, context: CommandContext): CommandOutcome => {
+  const { network, wildcard } = splitMatch(String(args["cidr"]));
+  if (add) {
+    const outside = context.dispatch({ type: "interface/set-nat", deviceId: context.device.id, port: String(args["eth"]), nat: "outside" });
+    if (!outside.ok) return { lines: linesFromDispatch(outside) };
+  }
+  return { lines: linesFromDispatch(context.dispatch(add
+    ? { type: "router/set-nat-source", deviceId: context.device.id,
+        listId: null, network, wildcard, pool: null, poolStart: null, poolEnd: null,
+        interface: String(args["eth"]), overload: true }
+    : { type: "router/remove-nat-source", deviceId: context.device.id,
+        listId: null, network, wildcard, pool: null, poolStart: null, poolEnd: null,
+        interface: String(args["eth"]) })) };
+};
+
 /** `-t nat -L POSTROUTING`: Chain 머리와 MASQUERADE 규칙을 나열한다 */
 function showNatTable(_args: CommandArgs, context: CommandContext): CommandOutcome {
   const router = routerOf(context);
@@ -217,6 +260,12 @@ function showNatTable(_args: CommandArgs, context: CommandContext): CommandOutco
   }
   for (const entry of router.config.natStatics ?? []) {
     lines.push(`SNAT       all  --  ${entry.insideIp.padEnd(20)} anywhere             to:${entry.outsideIp}`);
+  }
+  for (const rule of router.config.natSources ?? []) {
+    const source = rule.network === undefined ? "anywhere" : rule.network;
+    const target = rule.interface !== undefined ? `MASQUERADE  all  --  ${source.padEnd(20)} anywhere`
+      : `SNAT       all  --  ${source.padEnd(20)} anywhere             to:${rule.poolStart}${rule.poolEnd === undefined ? "" : `-${rule.poolEnd}`}`;
+    lines.push(target);
   }
   return { lines: lines.map(text) };
 }
@@ -231,6 +280,16 @@ function showNatRules(_args: CommandArgs, context: CommandContext): CommandOutco
   }
   for (const entry of router.config.natStatics ?? []) {
     lines.push(`-A POSTROUTING -s ${entry.insideIp} -j SNAT --to-source ${entry.outsideIp}`);
+  }
+  // 동적 규칙 (T16.3): egress는 첫 outside 인터페이스로 표시한다
+  const outIndex = PORT_NAMES.router.findIndex(port => router.config.interfaces[port]?.nat === "outside");
+  for (const rule of router.config.natSources ?? []) {
+    const source = rule.network === undefined ? "" : ` -s ${rule.network}/${maskToPrefixLength(formatIpv4(4294967295 - parseIpv4(rule.wildcard ?? "0.0.0.0")!)) ?? 32}`;
+    const out = rule.interface === undefined ? outIndex : (PORT_NAMES.router as readonly string[]).indexOf(rule.interface);
+    if (out < 0) continue;
+    lines.push(rule.interface !== undefined
+      ? `-A POSTROUTING${source} -o eth${out} -j MASQUERADE`
+      : `-A POSTROUTING${source} -o eth${out} -j SNAT --to-source ${rule.poolStart}${rule.poolEnd === undefined ? "" : `-${rule.poolEnd}`}`);
   }
   return { lines: lines.map(text) };
 }
@@ -318,6 +377,13 @@ function runSysctl(args: CommandArgs, context: CommandContext): CommandOutcome {
 }
 
 const cidrParam = customParam("cidr", "Network and prefix length, e.g. 10.0.0.0/24", readCidr);
+/** `--to-source`의 주소 범위 자리. `a.b.c.d` 또는 `a.b.c.d-e.f.g.h` */
+const rangeParam = customParam("range", "Address or range (a.b.c.d[-e.f.g.h])", (value): ParamValue => {
+  const parts = String(value).split("-");
+  return parts.length <= 2 && parts.every(part => checkHostIpv4(part) === null)
+    ? { ok: true, value: String(value) }
+    : { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: String(value) }) };
+});
 const ipParam = param("ip", "ipv4", "Destination IPv4 address");
 const insideParam = param("inside", "ipv4", "Inside local IPv4 address");
 const outsideParam = param("outside", "ipv4", "Inside global IPv4 address");
@@ -353,6 +419,10 @@ export const LINUX_ROUTER_COMMANDS: readonly CommandDefinition[] = [
   linux(["ip", "neigh", "flush", "all"], "Delete all neighbour entries", flushNeigh),
   linux(["iptables", "-t", "nat", "-A", "POSTROUTING", "-o", ethParam, "-j", "MASQUERADE"], "Masquerade traffic leaving the interface (NAT outside)", natMasquerade(true)),
   linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-o", ethParam, "-j", "MASQUERADE"], "Stop masquerading on the interface", natMasquerade(false)),
+  linux(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", cidrParam, "-o", ethParam, "-j", "SNAT", "--to-source", rangeParam], "Dynamic NAT: map a source range to an address pool", natDynamic(true)),
+  linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", cidrParam, "-o", ethParam, "-j", "SNAT", "--to-source", rangeParam], "Remove the dynamic NAT rule", natDynamic(false)),
+  linux(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", cidrParam, "-o", ethParam, "-j", "MASQUERADE"], "Masquerade only the given source range (NAT overload)", natScopedMasquerade(true)),
+  linux(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", cidrParam, "-o", ethParam, "-j", "MASQUERADE"], "Stop masquerading the range", natScopedMasquerade(false)),
   linux(["iptables", "-t", "nat", "-L", "POSTROUTING"], "List NAT rules in POSTROUTING", showNatTable),
   linux(["iptables", "-t", "nat", "-S", "POSTROUTING"], "List NAT rules as commands", showNatRules),
   linux(["iptables", "-t", "nat", "-A", "PREROUTING", "-d", outsideParam, "-j", "DNAT", "--to-destination", insideParam], "Static NAT: map the outside address to an inside host", natStatic(true)),

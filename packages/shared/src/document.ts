@@ -187,6 +187,40 @@ export interface NatStaticEntry {
   readonly outsideIp: string;
 }
 
+/** NAT 주소 풀 (T16.3). `ip nat pool <name> <start> <end> netmask <mask>`. 동적 NAT와 overload가 쓸 바깥 주소 범위 */
+export interface NatPool {
+  readonly name: string;
+  readonly startIp: string;
+  readonly endIp: string;
+  readonly netmask: string;
+}
+
+/** 표준 번호 ACL 한 줄 (T16.3). `access-list <1-99> permit|deny <net> <wildcard>`. 같은 listId의 줄이 위에서부터 평가된다 */
+export interface AccessListEntry {
+  readonly listId: number;
+  readonly action: "permit" | "deny";
+  readonly network: string;
+  readonly wildcard: string;
+}
+
+/** 동적 NAT 규칙 (T16.3). `ip nat inside source list <acl> pool <name> [overload]` 또는 `... interface <iface> overload` */
+export interface NatSourceRule {
+  /** 출발지를 가를 표준 ACL 번호 (ios). 없으면 network·wildcard가 직접 매칭한다 (vyos·linux) */
+  readonly listId?: number;
+  /** 직접 매칭하는 출발지 네트워크 (vyos `source address`, linux `-s`). listId가 있으면 안 쓴다 */
+  readonly network?: string;
+  readonly wildcard?: string;
+  /** 변환에 쓸 풀 이름 (ios). poolStart·interface와 셋 중 하나만 있다 */
+  readonly pool?: string;
+  /** 인라인 풀 범위 (vyos `translation address a-b`, linux `--to-source a-b`) */
+  readonly poolStart?: string;
+  readonly poolEnd?: string;
+  /** overload용 outside 인터페이스 이름 */
+  readonly interface?: string;
+  /** 참이면 주소 하나를 포트로 나눠 쓰는 PAT. 거짓이면 풀 주소의 1:1 동적 대응 */
+  readonly overload: boolean;
+}
+
 /** Router 구성. `interfaces`에 없는 인터페이스는 설정된 적이 없는 것이다 */
 export const VPN_MODES = ["off", "gre", "ipsec"] as const;
 export type VpnMode = (typeof VPN_MODES)[number];
@@ -205,6 +239,12 @@ export interface RouterConfig {
   readonly rip?: RipConfig;
   /** 정적 NAT 대응 (T16.2). 없거나 빈 목록이면 동적 변환만 */
   readonly natStatics?: readonly NatStaticEntry[];
+  /** NAT 주소 풀 (T16.3). `ip nat pool`로 만든다 */
+  readonly natPools?: readonly NatPool[];
+  /** 표준 번호 ACL (T16.3). `access-list`로 만든다. 지금은 NAT 규칙의 출발지 선택에 쓴다 */
+  readonly accessLists?: readonly AccessListEntry[];
+  /** 동적 NAT 규칙 (T16.3). 비어 있고 outside 인터페이스만 있으면 묵시적 masquerade다 */
+  readonly natSources?: readonly NatSourceRule[];
   readonly tunnels?: Readonly<Record<string, GreTunnelConfig>>;
   readonly ipsec?: Readonly<Record<string, IpsecProfileConfig>>;
 }

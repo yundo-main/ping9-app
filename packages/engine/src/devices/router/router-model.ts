@@ -1,5 +1,5 @@
-import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, isIcmpError, isSameNetwork, isTunnelName, routerInterfaces, greEnabled } from "@ping9/shared";
-import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
+import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, formatIpv4, isIcmpError, isSameNetwork, isTunnelName, parseIpv4, routerInterfaces, greEnabled } from "@ping9/shared";
+import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatSourceRule, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -24,7 +24,7 @@ export const routerTtlOf = (cliStyle: RouterConfig["cliStyle"]): number =>
 /** NAT 바인딩의 유휴 한계 (T16.2). 이 시간(마이크로초, 300초) 동안 패킷이 없으면 지운다 */
 export const NAT_IDLE_US = 300_000_000;
 
-/** NAT 변환 한 건 (T16.2). inside 호스트의 논리 포트가 outside 인터페이스의 natPort로 바뀐다 */
+/** NAT 변환 한 건 (T16.2). inside 호스트의 논리 포트가 바깥 주소의 natPort로 바뀐다 */
 interface NatBinding {
   readonly protocol: "tcp" | "udp" | "icmp";
   readonly insideIp: string;
@@ -33,10 +33,53 @@ interface NatBinding {
   readonly peerIp: string;
   /** 상대방(서버)의 논리 포트. ICMP는 0이다 */
   readonly peerPort: number;
-  /** outside 인터페이스 IP에서 쓰는 논리 포트. ICMP는 sequence를 그대로 쓴다 */
+  /** 바깥에서 보이는 주소. outside 인터페이스 IP이거나 풀에서 배정된 주소다 (T16.3) */
+  readonly outsideIp: string;
+  /** outsideIp에서 쓰는 논리 포트. ICMP는 sequence를 그대로 쓴다 */
   readonly natPort: number;
   /** 마지막으로 이 바인딩을 쓴 시각. 유휴가 NAT_IDLE_US를 넘으면 지운다 */
   lastSeen: number;
+}
+
+/** 풀에서 안쪽 호스트에 배정된 바깥 주소 (T16.3). overload이면 바인딩들이 이 주소를 포트로 나눠 쓴다 */
+interface NatAddr {
+  readonly insideIp: string;
+  readonly ip: string;
+  readonly overload: boolean;
+  lastSeen: number;
+}
+
+/** ACL listId의 줄을 위에서부터 평가해 첫 매치의 permit 여부를 돌려준다. 매치가 없으면 거부다 (T16.3) */
+function aclPermits(config: RouterConfig, listId: number, ip: string): boolean {
+  const address = parseIpv4(ip);
+  if (address === null) return false;
+  for (const entry of config.accessLists ?? []) {
+    if (entry.listId !== listId) continue;
+    const network = parseIpv4(entry.network);
+    const wildcard = parseIpv4(entry.wildcard);
+    if (network === null || wildcard === null) continue;
+    // 와일드카드의 1 비트는 "보지 않는" 자리다 — 나머지 자리가 모두 같으면 매치다
+    if (((address ^ network) & ~wildcard) === 0) return entry.action === "permit";
+  }
+  return false;
+}
+
+/** NAT 규칙의 출발지 매칭 — listId가 있으면 ACL 평가, 없으면 network·wildcard 직접 매칭이다 (T16.3) */
+function natRuleMatches(config: RouterConfig, rule: NatSourceRule, ip: string): boolean {
+  if (rule.listId !== undefined) return aclPermits(config, rule.listId, ip);
+  if (rule.network === undefined) return false;
+  const address = parseIpv4(ip);
+  const network = parseIpv4(rule.network);
+  const wildcard = parseIpv4(rule.wildcard ?? "0.0.0.0");
+  return address !== null && network !== null && wildcard !== null && ((address ^ network) & ~wildcard) === 0;
+}
+
+/** 규칙이 쓸 바깥 주소 범위 — 이름 있는 풀이거나 인라인 범위다 (T16.3) */
+function natPoolRangeOf(config: RouterConfig, rule: NatSourceRule): { startIp: string; endIp: string } | undefined {
+  if (rule.poolStart !== undefined) return { startIp: rule.poolStart, endIp: rule.poolEnd ?? rule.poolStart };
+  if (rule.pool === undefined) return undefined;
+  const pool = (config.natPools ?? []).find(candidate => candidate.name === rule.pool);
+  return pool === undefined ? undefined : { startIp: pool.startIp, endIp: pool.endIp };
 }
 
 function routerIn(document: TopologyDocument, id: string): RouterDevice | undefined {
@@ -52,12 +95,15 @@ export class RouterModel implements DeviceModel {
   readonly #rip: RipModule;
   readonly #ipsec: IpsecModule;
   readonly #now: () => number;
-  /** NAT 바인딩. 바깥 키는 돌아오는 패킷을 그대로 찾는다: `proto:peerIp:peerPort:natPort` */
+  /** NAT 바인딩. 바깥 키는 돌아오는 패킷을 그대로 찾는다: `proto:outsideIp:peerIp:peerPort:natPort` */
   readonly #natOutside = new Map<string, NatBinding>();
   /** 안쪽 키는 같은 연결이 바인딩을 다시 쓰게 한다: `proto:insideIp:insidePort:peerIp:peerPort` */
   readonly #natInside = new Map<string, NatBinding>();
-  /** ICMP 오류의 인용에는 출발지 포트가 없어 쓰는 느슨한 색인: `proto:peerIp:peerPort` */
+  /** ICMP 오류의 인용에는 출발지 포트가 없어 쓰는 느슨한 색인: `proto:outsideIp:peerIp:peerPort` */
   readonly #natLoose = new Map<string, NatBinding>();
+  /** 풀 주소 배정 (T16.3). 안쪽 호스트 → 바깥 주소. 두 색인이 같은 객체를 가리켜 lastSeen을 나눈다 */
+  readonly #natAddr = new Map<string, NatAddr>();
+  readonly #natAddrByIp = new Map<string, NatAddr>();
   #natNextPort = 49152;
 
   constructor(deviceId: string, getDocument: () => TopologyDocument, now: () => number = () => 0) {
@@ -75,6 +121,17 @@ export class RouterModel implements DeviceModel {
       this.#arps.set(port, new ArpModule({
         get device() { return deviceRef(current()); },
         ipOf: () => current().config.interfaces[port]?.ip,
+        // NAT 주소에는 라우터가 대신 ARP에 답한다 (proxy ARP). 풀은 NAT 규칙이 참조할 때만 연다 (T16.3)
+        ownsIp: (_port, ip) => {
+          const config = current().config;
+          if ((config.natStatics ?? []).some(entry => entry.outsideIp === ip)) return true;
+          const target = parseIpv4(ip);
+          if (target === null) return false;
+          return (config.natSources ?? []).some(rule => {
+            const range = natPoolRangeOf(config, rule);
+            return range !== undefined && parseIpv4(range.startIp)! <= target && target <= parseIpv4(range.endIp)!;
+          });
+        },
         macOf: () => portMac(current(), port),
         linkOf: () => portLink(getDocument(), { deviceId, port })?.linkId,
         transmit: (ctx, _port, frame) => { transmit(ctx, getDocument(), { deviceId, port }, frame); },
@@ -99,19 +156,22 @@ export class RouterModel implements DeviceModel {
     return routingTable(this.#device().config, portViewsOf(this.#getDocument(), this.#device()), this.#rip.routes());
   }
 
-  /** NAT 변환 테이블 (`show ip nat translations`, T16.2). `#natInside`가 바인딩을 한 번씩만 든 정본이다 */
+  /** NAT 변환 테이블 (`show ip nat translations`, T16.2·T16.3). `#natInside`가 바인딩을 한 번씩만 든 정본이다 */
   natTranslations(): readonly NatTranslationView[] {
     const device = this.#device();
-    const outsideIp = Object.entries(device.config.interfaces).find(([, iface]) => iface.nat === "outside")?.[1].ip;
     const dynamic = [...this.#natInside.values()].map(binding => ({
       protocol: binding.protocol, insideIp: binding.insideIp, insidePort: binding.insidePort,
-      outsideIp: outsideIp ?? "", outsidePort: binding.natPort,
+      outsideIp: binding.outsideIp, outsidePort: binding.natPort,
       peerIp: binding.peerIp, peerPort: binding.peerPort, source: "dynamic" as const,
     }));
+    // 풀의 1:1 배정은 static처럼 포트 없이 대응된다 (동적 NAT). overload 배정은 바인딩 줄이 대신 보여준다
+    const assigned = [...new Set(this.#natAddr.values())]
+      .filter(addr => !addr.overload)
+      .map(addr => ({ protocol: "all" as const, insideIp: addr.insideIp, outsideIp: addr.ip, source: "dynamic" as const }));
     const statics = (device.config.natStatics ?? []).map(entry => ({
       protocol: "all" as const, insideIp: entry.insideIp, outsideIp: entry.outsideIp, source: "static" as const,
     }));
-    return [...statics, ...dynamic];
+    return [...statics, ...assigned, ...dynamic];
   }
 
   /** 경로 교환 1회의 시작 (T11.2.2). RIP를 켠 Router만 보낸다 */
@@ -236,21 +296,37 @@ export class RouterModel implements DeviceModel {
         } } });
       return { ipv4: { ...ipv4, destinationIp: statik.insideIp }, icmp, frame: next, seq };
     }
-    if (ipv4.destinationIp !== iface.ip) return undefined;
+    // 풀의 1:1 배정 (동적 NAT)도 바인딩 없이 대응된다 — overload 배정은 아래 포트 조회로 간다 (T16.3)
+    const assigned = this.#natAddrByIp.get(ipv4.destinationIp);
+    if (assigned !== undefined && !assigned.overload) {
+      assigned.lastSeen = this.#now();
+      const snapshot: FrameSnapshot = { ...frame.snapshot, ipv4: { ...ipv4, destinationIp: assigned.insideIp } };
+      const next = ctx.updateFrame(frame, snapshot);
+      const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+        reason: { code: "NAT_TRANSLATED", params: {
+          device: deviceRef(device), direction: "outside-to-inside",
+          insideIp: assigned.insideIp, outsideIp: assigned.ip, peerIp: ipv4.sourceIp,
+          ...(tcp !== undefined ? { protocol: "tcp" as const, port: tcp.destinationPort }
+            : udp !== undefined ? { protocol: "udp" as const, port: udp.destinationPort } : { protocol: "icmp" as const }),
+        } } });
+      return { ipv4: { ...ipv4, destinationIp: assigned.insideIp }, icmp, frame: next, seq };
+    }
+    // 목적지는 인터페이스 주소이거나 overload으로 배정된 풀 주소여야 한다
+    if (ipv4.destinationIp !== iface.ip && assigned === undefined) return undefined;
     let binding: NatBinding | undefined;
     let newIcmp = icmp;
     if (tcp !== undefined) {
-      binding = this.#natOutside.get(`tcp:${ipv4.sourceIp}:${tcp.sourcePort}:${tcp.destinationPort}`);
+      binding = this.#natOutside.get(`tcp:${ipv4.destinationIp}:${ipv4.sourceIp}:${tcp.sourcePort}:${tcp.destinationPort}`);
     } else if (udp !== undefined) {
-      binding = this.#natOutside.get(`udp:${ipv4.sourceIp}:${udp.sourcePort}:${udp.destinationPort}`);
+      binding = this.#natOutside.get(`udp:${ipv4.destinationIp}:${ipv4.sourceIp}:${udp.sourcePort}:${udp.destinationPort}`);
     } else if (icmp?.type === "echo-reply") {
-      binding = this.#natOutside.get(`icmp:${ipv4.sourceIp}:0:${icmp.sequence}`);
+      binding = this.#natOutside.get(`icmp:${ipv4.destinationIp}:${ipv4.sourceIp}:0:${icmp.sequence}`);
     } else if (isIcmpError(icmp)) {
       // 인용된 패킷은 출발지가 NAT 주소다. TCP·UDP는 안쪽 출발지 포트를 모르니 느슨한 색인을 쓴다
       const o = icmp.original;
-      binding = o.sourceIp !== iface.ip ? undefined : o.protocol === undefined
-        ? this.#natOutside.get(`icmp:${o.destinationIp}:0:${o.sequence}`)
-        : this.#natLoose.get(`${o.protocol}:${o.destinationIp}:${o.destinationPort}`);
+      binding = o.protocol === undefined
+        ? this.#natOutside.get(`icmp:${o.sourceIp}:${o.destinationIp}:0:${o.sequence}`)
+        : this.#natLoose.get(`${o.protocol}:${o.sourceIp}:${o.destinationIp}:${o.destinationPort}`);
       if (binding !== undefined) {
         // 받는 호스트가 자기가 보낸 패킷으로 알아보게, 인용 안의 출발지도 안쪽 주소로 되돌린다
         newIcmp = { ...icmp, original: { ...o, sourceIp: binding.insideIp } };
@@ -270,21 +346,51 @@ export class RouterModel implements DeviceModel {
     const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
       reason: { code: "NAT_TRANSLATED", params: {
         device: deviceRef(device), direction: "outside-to-inside",
-        insideIp: binding.insideIp, outsideIp: iface.ip, peerIp: binding.peerIp,
+        insideIp: binding.insideIp, outsideIp: binding.outsideIp, peerIp: binding.peerIp,
         ...(binding.protocol === "icmp" ? { protocol: "icmp" as const } : { protocol: binding.protocol, port: binding.natPort }),
       } } });
     return { ipv4: { ...ipv4, destinationIp: binding.insideIp }, icmp: newIcmp, frame: next, seq };
   }
 
-  /** 유휴가 NAT_IDLE_US를 넘은 바인딩을 세 색인에서 함께 지운다. 변환 경로마다 부른다 */
+  /** 유휴가 NAT_IDLE_US를 넘은 바인딩과 풀 배정을 색인에서 함께 지운다. 변환 경로마다 부른다 */
   #natSweep(): void {
     const cutoff = this.#now() - NAT_IDLE_US;
     for (const [key, binding] of this.#natInside) {
       if (binding.lastSeen >= cutoff) continue;
       this.#natInside.delete(key);
-      this.#natOutside.delete(`${binding.protocol}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`);
-      this.#natLoose.delete(`${binding.protocol}:${binding.peerIp}:${binding.peerPort}`);
+      this.#natOutside.delete(`${binding.protocol}:${binding.outsideIp}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`);
+      this.#natLoose.delete(`${binding.protocol}:${binding.outsideIp}:${binding.peerIp}:${binding.peerPort}`);
     }
+    for (const [key, addr] of this.#natAddr) {
+      if (addr.lastSeen >= cutoff) continue;
+      // overload 배정은 그 주소를 쓰는 바인딩이 남아 있으면 해제하지 않는다
+      if (addr.overload && [...this.#natInside.values()].some(b => b.outsideIp === addr.ip)) continue;
+      this.#natAddr.delete(key);
+      this.#natAddrByIp.delete(addr.ip);
+    }
+  }
+
+  /** 범위에서 insideIp에 바깥 주소를 배정한다. overload이면 고갈 시 범위의 첫 주소를 나눠 쓴다 (T16.3) */
+  #natAssign(device: RouterDevice, range: { startIp: string; endIp: string }, overload: boolean, insideIp: string): NatAddr | undefined {
+    const existing = this.#natAddr.get(insideIp);
+    if (existing !== undefined) { existing.lastSeen = this.#now(); return existing; }
+    const start = parseIpv4(range.startIp)!;
+    const end = parseIpv4(range.endIp)!;
+    const reserved = new Set<string>([
+      ...Object.values(device.config.interfaces).map(iface => iface.ip).filter((ip): ip is string => ip !== undefined),
+      ...(device.config.natStatics ?? []).map(entry => entry.outsideIp),
+      ...[...this.#natAddr.values()].map(addr => addr.ip),
+    ]);
+    for (let address = start; address <= end; address += 1) {
+      const ip = formatIpv4(address);
+      if (reserved.has(ip)) continue;
+      const addr: NatAddr = { insideIp, ip, overload, lastSeen: this.#now() };
+      this.#natAddr.set(insideIp, addr);
+      this.#natAddrByIp.set(ip, addr);
+      return addr;
+    }
+    // overload은 주소를 나눠 쓸 수 있다 — 고갈이면 첫 주소를 쓴다
+    return overload ? { insideIp, ip: range.startIp, overload: true, lastSeen: this.#now() } : undefined;
   }
 
   /**
@@ -313,6 +419,43 @@ export class RouterModel implements DeviceModel {
         } } });
       return { ipv4: snapshot.ipv4!, icmp, frame: next, seq };
     }
+    // 규칙 선택 (T16.3): natSources가 없으면 나가는 인터페이스로 묵시적 PAT(기존 동작).
+    // 규칙이 있으면 ACL을 허락한 첫 규칙만 변환하고, 어느 규칙도 맞지 않으면 변환 없이 보낸다.
+    const rules = device.config.natSources ?? [];
+    let outsideIp: string;
+    let overload = true;
+    if (rules.length === 0) {
+      outsideIp = iface.ip;
+    } else {
+      const rule = rules.find(candidate => natRuleMatches(device.config, candidate, ipv4.sourceIp));
+      if (rule === undefined) return undefined;
+      overload = rule.overload;
+      const range = natPoolRangeOf(device.config, rule);
+      if (range !== undefined) {
+        const addr = this.#natAssign(device, range, rule.overload, ipv4.sourceIp);
+        if (addr === undefined) return undefined; // 풀 고갈 — 변환 없이 보낸다
+        outsideIp = addr.ip;
+      } else if (rule.interface !== undefined) {
+        const target = device.config.interfaces[rule.interface];
+        if (target?.ip === undefined || !target.adminUp) return undefined;
+        outsideIp = target.ip;
+      } else {
+        return undefined; // 대상이 없는 규칙 — 변환 없이 보낸다
+      }
+    }
+    if (!overload) {
+      // 동적 NAT 1:1 — 출발지 주소만 풀 주소로 바꾸고 포트는 그대로 둔다. 응답은 주소 배정이 되돌린다
+      const snapshot: FrameSnapshot = { ...frame.snapshot, ipv4: { ...ipv4, ttl: ipv4.ttl - 1, sourceIp: outsideIp } };
+      const next = ctx.updateFrame(frame, snapshot);
+      const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+        reason: { code: "NAT_TRANSLATED", params: {
+          device: deviceRef(device), direction: "inside-to-outside",
+          insideIp: ipv4.sourceIp, outsideIp, peerIp: ipv4.destinationIp,
+          ...(tcp !== undefined ? { protocol: "tcp" as const, port: tcp.sourcePort }
+            : udp !== undefined ? { protocol: "udp" as const, port: udp.sourcePort } : { protocol: "icmp" as const }),
+        } } });
+      return { ipv4: snapshot.ipv4!, icmp, frame: next, seq };
+    }
     let protocol: NatBinding["protocol"] = "icmp";
     let insidePort = icmp?.sequence ?? 0;
     let peerPort = 0;
@@ -322,16 +465,17 @@ export class RouterModel implements DeviceModel {
     let binding = this.#natInside.get(insideKey);
     if (binding === undefined) {
       const natPort = protocol === "icmp" ? insidePort : this.#natNextPort++;
-      binding = { protocol, insideIp: ipv4.sourceIp, insidePort, peerIp: ipv4.destinationIp, peerPort, natPort, lastSeen: 0 };
+      binding = { protocol, insideIp: ipv4.sourceIp, insidePort, peerIp: ipv4.destinationIp, peerPort,
+        outsideIp, natPort, lastSeen: 0 };
       this.#natInside.set(insideKey, binding);
-      this.#natOutside.set(`${protocol}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`, binding);
-      this.#natLoose.set(`${protocol}:${binding.peerIp}:${binding.peerPort}`, binding);
+      this.#natOutside.set(`${protocol}:${outsideIp}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`, binding);
+      this.#natLoose.set(`${protocol}:${outsideIp}:${binding.peerIp}:${binding.peerPort}`, binding);
     }
     binding.lastSeen = this.#now();
     const layers = transportLayersOf(frame.snapshot);
     const snapshot: FrameSnapshot = {
       ...frame.snapshot,
-      ipv4: { ...ipv4, ttl: ipv4.ttl - 1, sourceIp: iface.ip },
+      ipv4: { ...ipv4, ttl: ipv4.ttl - 1, sourceIp: outsideIp },
       ...(tcp === undefined ? {} : { tcp: { ...layers.tcp!, sourcePort: binding.natPort } }),
       ...(udp === undefined ? {} : { udp: { ...layers.udp!, sourcePort: binding.natPort } }),
     };
@@ -339,7 +483,7 @@ export class RouterModel implements DeviceModel {
     const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
       reason: { code: "NAT_TRANSLATED", params: {
         device: deviceRef(device), direction: "inside-to-outside",
-        insideIp: binding.insideIp, outsideIp: iface.ip, peerIp: binding.peerIp,
+        insideIp: binding.insideIp, outsideIp: binding.outsideIp, peerIp: binding.peerIp,
         ...(binding.protocol === "icmp" ? { protocol: "icmp" as const } : { protocol: binding.protocol, port: binding.natPort }),
       } } });
     return { ipv4: snapshot.ipv4!, icmp, frame: next, seq };

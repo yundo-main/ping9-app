@@ -91,6 +91,26 @@ export const ROUTER_SHOW_COMMANDS: readonly CommandDefinition[] = [
       ? { lines: routerRunningConfigLines(context.device).map(text => ({ kind: "text", text })) }
       : {},
   }),
+  // `show access-lists`: 표준 번호 ACL의 줄을 순서대로 보여준다 (T16.3)
+  defineCommand({
+    modes: ["privileged"], devices: ["router"], tokens: ["show", "access-lists"],
+    help: "Show the standard access lists",
+    run: (_args, context) => {
+      if (context.device.kind !== "router") return {};
+      const entries = context.device.config.accessLists ?? [];
+      const lines: { kind: "text"; text: string }[] = [];
+      for (const listId of [...new Set(entries.map(entry => entry.listId))].sort((a, b) => a - b)) {
+        lines.push({ kind: "text", text: `Standard IP access list ${listId}` });
+        entries.filter(entry => entry.listId === listId).forEach((entry, index) => {
+          const target = entry.network === "0.0.0.0" && entry.wildcard === "255.255.255.255" ? "any"
+            : entry.wildcard === "0.0.0.0" ? `host ${entry.network}`
+              : `${entry.network}, wildcard bits ${entry.wildcard}`;
+          lines.push({ kind: "text", text: `    ${(index + 1) * 10} ${entry.action} ${target}` });
+        });
+      }
+      return { lines };
+    },
+  }),
   defineCommand({
     modes: ["privileged"],
     devices: ["router"],

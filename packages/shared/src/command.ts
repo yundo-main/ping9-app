@@ -36,6 +36,26 @@ export type Command =
   | { readonly type: "interface/set-nat"; readonly deviceId: string; readonly port: string; readonly nat: "inside" | "outside" | null }
   // 정적 NAT 1:1 대응 (T16.2). `outsideIp`가 null이면 `insideIp`의 대응을 지운다
   | { readonly type: "router/set-static-nat"; readonly deviceId: string; readonly insideIp: string; readonly outsideIp: string | null }
+  // NAT 주소 풀 (T16.3). `startIp`가 null이면 이름의 풀을 지운다
+  | { readonly type: "router/set-nat-pool"; readonly deviceId: string; readonly name: string;
+      readonly startIp: string | null; readonly endIp: string | null; readonly netmask: string | null }
+  // 표준 번호 ACL 한 줄 추가 (T16.3). 같은 줄이 이미 있으면 아무 일도 안 한다
+  | { readonly type: "router/set-access-list"; readonly deviceId: string; readonly listId: number;
+      readonly action: "permit" | "deny"; readonly network: string; readonly wildcard: string }
+  // ACL 줄 지우기 (T16.3). `action`이 없으면 listId 전체를 지우고, 있으면 network·wildcard가 같은 줄 하나를 지운다
+  | { readonly type: "router/remove-access-list"; readonly deviceId: string; readonly listId: number;
+      readonly action?: "permit" | "deny"; readonly network?: string; readonly wildcard?: string }
+  // 동적 NAT 규칙 (T16.3). 매칭은 listId(ACL) 또는 network(+wildcard) 하나, 대상은 pool·poolStart·interface 하나.
+  // 같은 매칭·대상의 규칙이 있으면 overload만 바뀐다
+  | { readonly type: "router/set-nat-source"; readonly deviceId: string; readonly listId: number | null;
+      readonly network: string | null; readonly wildcard: string | null;
+      readonly pool: string | null; readonly poolStart: string | null; readonly poolEnd: string | null;
+      readonly interface: string | null; readonly overload: boolean }
+  // 동적 NAT 규칙 지우기 (T16.3). 매칭·대상이 같은 규칙을 지운다
+  | { readonly type: "router/remove-nat-source"; readonly deviceId: string; readonly listId: number | null;
+      readonly network: string | null; readonly wildcard: string | null;
+      readonly pool: string | null; readonly poolStart: string | null; readonly poolEnd: string | null;
+      readonly interface: string | null }
   // PC의 IP (FR-25). `ip`가 null이면 IP를 지운다. 이때 `mask`와 `gateway`도 null이어야 한다
   | { readonly type: "pc/set-ip"; readonly deviceId: string; readonly ip: string | null; readonly mask: string | null; readonly gateway: string | null }
   // PC의 OS (T0.7). IP 구성은 그대로 둔다. 서버는 `kind`가 다른 장비라 여기서는 고르지 않는다 (T0.25)
@@ -102,6 +122,11 @@ const COMMAND_TYPE_SET = {
   "interface/clear-ip": true,
   "interface/set-nat": true,
   "router/set-static-nat": true,
+  "router/set-nat-pool": true,
+  "router/set-access-list": true,
+  "router/remove-access-list": true,
+  "router/set-nat-source": true,
+  "router/remove-nat-source": true,
   "pc/set-ip": true,
   "pc/set-os": true,
   "server/set-ip": true,

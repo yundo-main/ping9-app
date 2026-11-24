@@ -56,6 +56,9 @@ export function normalizeRouterConfig(config: RouterConfig): RouterConfig {
     ...(config.natStatics === undefined || config.natStatics.length === 0
       ? {}
       : { natStatics: [...config.natStatics].sort((a, b) => (parseIpv4(a.insideIp) ?? 0) - (parseIpv4(b.insideIp) ?? 0)) }),
+    ...(config.natPools === undefined || config.natPools.length === 0 ? {} : { natPools: [...config.natPools] }),
+    ...(config.accessLists === undefined || config.accessLists.length === 0 ? {} : { accessLists: [...config.accessLists] }),
+    ...(config.natSources === undefined || config.natSources.length === 0 ? {} : { natSources: [...config.natSources] }),
     ...(config.rip === undefined ? {} : { rip: normalizeRipConfig(config.rip) }),
     ...(config.tunnels === undefined || Object.keys(config.tunnels).length === 0 ? {} : { tunnels: config.tunnels }),
     ...(config.ipsec === undefined || Object.keys(config.ipsec).length === 0 ? {} : { ipsec: config.ipsec }),

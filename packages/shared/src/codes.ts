@@ -107,6 +107,21 @@ export interface ErrorParamsByCode {
   NAT_STATIC_SAME_ADDRESS: { readonly ip: string };
   /** `no ip nat inside source static`으로 없는 대응을 지우려 함 */
   NAT_STATIC_NOT_FOUND: { readonly deviceId: string; readonly insideIp: string };
+  // 동적 NAT·overload (T16.3)
+  /** 풀의 시작 주소가 끝 주소보다 크거나 둘이 다른 네트워크 */
+  NAT_POOL_INVALID: { readonly name: string };
+  /** `ip nat inside source list`가 없는 풀 이름을 가리킴 */
+  NAT_POOL_NOT_FOUND: { readonly name: string };
+  /** `no ip nat pool`로 NAT 규칙이 쓰는 풀을 지우려 함 */
+  NAT_POOL_IN_USE: { readonly name: string };
+  /** 표준 ACL 번호가 1-99 밖 */
+  ACCESS_LIST_ID_INVALID: { readonly listId: number };
+  /** `no access-list`로 없는 목록이나 줄을 지우려 함 */
+  ACCESS_LIST_NOT_FOUND: { readonly listId: number };
+  /** `no ip nat inside source list`로 없는 규칙을 지우려 함 */
+  NAT_SOURCE_NOT_FOUND: { readonly listId: number };
+  /** NAT 규칙에 pool과 interface가 둘 다 있거나 둘 다 없음 */
+  NAT_SOURCE_INVALID: { readonly listId: number };
   // RIP (T11.2.1)
   /** `router rip` 전에 RIP 구성을 바꾸려 함 */
   RIP_NOT_ENABLED: { readonly deviceId: string };
@@ -230,6 +245,13 @@ const ERROR_CODE_SET = {
   ROUTE_NOT_FOUND: true,
   NAT_STATIC_SAME_ADDRESS: true,
   NAT_STATIC_NOT_FOUND: true,
+  NAT_POOL_INVALID: true,
+  NAT_POOL_NOT_FOUND: true,
+  NAT_POOL_IN_USE: true,
+  ACCESS_LIST_ID_INVALID: true,
+  ACCESS_LIST_NOT_FOUND: true,
+  NAT_SOURCE_NOT_FOUND: true,
+  NAT_SOURCE_INVALID: true,
   RIP_NOT_ENABLED: true,
   RIP_NETWORK_INVALID: true,
   RIP_NETWORK_NOT_FOUND: true,

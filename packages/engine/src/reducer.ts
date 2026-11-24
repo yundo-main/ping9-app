@@ -17,6 +17,7 @@ import { addFirewallRule, flushFirewallRules, removeFirewallRule, setFirewallPol
 import { setInterfaceAdmin } from "./reducer/interface-admin";
 import { setInterfaceNat } from "./reducer/interface-nat";
 import { setStaticNat } from "./reducer/router-nat-static";
+import { removeAccessList, removeNatSource, setAccessList, setNatPool, setNatSource } from "./reducer/router-nat";
 import { addLink, removeDevice, removeLink } from "./reducer/link";
 import { setPcIp } from "./reducer/pc-set-ip";
 import { setPcOs } from "./reducer/pc-set-os";
@@ -80,6 +81,11 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "interface/clear-ip": clearRouterInterfaceIp,
   "interface/set-nat": setInterfaceNat,
   "router/set-static-nat": setStaticNat,
+  "router/set-nat-pool": setNatPool,
+  "router/set-access-list": setAccessList,
+  "router/remove-access-list": removeAccessList,
+  "router/set-nat-source": setNatSource,
+  "router/remove-nat-source": removeNatSource,
   "route/add": addRoute,
   "route/remove": removeRoute,
   // 서버로 쓰는 PC의 필터 규칙 (T0.21)

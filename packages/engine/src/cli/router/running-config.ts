@@ -38,8 +38,18 @@ export function routerRunningConfigLines(device: RouterDevice): string[] {
     const distance = route.distance === undefined || route.distance === DEFAULT_DISTANCE.static ? "" : ` ${route.distance}`;
     lines.push(`ip route ${route.network} ${route.mask} ${route.nextHop}${distance}`);
   }
+  for (const pool of device.config.natPools ?? []) {
+    lines.push(`ip nat pool ${pool.name} ${pool.startIp} ${pool.endIp} netmask ${pool.netmask}`);
+  }
   for (const entry of device.config.natStatics ?? []) {
     lines.push(`ip nat inside source static ${entry.insideIp} ${entry.outsideIp}`);
+  }
+  for (const rule of device.config.natSources ?? []) {
+    const target = rule.pool !== undefined ? `pool ${rule.pool}` : `interface ${rule.interface}`;
+    lines.push(`ip nat inside source list ${rule.listId} ${target}${rule.overload ? " overload" : ""}`);
+  }
+  for (const entry of device.config.accessLists ?? []) {
+    lines.push(`access-list ${entry.listId} ${entry.action} ${entry.network} ${entry.wildcard}`);
   }
   for (const [name, profile] of Object.entries(device.config.ipsec ?? {})) {
     lines.push(`crypto ipsec profile ${name}`);

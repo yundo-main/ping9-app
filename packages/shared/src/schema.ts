@@ -85,6 +85,17 @@ const routerConfigSchema = z.object({
   interfaces: z.record(shortString, routerInterfaceConfigSchema),
   staticRoutes: z.array(staticRouteSchema),
   natStatics: z.array(z.object({ insideIp: shortString, outsideIp: shortString })).optional(),
+  natPools: z.array(z.object({
+    name: shortString, startIp: shortString, endIp: shortString, netmask: shortString,
+  })).optional(),
+  accessLists: z.array(z.object({
+    listId: integer, action: z.enum(["permit", "deny"]), network: shortString, wildcard: shortString,
+  })).optional(),
+  natSources: z.array(z.object({
+    listId: integer.optional(), network: shortString.optional(), wildcard: shortString.optional(),
+    pool: shortString.optional(), poolStart: shortString.optional(), poolEnd: shortString.optional(),
+    interface: shortString.optional(), overload: z.boolean(),
+  })).optional(),
   rip: ripConfigSchema.optional(),
   tunnels: z.record(shortString, routerInterfaceConfigSchema.extend({
     mode: z.literal("gre"), source: shortString.optional(), destination: shortString.optional(),

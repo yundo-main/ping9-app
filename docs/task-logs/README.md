@@ -132,3 +132,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.27 프로젝트 최적화: 미사용 카탈로그 의존성 16개 제거, 이미지·청크 정리 (계획에 없는 새 ID) | [T0.27-project-optimization.md](T0.27-project-optimization.md) | 공통, 화면 | jarrod | 병합됨 (팀원 검토 없이) |
 | T16.2 Router NAT: `ip nat inside/outside`, outside로 나가는 패킷의 동적 주소·포트 변환과 응답 역변환 | [T16.2-router-nat.md](T16.2-router-nat.md) | 엔진, 공통, 화면 | jarrod | 병합됨 (팀원 검토 없이). 정적 NAT·translations 표·vyos/linux 명령은 범위 밖 |
 | T0.28 자리표시 `apps/api` 제거, 개발 의존성 patch·minor 갱신 | [T0.28-api-stub-and-deps.md](T0.28-api-stub-and-deps.md) | 인프라 | jarrod | 병합됨 (팀원 검토 없이). T2.1.1은 계획 문서에만 남음 |
+| T16.3 동적 NAT와 NAT overload: `ip nat pool`·`access-list`·`inside source list ... [overload]`, proxy ARP, vyos/linux 대응 (계획에 없는 새 ID. T16.2 후속) | [T16.3-dynamic-nat-overload.md](T16.3-dynamic-nat-overload.md) | 엔진, 공통 | jarrod | 병합됨 (팀원 검토 없이) |
