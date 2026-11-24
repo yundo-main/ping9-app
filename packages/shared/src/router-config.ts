@@ -49,6 +49,7 @@ export function normalizeRouterConfig(config: RouterConfig): RouterConfig {
       return [port, {
         adminUp: iface?.adminUp ?? false,
         ...(iface?.ip !== undefined && iface.mask !== undefined ? { ip: iface.ip, mask: iface.mask } : {}),
+        ...(iface?.nat === undefined ? {} : { nat: iface.nat }),
       }];
     })),
     staticRoutes: config.staticRoutes.map(normalizeStaticRoute),

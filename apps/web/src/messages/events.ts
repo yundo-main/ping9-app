@@ -18,6 +18,12 @@ const ICMP_ERROR_LABEL = { "destination-unreachable": "닿을 수 없음", "time
 /** 목록 한 줄의 설명. 장비 이름은 줄의 장비 칸에 따로 나온다 */
 export const EVENT_TEXT: { readonly [C in ReasonCode]: (params: ReasonParamsByCode[C]) => string } = {
   GRE_ENCAPSULATED: ({ tunnel, peer }) => `${tunnel}에서 GRE로 감싸 ${peer}로 보냄`,
+  NAT_TRANSLATED: ({ direction, insideIp, outsideIp, peerIp, protocol, port }) => {
+    const proto = protocol === undefined ? "" : ` ${protocol.toUpperCase()}${port === undefined ? "" : `:${port}`}`;
+    return direction === "inside-to-outside"
+      ? `NAT: ${insideIp} → ${outsideIp}로 바꿔 ${peerIp}로 보냄${proto}`
+      : `NAT: ${outsideIp}에 온 응답을 ${insideIp}로 되돌림 (상대 ${peerIp})${proto}`;
+  },
   GRE_DECAPSULATED: ({ tunnel, peer }) => `${peer}에서 받은 GRE를 ${tunnel}에서 복원`,
   IPSEC_PROTECTED: ({ profile, peer, spi, sequence }) => `${profile}: ${peer}행 교육용 ESP (SPI ${spi}, 순서 ${sequence} · 실제 암호화 없음)`,
   IPSEC_UNPROTECTED: ({ profile, peer, spi, sequence }) => `${profile}: ${peer}의 교육용 ESP 복원 (SPI ${spi}, 순서 ${sequence})`,

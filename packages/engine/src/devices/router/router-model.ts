@@ -16,6 +16,19 @@ import { IpsecModule } from "./ipsec";
 
 export const ROUTER_TTL = 64;
 
+/** NAT 변환 한 건 (T16.2). inside 호스트의 논리 포트가 outside 인터페이스의 natPort로 바뀐다 */
+interface NatBinding {
+  readonly protocol: "tcp" | "udp" | "icmp";
+  readonly insideIp: string;
+  /** inside 호스트의 논리 포트. ICMP는 echo의 sequence다 */
+  readonly insidePort: number;
+  readonly peerIp: string;
+  /** 상대방(서버)의 논리 포트. ICMP는 0이다 */
+  readonly peerPort: number;
+  /** outside 인터페이스 IP에서 쓰는 논리 포트. ICMP는 sequence를 그대로 쓴다 */
+  readonly natPort: number;
+}
+
 function routerIn(document: TopologyDocument, id: string): RouterDevice | undefined {
   const device = findDevice(document, id);
   return device?.kind === "router" ? device : undefined;
@@ -29,6 +42,13 @@ export class RouterModel implements DeviceModel {
   readonly #rip: RipModule;
   readonly #ipsec: IpsecModule;
   readonly #now: () => number;
+  /** NAT 바인딩. 바깥 키는 돌아오는 패킷을 그대로 찾는다: `proto:peerIp:peerPort:natPort` */
+  readonly #natOutside = new Map<string, NatBinding>();
+  /** 안쪽 키는 같은 연결이 바인딩을 다시 쓰게 한다: `proto:insideIp:insidePort:peerIp:peerPort` */
+  readonly #natInside = new Map<string, NatBinding>();
+  /** ICMP 오류의 인용에는 출발지 포트가 없어 쓰는 느슨한 색인: `proto:peerIp:peerPort` */
+  readonly #natLoose = new Map<string, NatBinding>();
+  #natNextPort = 49152;
 
   constructor(deviceId: string, getDocument: () => TopologyDocument, now: () => number = () => 0) {
     this.deviceId = deviceId;
@@ -107,8 +127,14 @@ export class RouterModel implements DeviceModel {
     }
     const received = ctx.record({ frame, deviceId: device.id, inPort: port, layer: "L3", action: "receive", ...(parentSeq === undefined ? {} : { parentSeq }),
       reason: { code: "IPV4_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp } } });
+    // outside 인터페이스로 자기 주소에 온 패킷은 NAT 바인딩을 먼저 본다 (T16.2). 맞으면 안쪽 호스트 것으로 되돌린다
+    const dnat = this.#dnat(ctx, device, port, frame, ipv4, icmp, received);
+    const inIpv4 = dnat?.ipv4 ?? ipv4;
+    const inIcmp = dnat?.icmp ?? icmp;
+    const inFrame = dnat?.frame ?? frame;
+    const inReceived = dnat?.seq ?? received;
     const local = Object.entries(routerInterfaces(device.config)).some(([name, iface]) =>
-      (!isTunnelName(name) || greEnabled(device.config)) && iface.adminUp && iface.ip === ipv4.destinationIp);
+      (!isTunnelName(name) || greEnabled(device.config)) && iface.adminUp && iface.ip === inIpv4.destinationIp);
     if (local) {
       if (frame.snapshot.esp !== undefined || ipv4.protocol === 50) { this.#unprotect(ctx, port, frame, received); return; }
       if (frame.snapshot.gre !== undefined || ipv4.protocol === 47) { this.#decapsulate(ctx, port, frame, received); return; }
@@ -146,16 +172,108 @@ export class RouterModel implements DeviceModel {
         reason: { code: "IP_FORWARD_DISABLED", params: { device: ref } } });
       return;
     }
-    const decision = this.#decision(ipv4.destinationIp);
-    if (ipv4.ttl <= 1 || decision === null) {
-      const droppedFrame = ipv4.ttl <= 1 ? ctx.updateFrame(frame, { ...frame.snapshot, ipv4: { ...ipv4, ttl: 0 } }) : frame;
-      const dropped = ctx.record({ frame: droppedFrame, deviceId: device.id, inPort: port, layer: "L3", action: "drop", parentSeq: received,
-        reason: ipv4.ttl <= 1 ? { code: "TTL_EXPIRED", params: { device: ref } }
-          : { code: "NO_ROUTE", params: { device: ref, targetIp: ipv4.destinationIp } } });
-      this.#error(ctx, frame, ipv4.ttl <= 1 ? "time-exceeded" : "destination-unreachable", dropped);
+    const decision = this.#decision(inIpv4.destinationIp);
+    if (inIpv4.ttl <= 1 || decision === null) {
+      const droppedFrame = inIpv4.ttl <= 1 ? ctx.updateFrame(inFrame, { ...inFrame.snapshot, ipv4: { ...inIpv4, ttl: 0 } }) : inFrame;
+      const dropped = ctx.record({ frame: droppedFrame, deviceId: device.id, inPort: port, layer: "L3", action: "drop", parentSeq: inReceived,
+        reason: inIpv4.ttl <= 1 ? { code: "TTL_EXPIRED", params: { device: ref } }
+          : { code: "NO_ROUTE", params: { device: ref, targetIp: inIpv4.destinationIp } } });
+      this.#error(ctx, inFrame, inIpv4.ttl <= 1 ? "time-exceeded" : "destination-unreachable", dropped);
       return;
     }
-    this.#send(ctx, decision, { ...ipv4, ttl: ipv4.ttl - 1 }, icmp, "forward", received, frame, port);
+    // outside로 나가는 패킷은 출발지를 outside 인터페이스의 주소로 바꾼다 (T16.2 SNAT)
+    const snat = this.#snat(ctx, device, decision.port, inIpv4, inIcmp, inFrame, inReceived);
+    const outIpv4 = snat?.ipv4 ?? { ...inIpv4, ttl: inIpv4.ttl - 1 };
+    this.#send(ctx, decision, outIpv4, snat?.icmp ?? inIcmp, "forward", snat?.seq ?? inReceived, snat?.frame ?? inFrame, port);
+  }
+
+  /**
+   * DNAT (T16.2). outside 인터페이스로 들어와 목적지가 그 인터페이스 IP인 패킷이 바인딩과 맞으면
+   * 안쪽 호스트의 주소로 되돌린다. 바인딩이 없으면 undefined — 라우터 자신이 받는 패킷이다.
+   */
+  #dnat(ctx: SimContext, device: RouterDevice, port: string, frame: Frame, ipv4: Ipv4Header, icmp: IcmpMessage | undefined, received: number):
+    { readonly ipv4: Ipv4Header; readonly icmp: IcmpMessage | undefined; readonly frame: Frame; readonly seq: number } | undefined {
+    const iface = device.config.interfaces[port];
+    if (iface?.nat !== "outside" || ipv4.destinationIp !== iface.ip) return undefined;
+    const { tcp, udp } = frame.snapshot;
+    let binding: NatBinding | undefined;
+    let newIcmp = icmp;
+    if (tcp !== undefined) {
+      binding = this.#natOutside.get(`tcp:${ipv4.sourceIp}:${tcp.sourcePort}:${tcp.destinationPort}`);
+    } else if (udp !== undefined) {
+      binding = this.#natOutside.get(`udp:${ipv4.sourceIp}:${udp.sourcePort}:${udp.destinationPort}`);
+    } else if (icmp?.type === "echo-reply") {
+      binding = this.#natOutside.get(`icmp:${ipv4.sourceIp}:0:${icmp.sequence}`);
+    } else if (isIcmpError(icmp)) {
+      // 인용된 패킷은 출발지가 NAT 주소다. TCP·UDP는 안쪽 출발지 포트를 모르니 느슨한 색인을 쓴다
+      const o = icmp.original;
+      binding = o.sourceIp !== iface.ip ? undefined : o.protocol === undefined
+        ? this.#natOutside.get(`icmp:${o.destinationIp}:0:${o.sequence}`)
+        : this.#natLoose.get(`${o.protocol}:${o.destinationIp}:${o.destinationPort}`);
+      if (binding !== undefined) {
+        // 받는 호스트가 자기가 보낸 패킷으로 알아보게, 인용 안의 출발지도 안쪽 주소로 되돌린다
+        newIcmp = { ...icmp, original: { ...o, sourceIp: binding.insideIp } };
+      }
+    }
+    if (binding === undefined) return undefined;
+    const layers = transportLayersOf(frame.snapshot);
+    const snapshot: FrameSnapshot = {
+      ...frame.snapshot,
+      ipv4: { ...ipv4, destinationIp: binding.insideIp },
+      ...(newIcmp === undefined ? {} : { icmp: newIcmp }),
+      ...(tcp === undefined ? {} : { tcp: { ...layers.tcp!, destinationPort: binding.insidePort } }),
+      ...(udp === undefined ? {} : { udp: { ...layers.udp!, destinationPort: binding.insidePort } }),
+    };
+    const next = ctx.updateFrame(frame, snapshot);
+    const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+      reason: { code: "NAT_TRANSLATED", params: {
+        device: deviceRef(device), direction: "outside-to-inside",
+        insideIp: binding.insideIp, outsideIp: iface.ip, peerIp: binding.peerIp,
+        ...(binding.protocol === "icmp" ? { protocol: "icmp" as const } : { protocol: binding.protocol, port: binding.natPort }),
+      } } });
+    return { ipv4: { ...ipv4, destinationIp: binding.insideIp }, icmp: newIcmp, frame: next, seq };
+  }
+
+  /**
+   * SNAT (T16.2). `nat outside`인 포트로 나가는 패킷은 출발지를 그 인터페이스 IP로, 논리 포트를
+   * 새 natPort로 바꾸고 바인딩을 남긴다. 라우터 자기 주소에서 온 패킷은 바꾸지 않는다.
+   */
+  #snat(ctx: SimContext, device: RouterDevice, port: string, ipv4: Ipv4Header, icmp: IcmpMessage | undefined, frame: Frame, received: number):
+    { readonly ipv4: Ipv4Header; readonly icmp: IcmpMessage | undefined; readonly frame: Frame; readonly seq: number } | undefined {
+    const iface = device.config.interfaces[port];
+    if (iface?.nat !== "outside" || iface.ip === undefined || !iface.adminUp) return undefined;
+    const ownIps = new Set(Object.values(routerInterfaces(device.config)).map(candidate => candidate.ip));
+    if (ownIps.has(ipv4.sourceIp)) return undefined;
+    const { tcp, udp } = frame.snapshot;
+    let protocol: NatBinding["protocol"] = "icmp";
+    let insidePort = icmp?.sequence ?? 0;
+    let peerPort = 0;
+    if (tcp !== undefined) { protocol = "tcp"; insidePort = tcp.sourcePort; peerPort = tcp.destinationPort; }
+    else if (udp !== undefined) { protocol = "udp"; insidePort = udp.sourcePort; peerPort = udp.destinationPort; }
+    const insideKey = `${protocol}:${ipv4.sourceIp}:${insidePort}:${ipv4.destinationIp}:${peerPort}`;
+    let binding = this.#natInside.get(insideKey);
+    if (binding === undefined) {
+      const natPort = protocol === "icmp" ? insidePort : this.#natNextPort++;
+      binding = { protocol, insideIp: ipv4.sourceIp, insidePort, peerIp: ipv4.destinationIp, peerPort, natPort };
+      this.#natInside.set(insideKey, binding);
+      this.#natOutside.set(`${protocol}:${binding.peerIp}:${binding.peerPort}:${binding.natPort}`, binding);
+      this.#natLoose.set(`${protocol}:${binding.peerIp}:${binding.peerPort}`, binding);
+    }
+    const layers = transportLayersOf(frame.snapshot);
+    const snapshot: FrameSnapshot = {
+      ...frame.snapshot,
+      ipv4: { ...ipv4, ttl: ipv4.ttl - 1, sourceIp: iface.ip },
+      ...(tcp === undefined ? {} : { tcp: { ...layers.tcp!, sourcePort: binding.natPort } }),
+      ...(udp === undefined ? {} : { udp: { ...layers.udp!, sourcePort: binding.natPort } }),
+    };
+    const next = ctx.updateFrame(frame, snapshot);
+    const seq = ctx.record({ frame: next, deviceId: device.id, inPort: port, layer: "L3", action: "forward", parentSeq: received,
+      reason: { code: "NAT_TRANSLATED", params: {
+        device: deviceRef(device), direction: "inside-to-outside",
+        insideIp: binding.insideIp, outsideIp: iface.ip, peerIp: binding.peerIp,
+        ...(binding.protocol === "icmp" ? { protocol: "icmp" as const } : { protocol: binding.protocol, port: binding.natPort }),
+      } } });
+    return { ipv4: snapshot.ipv4!, icmp, frame: next, seq };
   }
 
   #send(ctx: SimContext, decision: RouteDecision, ipv4: Ipv4Header, icmp: IcmpMessage | undefined,

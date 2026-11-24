@@ -130,3 +130,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.25 서버를 PC에서 완전히 분리: `ServerConfig`, `server/*` 명령, 독립 콘솔·모델·리듀서 (계획에 없는 새 ID. T0.23 후속) | [T0.25-server-pc-separation.md](T0.25-server-pc-separation.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이). `pc/*` 서비스 명령은 PC에서 거절로 남음 — `server/*` 사용 |
 | T0.26 PC에서 서버 기능 제거: `PcConfig`의 서비스·필터 칸과 `pc/*` 서비스 명령 삭제, PC 모델의 서버 훅 제거 (계획에 없는 새 ID. T0.25 후속) | [T0.26-remove-server-from-pc.md](T0.26-remove-server-from-pc.md) | 공통, 엔진, 화면 | jarrod | 병합됨 (팀원 검토 없이) |
 | T0.27 프로젝트 최적화: 미사용 카탈로그 의존성 16개 제거, 이미지·청크 정리 (계획에 없는 새 ID) | [T0.27-project-optimization.md](T0.27-project-optimization.md) | 공통, 화면 | jarrod | 병합됨 (팀원 검토 없이) |
+| T16.2 Router NAT: `ip nat inside/outside`, outside로 나가는 패킷의 동적 주소·포트 변환과 응답 역변환 | [T16.2-router-nat.md](T16.2-router-nat.md) | 엔진, 공통, 화면 | jarrod | 병합됨 (팀원 검토 없이). 정적 NAT·translations 표·vyos/linux 명령은 범위 밖 |

@@ -128,6 +128,8 @@ export interface RouterInterfaceConfig {
   /** `ip`와 `mask`는 함께 있거나 함께 없다 */
   readonly ip?: string;
   readonly mask?: string;
+  /** NAT 역할 (T16.2). `outside`로 나가는 패킷은 출발지를 이 인터페이스의 IP로 바꾼다 */
+  readonly nat?: "inside" | "outside";
 }
 
 export interface StaticRoute {

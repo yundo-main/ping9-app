@@ -10,6 +10,7 @@ export function routerRunningConfigLines(device: RouterDevice): string[] {
     if (iface === undefined) continue;
     const settings: string[] = [];
     if (iface.ip !== undefined && iface.mask !== undefined) settings.push(` ip address ${iface.ip} ${iface.mask}`);
+    if (iface.nat !== undefined) settings.push(` ip nat ${iface.nat}`);
     if (iface.adminUp) settings.push(" no shutdown");
     if (settings.length > 0) lines.push(`interface ${port}`, ...settings, "!");
   }

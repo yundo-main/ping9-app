@@ -374,6 +374,13 @@ export interface EventParamsByCode {
   IPSEC_PROTECTED: { readonly device: DeviceRef; readonly profile: string; readonly peer: string; readonly spi: number; readonly sequence: number };
   IPSEC_UNPROTECTED: { readonly device: DeviceRef; readonly profile: string; readonly peer: string; readonly spi: number; readonly sequence: number };
   GRE_ENCAPSULATED: { readonly device: DeviceRef; readonly tunnel: string; readonly peer: string };
+  /** NAT 주소 변환 (T16.2). inside 호스트의 주소↔outside 인터페이스 주소 */
+  NAT_TRANSLATED: {
+    readonly device: DeviceRef;
+    readonly direction: "inside-to-outside" | "outside-to-inside";
+    readonly insideIp: string; readonly outsideIp: string; readonly peerIp: string;
+    readonly protocol?: "tcp" | "udp" | "icmp"; readonly port?: number;
+  };
   GRE_DECAPSULATED: { readonly device: DeviceRef; readonly tunnel: string; readonly peer: string };
   ICMP_ERROR_SENT: { readonly device: DeviceRef; readonly sourceIp: string; readonly targetIp: string; readonly error: "destination-unreachable" | "time-exceeded" };
   ICMP_ERROR_RECEIVED: { readonly device: DeviceRef; readonly sourceIp: string; readonly targetIp: string; readonly error: "destination-unreachable" | "time-exceeded" };
@@ -514,6 +521,7 @@ const EVENT_CODE_SET = {
   IPSEC_PROTECTED: true,
   IPSEC_UNPROTECTED: true,
   GRE_ENCAPSULATED: true,
+  NAT_TRANSLATED: true,
   GRE_DECAPSULATED: true,
   ICMP_ERROR_SENT: true,
   ICMP_ERROR_RECEIVED: true,

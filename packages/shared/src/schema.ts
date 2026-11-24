@@ -62,6 +62,7 @@ const routerInterfaceConfigSchema = z.object({
   adminUp: z.boolean(),
   ip: shortString.optional(),
   mask: shortString.optional(),
+  nat: z.enum(["inside", "outside"]).optional(),
 });
 
 const staticRouteSchema = z.object({
