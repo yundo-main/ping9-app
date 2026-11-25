@@ -126,7 +126,9 @@ describe("끌던 것을 장비 목록에 놓아 취소 (T0.12)", () => {
     const html = palette();
 
     expect(html).toContain('<aside class="palette">');
-    expect(html).toContain("장비를 끌어서 배치");
+    // 평소의 안내 문구는 없애고 "장비" 제목의 툴팁으로 옮겼다 (T0.50)
+    expect(html).toContain('<h4 data-tip="장비를 캔버스로 끌어서 배치하세요">장비</h4>');
+    expect(html).not.toContain("장비를 끌어서 배치<");
   });
 
   test("끄는 중에는 취소하는 방법을 알린다", () => {

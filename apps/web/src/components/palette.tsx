@@ -10,9 +10,9 @@ import type { ReactNode, RefObject } from "react";
 import type { DragCancelState } from "../canvas-interaction";
 import { DeviceIcon } from "./device-icons";
 
-/** 목록 아래의 안내 한 줄. 끄는 중에는 취소하는 방법을 알린다 */
+/** 목록 아래의 안내 한 줄. 평소(idle)에는 비우고, 끌기 취소 중에만 취소하는 방법을 알린다 (T0.50) */
 const NOTE: Readonly<Record<DragCancelState, string>> = {
-  idle: "장비를 끌어서 배치",
+  idle: "",
   armed: "여기로 가져오면 취소",
   over: "놓으면 취소돼요",
 };
@@ -60,7 +60,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
 
   return (
     <aside ref={zoneRef} className={dragCancel === "idle" ? "palette" : `palette cancel-${dragCancel}`}>
-      <h4>장비</h4>
+      <h4 data-tip="장비를 캔버스로 끌어서 배치하세요">장비</h4>
       {tool("pc", "PC")}
       {tool("server", "Server")}
       {/* 스위치는 한 버튼으로 묶는다. 누르면 옆에 뜨는 플라이아웃에서 고른다 — 목록 크기는 안 변한다 (T0.39) */}

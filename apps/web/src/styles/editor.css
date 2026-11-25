@@ -80,8 +80,9 @@ button { font: inherit; cursor: pointer; }
 .tool { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--ice-50); font-size: 11px; font-weight: 600; cursor: grab; }
 /* 올리면 오른쪽에 뜨는 툴팁 (T0.48). 네이티브 title은 늦게 떠서 data-tip을 그린다 */
 .tool { position: relative; }
-.tool[data-tip]::after { content: attr(data-tip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 50; width: max-content; max-width: 210px; padding: 6px 10px; border-radius: 9px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left; box-shadow: 0 4px 14px #0E3A7A33; opacity: 0; pointer-events: none; transition: opacity .12s; }
-.tool[data-tip]:hover:not(:disabled)::after, .tool[data-tip]:focus-visible::after { opacity: 1; }
+.palette h4 { position: relative; }
+.tool[data-tip]::after, .palette h4[data-tip]::after { content: attr(data-tip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 50; width: max-content; max-width: 210px; padding: 6px 10px; border-radius: 9px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left; box-shadow: 0 4px 14px #0E3A7A33; opacity: 0; pointer-events: none; transition: opacity .12s; }
+.tool[data-tip]:hover:not(:disabled)::after, .tool[data-tip]:focus-visible::after, .palette h4[data-tip]:hover::after { opacity: 1; }
 /* 목록의 도구 네모는 작게 (T0.23) */
 .tool svg { width: 20px; height: 20px; }
 .tool:is(button) { cursor: pointer; color: inherit; }
@@ -97,7 +98,7 @@ button { font: inherit; cursor: pointer; }
 .tool.group-tool { color: inherit; }
 /* 스위치 묶음을 펼치면 목록이 커지지 않게 옆에 플라이아웃으로 띄운다 (T0.39) */
 .switch-flyout { position: absolute; left: calc(100% + 8px); top: 0; z-index: 40; width: 112px; display: flex; flex-direction: column; gap: 10px; padding: 12px 8px; background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); }
-.palette-note { font-size: 11px; line-height: 1.4; text-align: center; color: var(--navy-60); }
+.palette-note { min-height: 15px; font-size: 11px; line-height: 1.4; text-align: center; color: var(--navy-60); }
 /* 목록에서 끌어 온 새 장비를 장비 목록에 다시 놓으면 취소된다 (T0.12). 끄는 동안 안내를 바꾸고, 목록 위에 오면 표시한다 */
 .palette.cancel-armed .palette-note { color: var(--sky-700); font-weight: 600; }
 .palette.cancel-over { background: var(--danger-bg); outline: 2px dashed var(--danger); outline-offset: -6px; }
