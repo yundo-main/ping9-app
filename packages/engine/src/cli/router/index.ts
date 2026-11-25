@@ -11,6 +11,7 @@ import { ROUTER_RIP_SHOW_COMMANDS } from "./rip-show";
 import { ROUTER_TUNNEL_COMMANDS } from "./tunnel-commands";
 import { ROUTER_IPSEC_COMMANDS } from "./ipsec-commands";
 import { ROUTER_VPN_MODE_COMMANDS } from "./vpn-mode-commands";
+import { ROUTER_SSH_COMMANDS } from "./ssh-commands";
 
 export const ROUTER_COMMANDS: readonly CommandDefinition[] = [
   ...BASE_COMMANDS,
@@ -25,4 +26,5 @@ export const ROUTER_COMMANDS: readonly CommandDefinition[] = [
   ...ROUTER_TUNNEL_COMMANDS,
   ...ROUTER_IPSEC_COMMANDS,
   ...ROUTER_VPN_MODE_COMMANDS,
+  ...ROUTER_SSH_COMMANDS,
 ];

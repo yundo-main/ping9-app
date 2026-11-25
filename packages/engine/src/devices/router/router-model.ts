@@ -1,5 +1,5 @@
-import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, formatIpv4, isIcmpError, isSameNetwork, isTunnelName, parseIpv4, routerInterfaces, greEnabled } from "@ping9/shared";
-import type { FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatSourceRule, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TopologyDocument } from "@ping9/shared";
+import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, SERVICE_PORTS, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, formatIpv4, isIcmpError, isSameNetwork, isTunnelName, parseIpv4, routerInterfaces, routerSshOpen, greEnabled } from "@ping9/shared";
+import type { ApplicationData, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatSourceRule, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TcpFlags, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -13,6 +13,8 @@ import { RipModule } from "./rip";
 import { connectedRoutes, lookupRoute, routingTable, tunnelStates } from "./routing";
 import type { RouteDecision, RoutingEntry } from "./routing";
 import { IpsecModule } from "./ipsec";
+
+const SSH_PORT = SERVICE_PORTS.ssh.port;
 
 /** linux·vyos 스타일 라우터가 직접 만드는 패킷의 TTL */
 export const ROUTER_TTL = 64;
@@ -246,6 +248,12 @@ export class RouterModel implements DeviceModel {
           reason: { code: "ICMP_ECHO_REPLY_RECEIVED", params: { device: ref, sourceIp: ipv4.sourceIp, targetIp: ipv4.destinationIp } } });
         this.#replies.add(icmp.sequence);
       } else if (icmp === undefined) {
+        const tcp = frame.snapshot.tcp;
+        // SSH 수신이 켜져 있으면 TCP/22를 종단해 배너를 답한다 (T0.56). 그 밖의 TCP·UDP는 ICMP 도달 불가로 답한다
+        if (tcp !== undefined && tcp.destinationPort === SSH_PORT && routerSshOpen(device.config)) {
+          this.#sshReceive(ctx, port, frame, received, ipv4, tcp);
+          return;
+        }
         // Router는 서비스를 돌리지 않는다 (T0.20). 자기 주소로 온 TCP·UDP는 이유를 남기고 ICMP 도달 불가로 답한다
         const transport = frame.snapshot.tcp ?? frame.snapshot.udp;
         if (transport === undefined) return;
@@ -657,6 +665,70 @@ export class RouterModel implements DeviceModel {
     this.#send(ctx, decision, {
       sourceIp: this.#ipsec.sourceFor(ipv4.sourceIp) ?? routerInterfaces(this.#device().config)[decision.port]!.ip!, destinationIp: ipv4.sourceIp, ttl: this.#ttl(),
     }, message, "reply", parentSeq);
+  }
+
+  /**
+   * 자기 주소로 온 TCP/22 — SSH 수신이 켜져 있을 때 (T0.56).
+   * SYN에 SYN-ACK, 응용 데이터에 배너 응답을 돌려준다. 세션 상태는 두지 않는다 (TransportHost의 서버 쪽과 같은 단순화)
+   */
+  #sshReceive(ctx: SimContext, port: string, frame: Frame, parentSeq: number, ipv4: Ipv4Header, tcp: { sourcePort: number; destinationPort: number; flags: TcpFlags }): void {
+    const device = this.#device();
+    const ref = deviceRef(device);
+    const peer = ipv4.sourceIp;
+    // 서버가 받을 것은 SYN, ACK, 요청(PSH-ACK)뿐이다. 그 밖의 것은 이미 끝난 요청의 것이다
+    if (tcp.flags === "SYN-ACK" || tcp.flags === "RST") return;
+    const base = { frame, deviceId: device.id, inPort: port };
+    const application = frame.snapshot.application;
+    let receivedSeq: number;
+    if (application === undefined) {
+      receivedSeq = ctx.record({ ...base, layer: "TCP", action: "receive", parentSeq,
+        reason: { code: "TCP_SEGMENT_RECEIVED", params: {
+          device: ref, sourceIp: peer, targetIp: ipv4.destinationIp, port: tcp.destinationPort, flags: tcp.flags,
+        } } });
+      if (tcp.flags === "ACK") return;
+    } else {
+      receivedSeq = ctx.record({ ...base, layer: "APP", action: "receive", parentSeq,
+        reason: { code: "SERVICE_REQUEST_RECEIVED", params: {
+          device: ref, service: application.service, sourceIp: peer, targetIp: ipv4.destinationIp, port: tcp.destinationPort,
+          message: application.message,
+        } } });
+    }
+    if (application === undefined) {
+      this.#sshSend(ctx, ipv4.destinationIp, peer, tcp.sourcePort, "SYN-ACK", undefined, receivedSeq);
+      return;
+    }
+    this.#sshSend(ctx, ipv4.destinationIp, peer, tcp.sourcePort, "PSH-ACK",
+      { service: application.service, message: "SSH-2.0-OpenSSH_PING9" }, receivedSeq);
+  }
+
+  /** SSH 응답 세그먼트를 경로 조회·ARP로 내보낸다. `sourceIp`는 요청이 온 라우터 주소다 */
+  #sshSend(
+    ctx: SimContext, sourceIp: string, targetIp: string, destinationPort: number,
+    flags: TcpFlags, application: ApplicationData | undefined, parentSeq?: number,
+  ): void {
+    const device = this.#device();
+    const decision = this.#decision(targetIp);
+    if (decision === null) return;
+    const ref = deviceRef(device);
+    const pending: PendingSend = {
+      build: (destinationMac): FrameSnapshot => ({
+        ethernet: { sourceMac: portMac(device, decision.port), destinationMac },
+        ipv4: { sourceIp, destinationIp: targetIp, ttl: this.#ttl() },
+        tcp: { sourcePort: SSH_PORT, destinationPort, flags },
+        ...(application === undefined ? {} : { application }),
+      }),
+      onSend: (context, out, cause) => {
+        const params = { device: ref, sourceIp, targetIp, port: SSH_PORT };
+        context.record({ frame: out, deviceId: device.id, outPort: decision.port,
+          layer: application === undefined ? "TCP" : "APP", action: "reply",
+          ...(cause === undefined ? {} : { parentSeq: cause }),
+          reason: application === undefined
+            ? { code: "TCP_SEGMENT_SENT", params: { ...params, flags } }
+            : { code: "SERVICE_RESPONSE_SENT", params: { ...params, service: application.service, message: application.message } },
+        });
+      },
+    };
+    this.#arps.get(decision.port)!.send(ctx, decision.port, decision.nextHop, pending, parentSeq);
   }
 
   onTimer(ctx: SimContext, timer: TimerRef): void {

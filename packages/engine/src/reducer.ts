@@ -21,7 +21,7 @@ import { removeAccessList, removeNatSource, setAccessList, setNatPool, setNatSou
 import { addLink, removeDevice, removeLink } from "./reducer/link";
 import { setPcIp } from "./reducer/pc-set-ip";
 import { setPcOs } from "./reducer/pc-set-os";
-import { addServerDnsRecord, removeServerDnsRecord, setServerService } from "./reducer/server-services";
+import { addServerDnsRecord, removeServerDnsRecord, setServerService, setServerSshAccounts } from "./reducer/server-services";
 import { setServerIp } from "./reducer/server-set-ip";
 import { setServerOs } from "./reducer/server-set-os";
 import { createSvi, removeSvi, setIpRouting, setRouted } from "./reducer/l3switch";
@@ -32,7 +32,7 @@ import { addRoute, removeRoute } from "./reducer/router-route";
 import { removeTunnel, setTunnel } from "./reducer/router-tunnel";
 import { removeIpsec, setIpsec } from "./reducer/router-ipsec";
 import { setIpForward } from "./reducer/router-ip-forward";
-import { commitVyos, setCliStyle } from "./reducer/router-vyos";
+import { commitVyos, setCliStyle, setRouterSsh } from "./reducer/router-vyos";
 import { setVpnMode } from "./reducer/router-vpn-mode";
 import {
   setSwitchportAccessVlan,
@@ -57,6 +57,7 @@ export type CommandHandler<T extends CommandType> = (
 // 처리기의 본문은 reducer/ 폴더의 각자 파일에 두고, 여기에는 자기 Command의 줄만 더한다
 const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "router/set-cli-style": setCliStyle,
+  "router/set-ssh": setRouterSsh,
   "router/set-ip-forward": setIpForward,
   "router/commit-vyos": commitVyos,
   "router/set-vpn-mode": setVpnMode,
@@ -76,6 +77,7 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "server/set-ip": setServerIp,
   "server/set-os": setServerOs,
   "server/set-service": setServerService,
+  "server/set-ssh-accounts": setServerSshAccounts,
   "server/add-dns-record": addServerDnsRecord,
   "server/remove-dns-record": removeServerDnsRecord,
   "interface/set-admin": setInterfaceAdmin,

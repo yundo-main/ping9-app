@@ -4,7 +4,7 @@
 import { errorInfo } from "./codes";
 import type { ErrorInfo } from "./codes";
 import { DEFAULT_OS, SERVICE_KINDS } from "./document";
-import type { DnsRecord, PcConfig, PcOsChoice, ServerConfig, ServiceKind } from "./document";
+import type { DnsRecord, PcConfig, PcOsChoice, ServerConfig, ServiceKind, SshAccount } from "./document";
 import { LIMITS } from "./limits";
 import { checkHostIpv4 } from "./values";
 
@@ -29,6 +29,19 @@ export function servicesOf(config: ServerConfig): readonly ServiceKind[] {
 /** DNS 서비스가 답하는 이름과 주소. 없으면 빈 목록 */
 export function dnsRecordsOf(config: ServerConfig): readonly DnsRecord[] {
   return config.dnsRecords ?? [];
+}
+
+/** 칸이 없는 서버의 처음 SSH 계정 (T0.56) */
+export const DEFAULT_SSH_ACCOUNTS: readonly SshAccount[] = [{ user: "admin", password: "ping9" }];
+
+/** SSH 로그인 계정 목록. 칸이 없으면 처음 계정 */
+export function sshAccountsOf(config: ServerConfig): readonly SshAccount[] {
+  return config.sshAccounts ?? DEFAULT_SSH_ACCOUNTS;
+}
+
+/** SSH 계정과 비밀번호가 맞는지 */
+export function sshAccepts(accounts: readonly SshAccount[], user: string, password: string): boolean {
+  return accounts.some((account) => account.user === user && account.password === password);
 }
 
 const LABEL = "[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?";

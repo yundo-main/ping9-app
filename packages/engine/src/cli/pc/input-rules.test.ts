@@ -154,6 +154,8 @@ describe("help", () => {
       "rmdir /s <path>",
       "rmdir <path>",
       "route print",
+      "ssh -l <user> <host>",
+      "ssh <host>",
       "tracert -d -h <hops> <ip>",
       "tracert -d <ip>",
       "tracert -h <hops> -d <ip>",

@@ -110,7 +110,7 @@ export function walkWords(
       if (token === undefined) continue;
       if (typeof token === "string") {
         if (sameKeyword(token, word.text, definition)) exact.add(keyOf(token, definition));
-        else if (startsKeyword(token, word.text, definition)) prefixed.add(keyOf(token, definition));
+        else if (definition.noAbbrev !== true && startsKeyword(token, word.text, definition)) prefixed.add(keyOf(token, definition));
       } else if (readToken(token, word.text, kind).ok) paramAccepts = true;
     }
 

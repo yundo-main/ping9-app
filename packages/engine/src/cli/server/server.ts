@@ -11,6 +11,7 @@ import type { ServerFiles } from "./file-tree";
 import { LINUX_SERVER_COMMANDS } from "./linux-commands";
 import { LINUX_NETWORK_COMMANDS } from "./ping";
 import { LINUX_SERVICE_COMMANDS, SERVER_ONLY_COMMANDS } from "./service-commands";
+import { SSH_COMMANDS } from "../ssh";
 import { LINUX_TRACE_COMMANDS } from "./traceroute";
 
 /** 명령 정의의 쓰는 형태. 매개변수 자리는 `<ip>`처럼 보인다 */
@@ -46,6 +47,7 @@ const SERVER_COMMANDS: readonly CommandDefinition[] = [
   ...LINUX_NETWORK_COMMANDS,
   ...LINUX_TRACE_COMMANDS,
   ...LINUX_SERVICE_COMMANDS,
+  ...SSH_COMMANDS,
   ...SERVER_ONLY_COMMANDS,
   helpCommand(() => SERVER_COMMANDS),
 ].map((definition) => ({ ...definition, caseSensitive: true }));

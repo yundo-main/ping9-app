@@ -2,13 +2,13 @@
 // 스위치는 누르는 즉시 server/set-service를, DNS 이름은 "추가"·"삭제"로 server/add-dns-record·server/remove-dns-record를 dispatch한다 (AD-3).
 // 모양은 포트 스위치(T0.14)와 IP 설정(T1.5.2)의 것을 그대로 쓴다. 문구는 카탈로그에서 만든다 (AD-14).
 
-import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf } from "@ping9/shared";
+import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf, sshAccountsOf } from "@ping9/shared";
 import type { Command, DispatchResult, ErrorInfo, ServerDevice, ServiceKind } from "@ping9/shared";
 import { useId, useState } from "react";
 
 import { formatError } from "../messages/errors";
 
-export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HTTP", https: "HTTPS", dns: "DNS", ntp: "NTP", ftp: "FTP" };
+export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HTTP", https: "HTTPS", dns: "DNS", ntp: "NTP", ftp: "FTP", ssh: "SSH" };
 
 /** 스위치를 눌렀을 때 낼 Command */
 export function serviceCommand(deviceId: string, service: ServiceKind, enabled: boolean): Command {
@@ -51,8 +51,11 @@ export function ServerServices({ device, onDispatch }: {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [error, setError] = useState<ErrorInfo | null>(null);
+  const [sshUser, setSshUser] = useState("");
+  const [sshPassword, setSshPassword] = useState("");
   const enabled = servicesOf(device.config);
   const records = dnsRecordsOf(device.config);
+  const accounts = sshAccountsOf(device.config);
 
   const add = () => {
     const result = onDispatch({ type: "server/add-dns-record", deviceId: device.id, name: name.trim(), address: address.trim() });
@@ -63,6 +66,22 @@ export function ServerServices({ device, onDispatch }: {
     setError(null);
     setName("");
     setAddress("");
+  };
+
+  const setAccounts = (accounts: { user: string; password: string }[]) =>
+    onDispatch({ type: "server/set-ssh-accounts", deviceId: device.id, accounts });
+
+  const addAccount = () => {
+    const user = sshUser.trim();
+    if (user === "") return;
+    const result = setAccounts([...accounts.filter((account) => account.user !== user), { user, password: sshPassword }]);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setError(null);
+    setSshUser("");
+    setSshPassword("");
   };
 
   return (
@@ -99,6 +118,34 @@ export function ServerServices({ device, onDispatch }: {
             onChange={(event) => { setAddress(event.target.value); setError(null); }} />
         </div>
         {error !== null && <div className="form-err" role="alert">{formatError(error)}</div>}
+        <button type="submit" className="apply">추가</button>
+      </form>
+
+      <h4>SSH 계정</h4>
+      <div className="sub">ssh &lt;사용자&gt;@&lt;이 서버의 IP&gt;로 접속합니다</div>
+      {accounts.map((account) => (
+        <div key={account.user} className="if-row">
+          {account.user}
+          <span className="ip">{"•".repeat(Math.min(8, Math.max(4, account.password.length)))}</span>
+          <button type="button" className="dns-remove" aria-label={`${account.user} 계정 삭제`}
+            onClick={() => setAccounts(accounts.filter((candidate) => candidate.user !== account.user))}>
+            ×
+          </button>
+        </div>
+      ))}
+      <form className="pc-form dns-form" onSubmit={(event) => { event.preventDefault(); addAccount(); }}>
+        <div className="field">
+          <label htmlFor={`${id}-ssh-user`}>사용자</label>
+          <input id={`${id}-ssh-user`} type="text" autoComplete="off" spellCheck={false} maxLength={32}
+            placeholder="admin" value={sshUser}
+            onChange={(event) => { setSshUser(event.target.value); setError(null); }} />
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-ssh-pass`}>비밀번호</label>
+          <input id={`${id}-ssh-pass`} type="password" autoComplete="off" maxLength={64}
+            placeholder="ping9" value={sshPassword}
+            onChange={(event) => { setSshPassword(event.target.value); setError(null); }} />
+        </div>
         <button type="submit" className="apply">추가</button>
       </form>
     </>

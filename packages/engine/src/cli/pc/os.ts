@@ -13,6 +13,7 @@ import { LINUX_PC_COMMANDS } from "./linux-commands";
 import { WINDOWS_PC_COMMANDS } from "./pc-commands";
 import { LINUX_NETWORK_COMMANDS, WINDOWS_NETWORK_COMMANDS } from "./ping";
 import { LINUX_SERVICE_COMMANDS, WINDOWS_SERVICE_COMMANDS } from "./service-commands";
+import { SSH_COMMANDS } from "../ssh";
 import { LINUX_TRACE_COMMANDS, WINDOWS_TRACE_COMMANDS } from "./traceroute";
 
 /** 명령 정의의 쓰는 형태. 매개변수 자리는 `<ip>`처럼 보인다 */
@@ -46,8 +47,9 @@ const WINDOWS_COMMANDS: readonly CommandDefinition[] = [
   ...WINDOWS_FILE_COMMANDS,
   ...WINDOWS_NETWORK_COMMANDS,
   ...WINDOWS_TRACE_COMMANDS,
-  // 서비스를 쓰는 명령어 (T0.20)
+  // 서비스를 쓰는 명령어 (T0.20)과 ssh 클라이언트 (T0.56)
   ...WINDOWS_SERVICE_COMMANDS,
+  ...SSH_COMMANDS,
   helpCommand(() => WINDOWS_COMMANDS),
 ];
 // Linux는 실제처럼 대소문자를 구분한다 (T0.9). Windows는 구분하지 않는다
@@ -57,6 +59,7 @@ const LINUX_COMMANDS: readonly CommandDefinition[] = [
   ...LINUX_NETWORK_COMMANDS,
   ...LINUX_TRACE_COMMANDS,
   ...LINUX_SERVICE_COMMANDS,
+  ...SSH_COMMANDS,
   helpCommand(() => LINUX_COMMANDS),
 ].map((definition) => ({ ...definition, caseSensitive: true }));
 /** 이 PC의 콘솔이 쓰는 명령 정의 목록 */

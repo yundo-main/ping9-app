@@ -19,9 +19,11 @@ import { ROUTER_COMMANDS } from "./cli/router";
 import { L3SWITCH_COMMANDS } from "./cli/l3switch";
 import { LB_COMMANDS } from "./cli/lb";
 import { LINUX_ROUTER_COMMANDS } from "./cli/router/linux-commands";
+import { LINUX_ROUTER_SSH_COMMANDS } from "./cli/router/ssh-linux-commands";
 import { vyosExec, vyosPrompt, vyosHelp, vyosComplete } from "./cli/vyos/console";
 import { SWITCH_COMMANDS } from "./cli/switch";
 import { createServerConsolePort } from "./server-console";
+import { sshAuthenticates } from "./cli/ssh";
 
 export interface ConsolePort {
   /** 현재 프롬프트 (예: `PC1 User>`, `R1(config-if)#`) */
@@ -59,7 +61,7 @@ function pcUnknownCommand(lines: readonly ConsoleLine[], text: string, os: OsKin
 }
 
 function definitionsFor(device: Device): readonly CommandDefinition[] | undefined {
-  if (device.kind === "router" && device.config.cliStyle === "linux") return LINUX_ROUTER_COMMANDS;
+  if (device.kind === "router" && device.config.cliStyle === "linux") return [...LINUX_ROUTER_COMMANDS, ...LINUX_ROUTER_SSH_COMMANDS];
   if (device.kind === "lb") return LB_COMMANDS;
   if (device.kind === "server") return undefined; // Server는 server-console.ts의 독립 콘솔이 담당한다 (T0.25)
   return isPcDevice(device) ? pcCommandsFor(device) : DEFINITIONS_BY_KIND[device.kind];
@@ -197,11 +199,83 @@ export function createConsolePort(deviceId: string, env: IosConsoleEnv): Console
     kind() === "server"
       ? (server ??= createServerConsolePort(deviceId, env))
       : (main ??= createMainConsolePort(deviceId, env));
+
+  // SSH (T0.56): 세션에 sshPending이 있으면 비밀번호를 읽는 상태이고, ssh가 있으면 실행을 대상 장비 콘솔에 넘긴다.
+  // 대상 장비의 포트는 여기서 만들어 재사용한다 — 대상이 다시 ssh를 열면 그 포트의 세션으로 이어진다.
+  const remotes = new Map<string, ConsolePort>();
+  const remoteFor = (targetId: string): ConsolePort => {
+    let cached = remotes.get(targetId);
+    if (cached === undefined) { cached = createConsolePort(targetId, env); remotes.set(targetId, cached); }
+    return cached;
+  };
+  const sessionOf = () => env.getSession(deviceId);
+  const remoteDevice = () => {
+    const ssh = sessionOf().ssh;
+    return ssh === undefined ? undefined : env.getDocument().devices.find((device) => device.id === ssh.targetId);
+  };
+  const passwordPrompt = (): string => {
+    const pending = sessionOf().sshPending;
+    return pending === undefined ? "" : `${pending.user}@${pending.host}'s password:`;
+  };
+  /** 비밀번호 입력 한 줄. 맞으면 ssh 세션을 만들고, 세 번 틀리면 끊는다 (OpenSSH의 문구) */
+  const passwordStep = (line: string): ConsoleResult => {
+    const session = sessionOf();
+    const pending = session.sshPending;
+    if (pending === undefined) return { lines: [], prompt: forKind().prompt() };
+    const target = env.getDocument().devices.find((device) => device.id === pending.targetId);
+    if (target !== undefined && sshAuthenticates(target, pending.user, line)) {
+      env.setSession(deviceId, { ...sessionOf(), sshPending: undefined, ssh: { targetId: target.id, host: pending.host, user: pending.user } });
+      return { lines: [{ kind: "text", text: `${target.name}에 접속했습니다 — exit나 logout으로 돌아갑니다` }], prompt: prompt() };
+    }
+    const tries = pending.tries + 1;
+    if (tries >= 3) {
+      env.setSession(deviceId, { ...sessionOf(), sshPending: undefined });
+      return { lines: [{ kind: "text", text: "Permission denied (publickey,password)." }], prompt: forKind().prompt() };
+    }
+    env.setSession(deviceId, { ...sessionOf(), sshPending: { ...pending, tries } });
+    return { lines: [{ kind: "text", text: "Permission denied, please try again." }], prompt: passwordPrompt() };
+  };
+  /** 원격이 기본 셸(user/privileged)일 때만 exit/logout이 접속을 끊는다. 설정 모드에서는 모드 밖으로 나가는 `exit`다 */
+  const remoteAtBase = (target: Device): boolean =>
+    target.kind === "server" || ["user", "privileged"].includes(env.getSession(target.id).mode);
+
+  const prompt = (): string => {
+    const pending = sessionOf().sshPending;
+    if (pending !== undefined) return passwordPrompt();
+    const remote = remoteDevice();
+    return remote === undefined ? forKind().prompt() : remoteFor(remote.id).prompt();
+  };
+
   return {
-    prompt: () => forKind().prompt(),
-    exec: (line: string) => forKind().exec(line),
-    complete: (line: string) => forKind().complete(line),
-    candidates: (line: string) => forKind().candidates(line),
-    help: (line: string) => forKind().help(line),
+    prompt,
+
+    exec: async (line: string): Promise<ConsoleResult> => {
+      if (sessionOf().sshPending !== undefined) return passwordStep(line);
+      const remote = remoteDevice();
+      if (remote === undefined) return forKind().exec(line);
+      const ssh = sessionOf().ssh!;
+      const word = line.trim();
+      if ((word === "exit" || word === "logout") && remoteAtBase(remote)) {
+        env.setSession(deviceId, { ...sessionOf(), ssh: undefined });
+        return { lines: [{ kind: "text", text: `Connection to ${ssh.host} closed.` }], prompt: forKind().prompt() };
+      }
+      return remoteFor(remote.id).exec(line);
+    },
+
+    complete: (line: string) => {
+      if (sessionOf().sshPending !== undefined) return null;
+      const remote = remoteDevice();
+      return remote === undefined ? forKind().complete(line) : remoteFor(remote.id).complete(line);
+    },
+    candidates: (line: string) => {
+      if (sessionOf().sshPending !== undefined) return [];
+      const remote = remoteDevice();
+      return remote === undefined ? forKind().candidates(line) : remoteFor(remote.id).candidates(line);
+    },
+    help: (line: string) => {
+      if (sessionOf().sshPending !== undefined) return [];
+      const remote = remoteDevice();
+      return remote === undefined ? forKind().help(line) : remoteFor(remote.id).help(line);
+    },
   };
 }

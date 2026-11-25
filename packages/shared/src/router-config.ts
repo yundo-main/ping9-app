@@ -62,6 +62,7 @@ export function normalizeRouterConfig(config: RouterConfig): RouterConfig {
     ...(config.rip === undefined ? {} : { rip: normalizeRipConfig(config.rip) }),
     ...(config.tunnels === undefined || Object.keys(config.tunnels).length === 0 ? {} : { tunnels: config.tunnels }),
     ...(config.ipsec === undefined || Object.keys(config.ipsec).length === 0 ? {} : { ipsec: config.ipsec }),
+    ...(config.ssh === undefined ? {} : { ssh: config.ssh }),
   };
 }
 

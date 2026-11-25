@@ -75,7 +75,7 @@ export const PC_OS_CHOICES = ["windows", "linux", "server"] as const;
 export type PcOsChoice = (typeof PC_OS_CHOICES)[number];
 
 /** 서버가 돌리는 서비스 (T0.20) */
-export const SERVICE_KINDS = ["http", "https", "dns", "ntp", "ftp"] as const;
+export const SERVICE_KINDS = ["http", "https", "dns", "ntp", "ftp", "ssh"] as const;
 export type ServiceKind = (typeof SERVICE_KINDS)[number];
 
 /** 서비스가 듣는 프로토콜과 포트. FTP는 제어 연결(21)만 쓴다 */
@@ -85,12 +85,19 @@ export const SERVICE_PORTS = {
   dns: { protocol: "udp", port: 53 },
   ntp: { protocol: "udp", port: 123 },
   ftp: { protocol: "tcp", port: 21 },
+  ssh: { protocol: "tcp", port: 22 },
 } as const satisfies Record<ServiceKind, { readonly protocol: "tcp" | "udp"; readonly port: number }>;
 
 /** DNS 서비스가 답하는 이름 하나 (A 레코드) */
 export interface DnsRecord {
   readonly name: string;
   readonly address: string;
+}
+
+/** SSH 로그인 계정 하나 (T0.56). 서버는 인스펙터에서, 라우터는 CLI로 만든다 */
+export interface SshAccount {
+  readonly user: string;
+  readonly password: string;
 }
 
 /**
@@ -294,6 +301,33 @@ export interface RouterConfig {
   readonly natSources?: readonly NatSourceRule[];
   readonly tunnels?: Readonly<Record<string, GreTunnelConfig>>;
   readonly ipsec?: Readonly<Record<string, IpsecProfileConfig>>;
+  /** SSH 수신 설정 (T0.56). 칸이 없으면 SSH를 받지 않는다 */
+  readonly ssh?: RouterSshConfig;
+}
+
+/** Router의 SSH 수신 설정 (T0.56). IOS는 domain-name+RSA 키+계정이 모두 있어야 켜진다 */
+export interface RouterSshConfig {
+  /** VyOS·Linux 라우터의 sshd 켜짐 (VyOS `set service ssh`, Linux `systemctl start ssh`) */
+  readonly enabled?: boolean;
+  /** IOS `ip domain-name` — RSA 키와 함께 SSH의 전제 조건 */
+  readonly domainName?: string;
+  /** IOS `crypto key generate rsa`의 modulus 비트 */
+  readonly keyBits?: number;
+  /** 로그인 계정. IOS `username <u> secret <p>`, VyOS `set system login user` */
+  readonly users: readonly SshAccount[];
+}
+
+/**
+ * 라우터가 TCP/22에서 SSH를 받는지. cliStyle별로 켜지는 조건이 다르다:
+ * IOS는 domain-name·RSA 키·계정 셋이 모두 있을 때, VyOS·Linux는 `enabled`가 참일 때다
+ */
+export function routerSshOpen(config: RouterConfig): boolean {
+  const ssh = config.ssh;
+  if (ssh === undefined) return false;
+  if ((config.cliStyle ?? "ios") === "ios") {
+    return ssh.domainName !== undefined && ssh.keyBits !== undefined && ssh.users.length > 0;
+  }
+  return ssh.enabled === true;
 }
 
 // 패킷 필터 (T14.2.1). 처음에는 Firewall 장비의 것이었고, T0.21에서 서버로 쓰는 PC로 옮겼다.
@@ -368,6 +402,8 @@ export interface ServerConfig {
   readonly adminUp?: boolean;
   /** 켜 둔 서비스 (T0.20). 칸이 없으면 다섯 개 다 켜짐. `SERVICE_KINDS`의 순서 */
   readonly services?: readonly ServiceKind[];
+  /** SSH 접속 계정 (T0.56). 칸이 없으면 처음 계정(admin/ping9) */
+  readonly sshAccounts?: readonly SshAccount[];
   /** DNS 서비스가 답하는 이름 (T0.20). 칸이 없으면 없음 */
   readonly dnsRecords?: readonly DnsRecord[];
   /** iptables의 필터 규칙 (T0.21). 칸이 없으면 세 체인 모두 ACCEPT에 규칙 없음 */

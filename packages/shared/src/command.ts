@@ -5,10 +5,12 @@
 import type { ErrorInfo, Notice } from "./codes";
 import type {
   DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position,
-  RouterConfig, ServiceKind, SwitchportMode, VlanRange, VpnMode, LbFrontend } from "./document";
+  RouterConfig, RouterSshConfig, ServiceKind, SshAccount, SwitchportMode, VlanRange, VpnMode, LbFrontend } from "./document";
 
 export type Command =
   | { readonly type: "router/set-cli-style"; readonly deviceId: string; readonly style: "ios" | "vyos" | "linux" }
+  // 라우터의 SSH 수신 설정을 통째로 바꾼다 (T0.56). null이면 설정을 지운다
+  | { readonly type: "router/set-ssh"; readonly deviceId: string; readonly ssh: RouterSshConfig | null }
   // 리눅스 라우터의 `net.ipv4.ip_forward` (T16.1). false면 지나가는 패킷을 전달하지 않는다
   | { readonly type: "router/set-ip-forward"; readonly deviceId: string; readonly enabled: boolean }
   | { readonly type: "router/commit-vyos"; readonly deviceId: string; readonly config: RouterConfig }
@@ -66,6 +68,8 @@ export type Command =
   | { readonly type: "server/set-os"; readonly deviceId: string; readonly os: OsKind }
   // Server의 서비스
   | { readonly type: "server/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
+  // Server의 SSH 접속 계정 목록을 통째로 바꾼다 (T0.56)
+  | { readonly type: "server/set-ssh-accounts"; readonly deviceId: string; readonly accounts: readonly SshAccount[] }
   | { readonly type: "server/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
   | { readonly type: "server/remove-dns-record"; readonly deviceId: string; readonly name: string }
   // Static route (FR-35)
@@ -110,6 +114,7 @@ export type CommandOf<T extends CommandType> = Extract<Command, { readonly type:
 // Command를 추가하고 여기에 빠뜨리면 타입 오류가 난다
 const COMMAND_TYPE_SET = {
   "router/set-cli-style": true,
+  "router/set-ssh": true,
   "router/set-ip-forward": true,
   "router/commit-vyos": true,
   "router/set-vpn-mode": true,
@@ -138,6 +143,7 @@ const COMMAND_TYPE_SET = {
   "server/set-ip": true,
   "server/set-os": true,
   "server/set-service": true,
+  "server/set-ssh-accounts": true,
   "server/add-dns-record": true,
   "server/remove-dns-record": true,
   "route/add": true,

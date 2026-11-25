@@ -41,6 +41,7 @@ const serverConfigSchema = z.object({
   adminUp: z.boolean().optional(),
   services: z.array(z.enum(SERVICE_KINDS)).optional(),
   dnsRecords: z.array(z.object({ name: shortString, address: shortString })).optional(),
+  sshAccounts: z.array(z.object({ user: shortString, password: shortString })).optional(),
   filter: z.lazy(() => filterSchema).optional(),
 });
 
@@ -85,6 +86,12 @@ const ripConfigSchema = z.object({
 const routerConfigSchema = z.object({
   cliStyle: z.enum(["ios", "vyos", "linux"]).optional(),
   ipForward: z.boolean().optional(),
+  ssh: z.object({
+    enabled: z.boolean().optional(),
+    domainName: shortString.optional(),
+    keyBits: integer.optional(),
+    users: z.array(z.object({ user: shortString, password: shortString })),
+  }).optional(),
   vyos: z.record(z.string().max(256), shortString).refine(value => Object.keys(value).length <= 512).optional(),
   vpnMode: z.enum(VPN_MODES).optional(),
   interfaces: z.record(shortString, routerInterfaceConfigSchema),

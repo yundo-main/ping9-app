@@ -68,6 +68,19 @@ export interface CliSession {
   readonly targetIpsec?: string;
   readonly vyosCandidate?: Readonly<Record<string, string>>;
   readonly vyosBase?: string;
+  /** SSH 접속 대기 — 비밀번호를 입력받는 중 (T0.56) */
+  readonly sshPending?: {
+    readonly targetId: string;
+    readonly host: string;
+    readonly user: string;
+    readonly tries: number;
+  };
+  /** SSH 접속 중 — 이 장비의 콘솔이 대상 장비의 콘솔로 위임된다 (T0.56) */
+  readonly ssh?: {
+    readonly targetId: string;
+    readonly host: string;
+    readonly user: string;
+  };
 }
 
 export type CommandArgs = Readonly<Record<string, string | number>>;
@@ -132,6 +145,8 @@ export interface CommandDefinition {
   readonly help: string;
   /** 키워드의 대소문자를 구분한다 (Linux PC, T0.9). 없으면 IOS처럼 구분하지 않는다 */
   readonly caseSensitive?: boolean;
+  /** 줄임 입력을 받지 않는다 — `ssh`가 `ss`를 잡아먹는 것을 막는다 (T0.56) */
+  readonly noAbbrev?: boolean;
   run(args: CommandArgs, context: CommandContext): CommandOutcome;
 }
 

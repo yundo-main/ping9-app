@@ -30,11 +30,11 @@ describe("종류와 서비스 읽기", () => {
     expect(isServer({ os: "linux" })).toBe(false);
   });
 
-  test("서비스 칸이 없으면 다섯 개 다 켜져 있다", () => {
-    expect(servicesOf({ os: "server" })).toEqual(["http", "https", "dns", "ntp", "ftp"]);
+  test("서비스 칸이 없으면 여섯 개 다 켜져 있다", () => {
+    expect(servicesOf({ os: "server" })).toEqual(["http", "https", "dns", "ntp", "ftp", "ssh"]);
     expect(servicesOf({ os: "server", services: ["ntp"] })).toEqual(["ntp"]);
     expect(servicesOf({ os: "server", services: [] })).toEqual([]);
-    expect(servicesOf({})).toEqual(["http", "https", "dns", "ntp", "ftp"]);
+    expect(servicesOf({})).toEqual(["http", "https", "dns", "ntp", "ftp", "ssh"]);
     expect(dnsRecordsOf({ os: "server" })).toEqual([]);
   });
 
@@ -70,7 +70,7 @@ describe("문서 검증", () => {
 
   test.each<[string, unknown, string]>([
     ["없는 종류", { os: "macos" }, "DOCUMENT_INVALID_SHAPE"],
-    ["없는 서비스", { os: "server", services: ["ssh"] }, "DOCUMENT_INVALID_SHAPE"],
+    ["없는 서비스", { os: "server", services: ["telnet"] }, "DOCUMENT_INVALID_SHAPE"],
     ["겹친 서비스", { os: "server", services: ["http", "http"] }, "DOCUMENT_INVALID_SHAPE"],
     ["순서가 다른 서비스", { os: "server", services: ["ftp", "http"] }, "DOCUMENT_INVALID_SHAPE"],
     ["틀린 이름", { os: "server", dnsRecords: [{ name: "Bad_Name", address: "10.0.0.1" }] }, "DNS_NAME_INVALID"],

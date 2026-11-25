@@ -192,18 +192,19 @@ describe("서버의 콘솔", () => {
       "udp    UNCONN  0.0.0.0:53",
       "udp    UNCONN  0.0.0.0:123",
       "tcp    LISTEN  0.0.0.0:21",
+      "tcp    LISTEN  0.0.0.0:22",
       "tcp    LISTEN  0.0.0.0:80",
       "tcp    LISTEN  0.0.0.0:443",
     ]);
     expect((await run(SRV, "systemctl stop httpd")).lines).toEqual([]);
-    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp"]);
+    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp", "ssh"]);
     expect(texts(await run(SRV, "systemctl status http"))).toEqual(["○ http.service - PING9 HTTP server", "     Active: inactive (dead)"]);
     expect(texts(await run(SRV, "ss -tuln"))).not.toContain("tcp    LISTEN  0.0.0.0:80");
     expect((await run(SRV, "systemctl start http.service")).lines).toEqual([]);
     expect(texts(await run(SRV, "systemctl status http"))).toEqual([
       "● http.service - PING9 HTTP server", "     Active: active (running)", "     Listen: tcp/80",
     ]);
-    expect((await run(SRV, "systemctl start sshd")).lines[0]).toMatchObject({ kind: "error", code: "CLI_INVALID_VALUE" });
+    expect((await run(SRV, "systemctl start telnetd")).lines[0]).toMatchObject({ kind: "error", code: "CLI_INVALID_VALUE" });
   });
 
   test("서버가 아닌 Linux PC에는 서버 명령어가 없다", async () => {
@@ -280,13 +281,13 @@ describe("서비스 구성의 Command", () => {
     must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: false });
     must({ type: "server/set-service", deviceId: SRV, service: "http", enabled: false });
     must({ type: "server/set-service", deviceId: SRV, service: "dns", enabled: true });
-    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp"]);
+    expect(serverConfig().services).toEqual(["https", "dns", "ntp", "ftp", "ssh"]);
     must({ type: "server/add-dns-record", deviceId: SRV, name: "a.test", address: "10.0.2.10" });
     must({ type: "server/set-ip", deviceId: SRV, ip: "10.0.2.11", mask: "255.255.255.0", gateway: "10.0.2.1" });
     must({ type: "server/set-os", deviceId: SRV, os: "windows" });
     must({ type: "interface/set-admin", deviceId: SRV, port: "Ethernet0", adminUp: false });
     must({ type: "pc/set-os", deviceId: SRV, os: "server" });
-    expect(serverConfig()).toMatchObject({ services: ["https", "dns", "ntp", "ftp"], dnsRecords: [{ name: "a.test", address: "10.0.2.10" }] });
+    expect(serverConfig()).toMatchObject({ services: ["https", "dns", "ntp", "ftp", "ssh"], dnsRecords: [{ name: "a.test", address: "10.0.2.10" }] });
 
     const saved = validateDocument(JSON.parse(JSON.stringify(sim.getSnapshot().document)));
     expect(saved.ok).toBe(true);
@@ -307,7 +308,7 @@ describe("서비스 구성의 Command", () => {
   });
 
   test.each<[string, Record<string, unknown>, string]>([
-    ["없는 서비스", { type: "server/set-service", service: "ssh", enabled: true }, "DOCUMENT_INVALID_SHAPE"],
+    ["없는 서비스", { type: "server/set-service", service: "telnet", enabled: true }, "DOCUMENT_INVALID_SHAPE"],
     ["켜짐이 글", { type: "server/set-service", service: "http", enabled: "yes" }, "DOCUMENT_INVALID_SHAPE"],
     ["이름이 수", { type: "server/add-dns-record", name: 5, address: "10.0.2.10" }, "DNS_NAME_INVALID"],
     ["틀린 이름", { type: "server/add-dns-record", name: "bad_name", address: "10.0.2.10" }, "DNS_NAME_INVALID"],

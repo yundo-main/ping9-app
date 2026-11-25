@@ -42,6 +42,23 @@ function withConfig(document: TopologyDocument, device: ServerDevice, config: Se
   return checked.ok ? { ok: true, document: checked.document, notices: [] } : checked;
 }
 
+const checkAccount = (value: unknown): value is { user: string; password: string } =>
+  typeof value === "object" && value !== null &&
+  typeof (value as Record<string, unknown>)["user"] === "string" &&
+  typeof (value as Record<string, unknown>)["password"] === "string" &&
+  (value as { user: string }).user.length > 0;
+
+/** SSH 접속 계정 목록을 통째로 바꾼다 (T0.56). 계정 형태는 스키마가 보고 여기서는 한 번 더 본다 */
+export const setServerSshAccounts: CommandHandler<"server/set-ssh-accounts"> = (document, command) => {
+  const found = findServer(document, command.deviceId);
+  if (!found.ok) return found;
+  const { device } = found;
+  if (!Array.isArray(command.accounts) || !command.accounts.every(checkAccount)) {
+    return fail(errorInfo("DOCUMENT_INVALID_SHAPE", { path: "accounts" }));
+  }
+  return withConfig(document, device, { ...device.config, sshAccounts: command.accounts });
+};
+
 export const setServerService: CommandHandler<"server/set-service"> = (document, command) => {
   const found = findServer(document, command.deviceId);
   if (!found.ok) return found;

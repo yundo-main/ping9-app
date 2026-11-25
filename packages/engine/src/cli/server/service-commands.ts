@@ -201,6 +201,7 @@ const SERVICE_ALIASES: Readonly<Record<string, ServiceKind>> = {
   dns: "dns", named: "dns", bind9: "dns",
   ntp: "ntp", ntpd: "ntp", chronyd: "ntp",
   ftp: "ftp", vsftpd: "ftp",
+  ssh: "ssh", sshd: "ssh",
 };
 
 function readService(value: string): ParamValue {
@@ -211,7 +212,7 @@ function readService(value: string): ParamValue {
 }
 
 const SERVICE_TITLES: Readonly<Record<ServiceKind, string>> = {
-  http: "PING9 HTTP server", https: "PING9 HTTPS server", dns: "PING9 DNS server", ntp: "PING9 NTP server", ftp: "PING9 FTP server",
+  http: "PING9 HTTP server", https: "PING9 HTTPS server", dns: "PING9 DNS server", ntp: "PING9 NTP server", ftp: "PING9 FTP server", ssh: "PING9 SSH server",
 };
 
 /** `systemctl start|stop <서비스>`. 속성 패널의 스위치와 같은 Command를 낸다 (AD-3) */

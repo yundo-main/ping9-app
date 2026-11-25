@@ -26,6 +26,9 @@ export const RULES: readonly { pattern: RegExp; flag: boolean; sample: string }[
   { pattern: new RegExp(`^vpn ipsec site-to-site peer ${NAME} authentication (?:mode|local-id|remote-id) \\S+$`), flag: false, sample: "vpn ipsec site-to-site peer R2 authentication mode pre-shared-secret" },
   { pattern: new RegExp(`^vpn ipsec site-to-site peer ${NAME} tunnel 0 (?:local|remote) prefix \\S+$`), flag: false, sample: "vpn ipsec site-to-site peer R2 tunnel 0 local prefix <subnet>" },
   { pattern: new RegExp(`^vpn ipsec site-to-site peer ${NAME} tunnel 0 disable$`), flag: true, sample: "vpn ipsec site-to-site peer R2 tunnel 0 disable" },
+  { pattern: /^service ssh$/, flag: true, sample: "service ssh" },
+  { pattern: /^service ssh disable$/, flag: true, sample: "service ssh disable" },
+  { pattern: new RegExp(`^system login user ${NAME} authentication plaintext-password \\S+$`), flag: false, sample: "system login user <name> authentication plaintext-password <pw>" },
 ];
 const ensure = (ok: unknown, message: string): void => { if (!ok) throw new Error(message); };
 export const physicalPort = (eth: string): string => PORT_NAMES.router[Number(eth.slice(3))]!;
@@ -55,6 +58,12 @@ function spi(source: string, target: string): number {
 export function settingsOf(config: RouterConfig): Settings {
   if (config.vyos !== undefined) return { ...config.vyos };
   const result: Record<string, string> = {};
+  const ssh = config.ssh;
+  if (ssh !== undefined) {
+    if (ssh.enabled !== false) result["service ssh"] = "";
+    if (ssh.enabled === false) result["service ssh disable"] = "";
+    for (const account of ssh.users) result[`system login user ${account.user} authentication plaintext-password`] = account.password;
+  }
   for (const [index, port] of PORT_NAMES.router.entries()) {
     const iface = config.interfaces[port];
     if (iface?.ip !== undefined) result[`interfaces ethernet eth${index} address ${cidr(iface.ip, iface.mask!)}`] = "";
@@ -279,7 +288,17 @@ export function compile(settings: Settings, base: RouterConfig): RouterConfig {
       outboundSpi: old?.peer === peer && old.interface === port ? old.outboundSpi ?? spi(local, peer) : spi(local, peer),
       lifetimeSeconds: duration(settings[`${esp} lifetime`], 3600), policy: JSON.stringify(policy) };
   }
+  // SSH (T0.56): `service ssh` 노드가 켜짐, `service ssh disable` 플래그가 끔.
+  // 계정은 `system login user <u> authentication plaintext-password <pw>` — 비밀번호 없는 사용자는 없다
+  const sshUsers = names(settings, "system login user").map(user => ({
+    user, password: settings[`system login user ${user} authentication plaintext-password`]!,
+  }));
+  const ssh = settings["service ssh"] === undefined && sshUsers.length === 0 ? undefined : {
+    enabled: settings["service ssh"] !== undefined && settings["service ssh disable"] === undefined,
+    users: sshUsers,
+  };
   return { ...base, cliStyle: "vyos", vpnMode: undefined, interfaces, staticRoutes,
+    ssh,
     natStatics: natStatics.length === 0 ? undefined : natStatics,
     natSources: natSources.length === 0 ? undefined : natSources,
     tunnels: Object.keys(tunnels).length ? tunnels : undefined, ipsec: Object.keys(ipsec).length ? ipsec : undefined,

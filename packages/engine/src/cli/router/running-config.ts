@@ -51,6 +51,12 @@ export function routerRunningConfigLines(device: RouterDevice): string[] {
   for (const entry of device.config.accessLists ?? []) {
     lines.push(`access-list ${entry.listId} ${entry.action} ${entry.network} ${entry.wildcard}`);
   }
+  const ssh = device.config.ssh;
+  if (ssh !== undefined) {
+    for (const account of ssh.users) lines.push(`username ${account.user} secret ${account.password}`);
+    if (ssh.domainName !== undefined) lines.push(`ip domain-name ${ssh.domainName}`);
+    if (ssh.keyBits !== undefined) lines.push("crypto key generate rsa", "!");
+  }
   for (const [name, profile] of Object.entries(device.config.ipsec ?? {})) {
     lines.push(`crypto ipsec profile ${name}`);
     if (profile.interface !== undefined) lines.push(` source-interface ${profile.interface}`);

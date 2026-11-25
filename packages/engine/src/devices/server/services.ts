@@ -49,5 +49,8 @@ export function serviceResponse(server: ServerDevice, service: ServiceKind, mess
     }
     case "ntp":
       return { message: "server stratum 1" };
+    // SSH는 배너 하나만 주고 끝낸다. 사용자 인증과 원격 세션은 콘솔 계층이 흉내낸다 (T0.56)
+    case "ssh":
+      return { message: "SSH-2.0-OpenSSH_PING9" };
   }
 }
