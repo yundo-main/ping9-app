@@ -35,7 +35,7 @@ describe("PING9에 관하여 창 (T0.41)", () => {
   const html = renderToString(<AboutDialog onClose={() => {}} />);
 
   test("앱 이름·버전·원본과 포크 개발자가 나온다", () => {
-    for (const text of ["PING9에 관하여", "1.0.0", "원본 프로젝트", "TL-cg11/PING9", "SDY", "yysong1249", "ssunyoung2", "jarrod kim", "Tauri"]) {
+    for (const text of ["PING9에 관하여", "1.0.0", "원본 프로젝트", "TL-cg11/PING9", "Do-yoon Sung", "Seon-yu Yong", "Seon-young Min", "jarrod kim", "Tauri"]) {
       expect(html).toContain(text);
     }
   });

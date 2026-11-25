@@ -22,7 +22,7 @@ export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
             <section>
               <h3>원본 프로젝트</h3>
               <p>TL-cg11/PING9 — 웹 기반 네트워크 시뮬레이터 (3인 팀)</p>
-              <p>SDY · yysong1249 · ssunyoung2</p>
+              <p>Do-yoon Sung · Seon-yu Yong · Seon-young Min</p>
               <p className="about-url">github.com/TL-cg11/PING9</p>
             </section>
             <section>
