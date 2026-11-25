@@ -172,3 +172,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.63 GitHub Pages에 웹 앱 자동 배포: 랜딩 루트 + /app/, 자산을 src/assets import로 (계획에 없는 새 ID) | [T0.63-github-pages-app.md](T0.63-github-pages-app.md) | 배포·화면 | jarrod | main 직접 커밋 |
 | T0.64 패킷 헤더 구조 보기를 Wireshark 상세 창 모양으로: 접히는 프로토콜 트리, 라이트 (계획에 없는 새 ID) | [T0.64-wireshark-structure-view.md](T0.64-wireshark-structure-view.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.65 랜딩 페이지 히스토리 섹션: task-logs README에서 자동 생성 (계획에 없는 새 ID) | [T0.65-landing-history.md](T0.65-landing-history.md) | 배포·문서 | jarrod | main 직접 커밋 |
+| T0.66 랜딩 페이지 디자인 개선: 내비·히어로·카드·다크 터미널·히스토리 접기 (계획에 없는 새 ID) | [T0.66-landing-redesign.md](T0.66-landing-redesign.md) | 배포·문서 | jarrod | main 직접 커밋 |
