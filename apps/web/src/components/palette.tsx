@@ -9,6 +9,7 @@ import type { ReactNode, RefObject } from "react";
 
 import type { DragCancelState } from "../canvas-interaction";
 import { DeviceIcon } from "./device-icons";
+import type { RouterCliStyle } from "./device-icons";
 
 /** 목록 아래의 안내 한 줄. 평소(idle)에는 비우고, 끌기 취소 중에만 취소하는 방법을 알린다 (T0.50) */
 const NOTE: Readonly<Record<DragCancelState, string>> = {
@@ -37,7 +38,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   /** 선택 도구: 켜져 있으면 빈 곳 드래그가 범위 선택 (T0.43) */
   readonly selectActive?: boolean;
   readonly onSelectTool?: () => void;
-  readonly onDeviceDragStart?: (kind: PaletteKind) => void;
+  readonly onDeviceDragStart?: (kind: PaletteKind, cliStyle?: RouterCliStyle) => void;
   /** 새 장비 끌기와 취소 영역의 상태 (T0.12) */
   readonly dragCancel?: DragCancelState;
   readonly zoneRef?: RefObject<HTMLElement | null>;
@@ -45,16 +46,17 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   const used = Math.min(100, (deviceCount / LIMITS.maxDevices) * 100);
   const full = deviceCount >= LIMITS.maxDevices;
   const [switchesOpen, setSwitchesOpen] = useState(false);
+  const [routersOpen, setRoutersOpen] = useState(false);
 
-  const tool = (kind: PaletteKind, label: string): ReactNode => (
-    <button key={kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
-      data-tip={TIPS[kind]} disabled={full} draggable={false}
+  const tool = (kind: PaletteKind, label: string, cliStyle?: RouterCliStyle, tip?: string): ReactNode => (
+    <button key={cliStyle ?? kind} type="button" className="tool device-tool" aria-label={`${label} 추가`}
+      data-tip={tip ?? TIPS[kind]} disabled={full} draggable={false}
       onPointerDown={event => {
         if (event.button !== 0 || full) return;
         event.preventDefault();
-        onDeviceDragStart?.(kind);
+        onDeviceDragStart?.(kind, cliStyle);
       }}>
-      <DeviceIcon kind={kind} />{label}
+      <DeviceIcon kind={kind} cliStyle={cliStyle} />{label}
     </button>
   );
 
@@ -79,7 +81,21 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
         )}
       </div>
       {tool("hub", "Hub")}
-      {tool("router", "Router")}
+      {/* 라우터도 한 버튼 — 플라이아웃에서 CLI 형식을 고른다 (T0.52). 배치한 뒤에도 인스펙터에서 바꿀 수 있다 */}
+      <div className="tool-group">
+        <button type="button" className="tool group-tool" aria-label="Router 종류" aria-expanded={routersOpen}
+          data-tip="눌러 라우터 CLI 형식을 고릅니다" disabled={full}
+          onClick={() => setRoutersOpen(open => !open)}>
+          <DeviceIcon kind="router" hideLayerBadge />Router
+        </button>
+        {routersOpen && (
+          <div className="switch-flyout" role="group" aria-label="라우터 CLI 형식">
+            {tool("router", "Router (IOS)", "ios", "끌어서 배치 — Cisco식 명령어 (enable · configure terminal)")}
+            {tool("router", "Router (VyOS)", "vyos", "끌어서 배치 — VyOS 명령어 (configure → set → commit)")}
+            {tool("router", "Router (Linux)", "linux", "끌어서 배치 — 리눅스 명령어 (ip · sysctl)")}
+          </div>
+        )}
+      </div>
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>
       <h4>도구</h4>
       <button type="button" className={selectActive ? "tool select-tool active" : "tool select-tool"}

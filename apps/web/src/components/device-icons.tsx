@@ -203,16 +203,22 @@ export function FilterBadge({ state }: { readonly state: ShieldState }) {
   );
 }
 
-/** 오른쪽 아래에 달리는 계층 배지 (T0.37). L1 허브, L2 스위치, L3 스위치, L4·L7 LB */
+/** 오른쪽 아래에 달리는 계층 배지 (T0.37). L1 허브, L2 스위치, L3 스위치, L4·L7 LB, 라우터 CLI 형식 (T0.52) */
 function LayerBadge({ text }: { readonly text: string }) {
+  // 글자 수가 많으면 알약을 넓힌다 (Linux 같은 다섯 글자)
+  const width = text.length <= 4 ? 12 : 16;
   return (
-    <g transform="translate(18.4 23.4)">
-      <rect width="12" height="7" rx="2" fill="#1E293B" stroke="#FFFFFF" strokeWidth="0.8" />
-      <text x="6" y="5.3" textAnchor="middle" fontSize="4.8" fontWeight="700" fill="#FFFFFF"
+    <g transform={`translate(${30.4 - width} 23.4)`}>
+      <rect width={width} height="7" rx="2" fill="#1E293B" stroke="#FFFFFF" strokeWidth="0.8" />
+      <text x={width / 2} y="5.3" textAnchor="middle" fontSize="4.8" fontWeight="700" fill="#FFFFFF"
         fontFamily="system-ui, -apple-system, sans-serif">{text}</text>
     </g>
   );
 }
+
+/** 라우터 배지에 적는 CLI 형식 (T0.52). RouterConfig.cliStyle과 같은 값 */
+export type RouterCliStyle = "ios" | "vyos" | "linux";
+const CLI_STYLE_BADGE: Readonly<Record<RouterCliStyle, string>> = { ios: "IOS", vyos: "VyOS", linux: "Linux" };
 
 /**
  * 서버(종류가 Server인 PC). 세워 둔 랙 — 이글루(집)와 실루엣이 완전히 다르다 (T0.23).
@@ -239,10 +245,12 @@ function Rack() {
  * 넘기지 않으면 OS가 없는 원래 이글루다 (장비 목록).
  * `filtering`: 필터 규칙을 건 서버다. 방패 배지를 단다 (T0.21)
  */
-export function DeviceIcon({ kind, os, filtering = false, hideLayerBadge = false, ...box }: {
+export function DeviceIcon({ kind, os, filtering = false, hideLayerBadge = false, cliStyle = "ios", ...box }: {
   readonly kind: DeviceKind; readonly os?: PcOsChoice; readonly filtering?: boolean;
   /** 팔레트의 묶음 버튼처럼 한 계층을 뜻하지 않을 때 배지를 뺀다 (T0.39) */
   readonly hideLayerBadge?: boolean;
+  /** 라우터의 CLI 형식 — 배지로 표시한다 (T0.52) */
+  readonly cliStyle?: RouterCliStyle;
 } & Box) {
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
@@ -252,6 +260,7 @@ export function DeviceIcon({ kind, os, filtering = false, hideLayerBadge = false
       {!hideLayerBadge && kind === "switch" && <LayerBadge text="L2" />}
       {!hideLayerBadge && kind === "l3switch" && <LayerBadge text="L3" />}
       {!hideLayerBadge && kind === "lb" && <LayerBadge text="L4·7" />}
+      {!hideLayerBadge && kind === "router" && <LayerBadge text={CLI_STYLE_BADGE[cliStyle]} />}
       {(kind === "pc" || kind === "server") && filtering && <FilterBadge state="idle" />}
     </svg>
   );

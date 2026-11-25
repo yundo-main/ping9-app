@@ -165,6 +165,7 @@ export function Canvas({
   onMoveDevice,
   onDeviceDrag,
   paletteDragKind = null,
+  paletteDragCliStyle,
   onPaletteDragEnd,
   cableActive = false,
   selectActive = false,
@@ -199,6 +200,8 @@ export function Canvas({
   readonly onMoveDevice?: (deviceId: string, position: Position) => void;
   readonly onDeviceDrag?: () => void;
   readonly paletteDragKind?: PaletteKind | null;
+  /** 팔레트에서 고른 라우터 CLI 형식 — 미리보기 배지용 (T0.52) */
+  readonly paletteDragCliStyle?: "ios" | "vyos" | "linux";
   readonly onPaletteDragEnd?: () => void;
   readonly cableActive?: boolean;
   /** 선택 도구가 켜져 있으면 빈 곳 드래그가 패닝 대신 범위 선택 (T0.43) */
@@ -768,6 +771,8 @@ export function Canvas({
                 kind={device.kind}
                 // 필터 규칙을 건 서버는 방패 배지를 단다 (T0.21)
                 {...((device.kind === "pc" || device.kind === "server") ? { os: osChoiceOf(device.config), filtering: device.kind === "server" && hasActiveFilter(device.config) } : {})}
+                // 라우터는 CLI 형식을 배지로 표시한다 (T0.52)
+                {...(device.kind === "router" ? { cliStyle: device.config.cliStyle ?? "ios" } : {})}
                 // 50에서 32로 줄였다. 가운데와 바닥선은 제자리라 이름과의 간격이 그대로다 (T0.23)
                 x={24}
                 y={21}
@@ -793,7 +798,7 @@ export function Canvas({
           })} />
         {paletteDragKind !== null && cursor !== null && (
           <g className="placement-preview" transform={`translate(${cursor.x - 16},${cursor.y - 16})`}>
-            <DeviceIcon kind={paletteDragKind} width={32} height={32} />
+            <DeviceIcon kind={paletteDragKind} width={32} height={32} {...(paletteDragKind === "router" ? { cliStyle: paletteDragCliStyle ?? "ios" } : {})} />
           </g>
         )}
         {/* 장비 이름·PC IP는 맨 위 */}

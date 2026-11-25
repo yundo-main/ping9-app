@@ -79,6 +79,8 @@ export function App() {
   // 선택 도구: 켜져 있으면 빈 곳 드래그가 범위 선택이 된다 (T0.43). 케이블 도구와 같이 켜지지 않는다
   const [selectActive, setSelectActive] = useState(false);
   const [dragKind, setDragKind] = useState<PaletteKind | null>(null);
+  // 끄는 라우터의 CLI 형식 (T0.52). 라우터가 아니면 무의미
+  const [dragCliStyle, setDragCliStyle] = useState<"ios" | "vyos" | "linux">("ios");
   // 오른쪽 패널 폭. 손잡이로 끌어 바꾼다 (T0.18)
   const side = useSideWidth();
   // 목록에서 끌어 온 새 장비를 왼쪽 장비 목록에 다시 놓으면 취소된다 (T0.12). 캔버스가 목록의 자리를 보고 상태를 알려 준다
@@ -101,8 +103,12 @@ export function App() {
     setDragKind(null);
     const id = crypto.randomUUID();
     const result = simulator.dispatch({ type: "device/add", id, kind, position });
-    setActionError(result.ok ? null : result.error);
-    if (result.ok) {
+    // 라우터는 팔레트 플라이아웃에서 고른 CLI 형식을 바로 넣는다 (T0.52). 기본 ios는 저장하지 않는다
+    const styled = result.ok && kind === "router" && dragCliStyle !== "ios"
+      ? simulator.dispatch({ type: "router/set-cli-style", deviceId: id, style: dragCliStyle })
+      : result;
+    setActionError(styled.ok ? null : styled.error);
+    if (result.ok && styled.ok) {
       setBoxSel(EMPTY_SEL);
       setSelectedLinkId(null);
       dispatch({ type: "select", deviceId: id });
@@ -643,7 +649,7 @@ export function App() {
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
           onConnect={() => { setCable(cable.active ? CABLE_OFF : CABLE_READY); setSelectActive(false); setConnectionMessage(null); setActionError(null); }}
-          onDeviceDragStart={kind => { setDragKind(kind); setCable(CABLE_OFF); setSelectActive(false); setConnectionMessage(null); }}
+          onDeviceDragStart={(kind, cliStyle) => { setDragKind(kind); setDragCliStyle(cliStyle ?? "ios"); setCable(CABLE_OFF); setSelectActive(false); setConnectionMessage(null); }}
           dragCancel={dragCancel} zoneRef={paletteRef} />
         <section className="canvas" onPointerDownCapture={releaseFocus}>
           {actionError !== null && <div className="canvas-error" role="alert">{formatError(actionError)}</div>}
@@ -652,7 +658,7 @@ export function App() {
             <button type="button" aria-label="알림 닫기" onClick={() => setImportError(null)}>×</button>
           </div>}
           {(dragKind !== null || cable.active) && <div className="edit-banner" role="status">
-            <span>{dragKind !== null ? `${KIND_LABEL[dragKind]}를 원하는 위치에 놓으세요 · 왼쪽 목록에 다시 놓으면 취소` :
+            <span>{dragKind !== null ? `${KIND_LABEL[dragKind]}${dragKind === "router" && dragCliStyle !== "ios" ? ` (${dragCliStyle.toUpperCase()})` : ""}를 원하는 위치에 놓으세요 · 왼쪽 목록에 다시 놓으면 취소` :
               connectionMessage ?? (cable.first === null ? "케이블 선택됨 · 첫 번째 장비를 클릭해 포트를 고르세요" :
                 `${document.devices.find(device => device.id === cable.first?.deviceId)?.name ?? "장비"} ${shortPortName(cable.first.port)} 선택됨 · 두 번째 장비를 클릭하세요`)}</span>
             {cable.active && <button type="button" onClick={() => setCable(CABLE_OFF)}>연결 도구 해제</button>}
@@ -665,7 +671,7 @@ export function App() {
             selectedLinkId={selectedLinkId}
             onSelectLink={selectLink}
             onDropDevice={addDevice} onMoveDevice={moveDevice}
-            paletteDragKind={dragKind} onPaletteDragEnd={() => setDragKind(null)}
+            paletteDragKind={dragKind} paletteDragCliStyle={dragCliStyle} onPaletteDragEnd={() => setDragKind(null)}
             onDeviceDrag={() => setCable(current => ({ ...current, pickerDeviceId: null }))}
             cableActive={cable.active} selectActive={selectActive}
             firstPort={cable.first} pickerDeviceId={cable.pickerDeviceId}

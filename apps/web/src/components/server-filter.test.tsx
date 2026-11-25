@@ -32,8 +32,8 @@ describe("장비 목록과 캔버스", () => {
     const html = renderToString(<Palette deviceCount={0} onConnect={noop} />);
     expect(html).not.toContain("Firewall");
     expect(html).not.toContain("icon-firewall");
-    expect(html.match(/class="tool device-tool"/g)).toHaveLength(4);
-    expect(html.match(/class="tool group-tool"/g)).toHaveLength(1);
+    expect(html.match(/class="tool device-tool"/g)).toHaveLength(3);
+    expect(html.match(/class="tool group-tool"/g)).toHaveLength(2);
   });
 
   test("서버에 규칙을 걸면 아이콘에 방패 배지가 붙고, 다 지우면 사라진다", async () => {
