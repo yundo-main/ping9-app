@@ -206,11 +206,11 @@ export function FilterBadge({ state }: { readonly state: ShieldState }) {
 /** 오른쪽 아래에 달리는 계층 배지 (T0.37). L1 허브, L2 스위치, L3 스위치, L4·L7 LB, 라우터 CLI 형식 (T0.52) */
 function LayerBadge({ text }: { readonly text: string }) {
   // 글자 수가 많으면 알약을 넓힌다 (Linux 같은 다섯 글자)
-  const width = text.length <= 4 ? 12 : 16;
+  const width = text.length <= 2 ? 10 : text.length <= 4 ? 16 : 21;
   return (
-    <g transform={`translate(${30.4 - width} 23.4)`}>
-      <rect width={width} height="7" rx="2" fill="#1E293B" stroke="#FFFFFF" strokeWidth="0.8" />
-      <text x={width / 2} y="5.3" textAnchor="middle" fontSize="4.8" fontWeight="700" fill="#FFFFFF"
+    <g transform={`translate(${30.8 - width} 21.4)`}>
+      <rect width={width} height="9" rx="2.5" fill="#1E293B" stroke="#FFFFFF" strokeWidth="0.8" />
+      <text x={width / 2} y="6.8" textAnchor="middle" fontSize="6.2" fontWeight="700" fill="#FFFFFF"
         fontFamily="system-ui, -apple-system, sans-serif">{text}</text>
     </g>
   );
