@@ -1,6 +1,6 @@
-// 패킷 카드의 "헤더 구조" 보기 (T0.38). 요약 상자 대신 실제 헤더 해부도대로
-// 필드·바이트·값의 표로 펼친다. 시뮬레이션이 값을 갖지 않는 필드(체크섬, 순서 번호,
-// 길이)는 값을 지어내지 않고 "—"로 둔다.
+// 패킷 카드의 "헤더 구조" 보기 (T0.38 → T0.64 와이어샤크 모양). 요약 상자 대신
+// Wireshark의 패킷 상세 창처럼 프로토콜별로 접히는 트리로 펼친다.
+// 시뮬레이션이 값을 갖지 않는 필드(체크섬, 순서 번호, 길이)는 값을 지어내지 않고 "—"로 둔다.
 
 import { isIcmpError } from "@ping9/shared";
 import type { FrameSnapshot, IcmpMessage } from "@ping9/shared";
@@ -10,30 +10,26 @@ const SKIP = "—";
 
 interface Field {
   readonly name: string;
-  readonly bytes: string;
   readonly value: ReactNode;
 }
 
-function Section({ title, bytes, fields, payload }: {
-  readonly title: string; readonly bytes: string; readonly fields: readonly Field[];
-  readonly payload?: string | undefined;
+/** Wireshark의 프로토콜 줄 하나. summary는 "Ethernet II, Src: …, Dst: …" 같은 줄 머리 */
+function Layer({ title, fields }: {
+  readonly title: ReactNode;
+  readonly fields: readonly Field[];
 }) {
   return (
-    <section className="pkt-sec">
-      <h5>{title}<span>{bytes}</span></h5>
-      <table className="pkt-fields">
-        <tbody>
-          {fields.map((field) => (
-            <tr key={field.name}>
-              <td className="pkt-fname">{field.name}</td>
-              <td className="pkt-fbytes">{field.bytes}</td>
-              <td className="pkt-fvalue">{field.value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {payload !== undefined && <div className="pkt-payload">▼ 페이로드 → {payload}</div>}
-    </section>
+    <details open className="ws-layer">
+      <summary>{title}</summary>
+      <div className="ws-fields">
+        {fields.map((field) => (
+          <div key={field.name} className="ws-field">
+            <span className="ws-fname">{field.name}</span>
+            <span className="ws-fvalue">{field.value}</span>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -41,71 +37,92 @@ const ICMP_TYPE_NO: Readonly<Record<IcmpMessage["type"], number>> = {
   "echo-request": 8, "echo-reply": 0, "destination-unreachable": 3, "time-exceeded": 11,
 };
 
+const ICMP_TYPE_TEXT: Readonly<Record<IcmpMessage["type"], string>> = {
+  "echo-request": "Echo (ping) request",
+  "echo-reply": "Echo (ping) reply",
+  "destination-unreachable": "Destination unreachable",
+  "time-exceeded": "Time to live exceeded",
+};
+
 function icmpFields(icmp: IcmpMessage): readonly Field[] {
   const fields: Field[] = [
-    { name: "종류 Type", bytes: "1B", value: `${ICMP_TYPE_NO[icmp.type]} (${icmp.type})` },
-    { name: "코드 Code", bytes: "1B", value: 0 },
-    { name: "체크섬", bytes: "2B", value: SKIP },
+    { name: "Type", value: `${ICMP_TYPE_NO[icmp.type]} (${ICMP_TYPE_TEXT[icmp.type]})` },
+    { name: "Code", value: 0 },
+    { name: "Checksum", value: SKIP },
   ];
   if (!isIcmpError(icmp)) {
-    fields.push({ name: "식별·순번", bytes: "4B", value: `순번 ${icmp.sequence}` });
+    fields.push({ name: "Sequence Number", value: icmp.sequence });
   } else {
-    fields.push({ name: "원래 패킷 앞부분", bytes: "≥28B", value:
+    fields.push({ name: "Original packet", value:
       `${icmp.original.sourceIp} → ${icmp.original.destinationIp}` +
-      (icmp.original.protocol === undefined ? ` (순번 ${icmp.original.sequence})`
-        : ` (${icmp.original.protocol.toUpperCase()} 도착 포트 ${icmp.original.destinationPort})`) });
+      (icmp.original.protocol === undefined ? ` (sequence ${icmp.original.sequence})`
+        : ` (${icmp.original.protocol.toUpperCase()} destination port ${icmp.original.destinationPort})`) });
   }
   return fields;
 }
 
-function ipv4Section(title: string, ipv4: { readonly sourceIp: string; readonly destinationIp: string; readonly ttl: number },
-  protocol: number | undefined, inner: string | undefined): ReactNode {
-  return (
-    <Section key={title} title={title} bytes="20 바이트" fields={[
-      { name: "버전·헤더 길이", bytes: "1B", value: "4 · IHL 5" },
-      { name: "DSCP·ECN", bytes: "1B", value: SKIP },
-      { name: "전체 길이", bytes: "2B", value: SKIP },
-      { name: "식별·플래그·조각", bytes: "4B", value: SKIP },
-      { name: "TTL", bytes: "1B", value: ipv4.ttl },
-      { name: "프로토콜", bytes: "1B", value: protocol === undefined ? SKIP : `${protocol} (${inner})` },
-      { name: "헤더 체크섬", bytes: "2B", value: SKIP },
-      { name: "출발 주소", bytes: "4B", value: ipv4.sourceIp },
-      { name: "도착 주소", bytes: "4B", value: ipv4.destinationIp },
-    ]} payload={inner} />
-  );
+function ipv4Fields(ipv4: { readonly sourceIp: string; readonly destinationIp: string; readonly ttl: number },
+  protocol: number | undefined, inner: string | undefined): readonly Field[] {
+  return [
+    { name: "Version", value: 4 },
+    { name: "Header Length", value: "20 bytes (5)" },
+    { name: "Differentiated Services Field", value: SKIP },
+    { name: "Total Length", value: SKIP },
+    { name: "Identification · Flags · Fragment", value: SKIP },
+    { name: "Time to Live", value: ipv4.ttl },
+    { name: "Protocol", value: protocol === undefined ? SKIP : `${inner} (${protocol})` },
+    { name: "Header Checksum", value: SKIP },
+    { name: "Source Address", value: ipv4.sourceIp },
+    { name: "Destination Address", value: ipv4.destinationIp },
+  ];
 }
 
-/** 프레임을 헤더 해부도로 펼친다. 바깥 Ethernet부터 안쪽 페이로드까지 */
-export function PacketStructure({ frame }: { readonly frame: FrameSnapshot }) {
-  const { ethernet, arp, ipv4, icmp, udp, tcp, rip, application, gre, esp } = frame;
-  const sections: ReactNode[] = [];
+const TCP_FLAG_NO: Readonly<Record<string, string>> = {
+  SYN: "0x002", "SYN-ACK": "0x012", ACK: "0x010", "PSH-ACK": "0x018", "FIN-ACK": "0x011", RST: "0x004",
+};
 
-  // L2 — Ethernet II는 헤더 14B + VLAN 태그가 있으면 4B
-  const etherType = arp !== undefined ? "0x0806 (ARP)" : ipv4 !== undefined ? "0x0800 (IPv4)" : SKIP;
-  const ethFields: Field[] = [
-    { name: "도착 주소", bytes: "6B", value: ethernet.destinationMac },
-    { name: "출발 주소", bytes: "6B", value: ethernet.sourceMac },
-    ...(ethernet.vlanTag === undefined ? [] : [
-      { name: "802.1Q TPID", bytes: "2B", value: "0x8100" } satisfies Field,
-      { name: "802.1Q TCI (VLAN)", bytes: "2B", value: `VLAN ${ethernet.vlanTag}` } satisfies Field,
-    ]),
-    { name: "EtherType", bytes: "2B", value: etherType },
-  ];
-  const l2Payload = arp !== undefined ? "ARP" : ipv4 !== undefined ? "IPv4" : undefined;
-  sections.push(<Section key="eth" title={`Ethernet II 헤더${ethernet.vlanTag === undefined ? "" : " + 802.1Q 태그"}`}
-    bytes={`${14 + (ethernet.vlanTag === undefined ? 0 : 4)} 바이트`} fields={ethFields} payload={l2Payload} />);
+const RIP_COMMAND_NO: Readonly<Record<string, number>> = { request: 1, response: 2 };
+
+/** 프레임을 Wireshark의 패킷 상세 창처럼 펼친다. 바깥 Ethernet부터 안쪽 페이로드까지, 모든 계층이 형제 줄이다 */
+export function PacketStructure({ frame, frameId }: {
+  readonly frame: FrameSnapshot;
+  /** 카드가 넘기는 프레임 번호 — Wireshark의 "Frame N" 줄 */
+  readonly frameId?: number | undefined;
+}) {
+  const { ethernet, arp, ipv4, icmp, udp, tcp, rip, application, gre, esp } = frame;
+  const layers: ReactNode[] = [];
+
+  if (frameId !== undefined) {
+    layers.push(<Layer key="frame" title={`Frame ${frameId}`} fields={[]} />);
+  }
+
+  // L2 — Ethernet II
+  const etherType = arp !== undefined ? "ARP (0x0806)" : ipv4 !== undefined ? "IPv4 (0x0800)" : SKIP;
+  layers.push(<Layer key="eth"
+    title={`Ethernet II, Src: ${ethernet.sourceMac}, Dst: ${ethernet.destinationMac}`}
+    fields={[
+      { name: "Destination", value: ethernet.destinationMac },
+      { name: "Source", value: ethernet.sourceMac },
+      ...(ethernet.vlanTag === undefined ? [] : [
+        { name: "802.1Q Tag Protocol Identifier", value: "0x8100" } satisfies Field,
+        { name: "802.1Q Tag Control Information", value: `VLAN ${ethernet.vlanTag}` } satisfies Field,
+      ]),
+      { name: "Type", value: etherType },
+    ]} />);
 
   if (arp !== undefined) {
-    sections.push(<Section key="arp" title="ARP" bytes="28 바이트" fields={[
-      { name: "하드웨어 종류", bytes: "2B", value: "1 (Ethernet)" },
-      { name: "프로토콜 종류", bytes: "2B", value: "0x0800 (IPv4)" },
-      { name: "하드웨어·프로토콜 길이", bytes: "2B", value: "6 · 4" },
-      { name: "연산", bytes: "2B", value: `${arp.operation === "request" ? 1 : 2} (${arp.operation})` },
-      { name: "보낸 MAC", bytes: "6B", value: arp.senderMac },
-      { name: "보낸 IP", bytes: "4B", value: arp.senderIp },
-      { name: "받는 MAC", bytes: "6B", value: arp.targetMac },
-      { name: "받는 IP", bytes: "4B", value: arp.targetIp },
-    ]} />);
+    layers.push(<Layer key="arp"
+      title={`Address Resolution Protocol (${arp.operation})`}
+      fields={[
+        { name: "Hardware type", value: "Ethernet (1)" },
+        { name: "Protocol type", value: "IPv4 (0x0800)" },
+        { name: "Hardware size · Protocol size", value: "6 · 4" },
+        { name: "Opcode", value: `${arp.operation} (${arp.operation === "request" ? 1 : 2})` },
+        { name: "Sender MAC address", value: arp.senderMac },
+        { name: "Sender IP address", value: arp.senderIp },
+        { name: "Target MAC address", value: arp.targetMac },
+        { name: "Target IP address", value: arp.targetIp },
+      ]} />);
   }
 
   // L3 — 외부 IPv4. 안쪽은 GRE·ESP 페이로드거나 TCP/UDP/ICMP다
@@ -114,67 +131,76 @@ export function PacketStructure({ frame }: { readonly frame: FrameSnapshot }) {
     : icmp !== undefined ? "ICMP" : tcp !== undefined ? "TCP" : udp !== undefined ? "UDP" : undefined;
   const l3Proto = l3Inner === undefined ? undefined
     : ({ ICMP: 1, TCP: 6, UDP: 17, GRE: 47, ESP: 50 } as const)[l3Inner];
-  if (ipv4 !== undefined) sections.push(ipv4Section("IPv4 헤더", ipv4, l3Proto, l3Inner));
+  if (ipv4 !== undefined) {
+    layers.push(<Layer key="ipv4"
+      title={`Internet Protocol Version 4, Src: ${ipv4.sourceIp}, Dst: ${ipv4.destinationIp}`}
+      fields={ipv4Fields(ipv4, l3Proto, l3Inner)} />);
+  }
 
   if (gre !== undefined) {
-    sections.push(<Section key="gre" title="GRE 헤더" bytes="4 바이트" fields={[
-      { name: "플래그·버전", bytes: "2B", value: "0" },
-      { name: "프로토콜 종류", bytes: "2B", value: "0x0800 (IPv4)" },
-    ]} payload="안쪽 IPv4" />);
+    layers.push(<Layer key="gre" title="Generic Routing Encapsulation" fields={[
+      { name: "Flags and Version", value: "0x0000" },
+      { name: "Protocol Type", value: "IPv4 (0x0800)" },
+    ]} />);
   }
   if (esp !== undefined) {
-    sections.push(<Section key="esp" title="ESP 헤더" bytes="8 바이트" fields={[
-      { name: "SPI", bytes: "4B", value: `0x${esp.spi.toString(16)}` },
-      { name: "순번", bytes: "4B", value: esp.sequence },
-      { name: "비고", bytes: "", value: "암호화 없는 교육용 모델" },
-    ]} payload="안쪽 IPv4" />);
+    layers.push(<Layer key="esp" title="Encapsulating Security Payload" fields={[
+      { name: "SPI", value: `0x${esp.spi.toString(16)}` },
+      { name: "Sequence Number", value: esp.sequence },
+      { name: "Note", value: "암호화 없는 교육용 모델" },
+    ]} />);
   }
   if (tunnel !== undefined) {
-    sections.push(ipv4Section("안쪽 IPv4 헤더", tunnel.payload.ipv4, 1, "ICMP"));
-    sections.push(<Section key="icmp-in" title="ICMP" bytes="4 바이트 + 데이터" fields={icmpFields(tunnel.payload.icmp)} />);
+    layers.push(<Layer key="ipv4-in"
+      title={`Internet Protocol Version 4 (inner), Src: ${tunnel.payload.ipv4.sourceIp}, Dst: ${tunnel.payload.ipv4.destinationIp}`}
+      fields={ipv4Fields(tunnel.payload.ipv4, 1, "ICMP")} />);
+    layers.push(<Layer key="icmp-in" title="Internet Control Message Protocol" fields={icmpFields(tunnel.payload.icmp)} />);
   }
 
   if (icmp !== undefined && tunnel === undefined) {
-    sections.push(<Section key="icmp" title="ICMP" bytes="4 바이트 + 데이터" fields={icmpFields(icmp)} />);
+    layers.push(<Layer key="icmp" title="Internet Control Message Protocol" fields={icmpFields(icmp)} />);
   }
 
   // L4
   if (tcp !== undefined) {
-    const flagText = tcp.flags.replace("-", "+");
-    sections.push(<Section key="tcp" title="TCP 헤더" bytes="20 바이트" fields={[
-      { name: "출발 포트", bytes: "2B", value: tcp.sourcePort },
-      { name: "도착 포트", bytes: "2B", value: tcp.destinationPort },
-      { name: "순서·확인 번호", bytes: "8B", value: SKIP },
-      { name: "데이터 오프셋·예약", bytes: "1B", value: "5" },
-      { name: "플래그", bytes: "1B", value: flagText },
-      { name: "창 크기", bytes: "2B", value: SKIP },
-      { name: "체크섬·긴급 포인터", bytes: "4B", value: SKIP },
-    ]} payload={application === undefined && rip === undefined ? undefined : "응용 데이터"} />);
+    layers.push(<Layer key="tcp"
+      title={`Transmission Control Protocol, Src Port: ${tcp.sourcePort}, Dst Port: ${tcp.destinationPort}`}
+      fields={[
+        { name: "Source Port", value: tcp.sourcePort },
+        { name: "Destination Port", value: tcp.destinationPort },
+        { name: "Sequence Number · Acknowledgment", value: SKIP },
+        { name: "Header Length", value: "20 bytes (5)" },
+        { name: "Flags", value: `${TCP_FLAG_NO[tcp.flags] ?? SKIP} (${tcp.flags.replace("-", "+")})` },
+        { name: "Window", value: SKIP },
+        { name: "Checksum · Urgent pointer", value: SKIP },
+      ]} />);
   }
   if (udp !== undefined) {
-    sections.push(<Section key="udp" title="UDP 헤더" bytes="8 바이트" fields={[
-      { name: "출발 포트", bytes: "2B", value: udp.sourcePort },
-      { name: "도착 포트", bytes: "2B", value: udp.destinationPort },
-      { name: "길이", bytes: "2B", value: SKIP },
-      { name: "체크섬", bytes: "2B", value: SKIP },
-    ]} payload={rip !== undefined || application !== undefined ? "응용 데이터" : undefined} />);
+    layers.push(<Layer key="udp"
+      title={`User Datagram Protocol, Src Port: ${udp.sourcePort}, Dst Port: ${udp.destinationPort}`}
+      fields={[
+        { name: "Source Port", value: udp.sourcePort },
+        { name: "Destination Port", value: udp.destinationPort },
+        { name: "Length", value: SKIP },
+        { name: "Checksum", value: SKIP },
+      ]} />);
   }
 
   // L7
   if (rip !== undefined) {
-    sections.push(<Section key="rip" title="RIP 메시지" bytes="4 바이트 + 항목" fields={[
-      { name: "명령", bytes: "1B", value: rip.command },
-      { name: "버전", bytes: "1B", value: 2 },
-      { name: "경로 항목", bytes: "20B × N", value: rip.entries.length === 0 ? "없음"
-        : rip.entries.map(entry => `${entry.network}/${entry.mask} 거리 ${entry.metric}`).join(" · ") },
+    layers.push(<Layer key="rip" title="Routing Information Protocol" fields={[
+      { name: "Command", value: `${rip.command} (${RIP_COMMAND_NO[rip.command] ?? "?"})` },
+      { name: "Version", value: 2 },
+      { name: "Route entries", value: rip.entries.length === 0 ? "none"
+        : rip.entries.map(entry => `${entry.network}/${entry.mask} metric ${entry.metric}`).join(" · ") },
     ]} />);
   }
   if (application !== undefined) {
-    sections.push(<Section key="app" title={`응용 데이터 (${application.service.toUpperCase()})`} bytes="페이로드" fields={[
-      { name: "내용", bytes: "", value: application.message },
-      ...(application.data === undefined ? [] : [{ name: "본문", bytes: "", value: application.data } satisfies Field]),
+    layers.push(<Layer key="app" title={application.service.toUpperCase()} fields={[
+      { name: "Message", value: application.message },
+      ...(application.data === undefined ? [] : [{ name: "Data", value: application.data } satisfies Field]),
     ]} />);
   }
 
-  return <div className="pkt-structure">{sections}</div>;
+  return <div className="pkt-structure">{layers}</div>;
 }

@@ -245,7 +245,7 @@ export function PacketCard({ event, document, linkId, onClose }: {
           onFocus={() => setHelp(true)} onBlur={() => setHelp(false)}>?</button>
         <button type="button" className="pkt-close" aria-label="닫고 계속 재생" onClick={onClose}>✕</button>
       </div>
-      {view === "structure" ? <PacketStructure frame={event.frame} /> :
+      {view === "structure" ? <PacketStructure frame={event.frame} frameId={event.frameId} /> :
       <Box layer="l2" tag="L2" title="Ethernet">
         <dl>
           <dt>출발 MAC</dt><Value value={ethernet.sourceMac} owner={macOwner(ethernet.sourceMac)} />

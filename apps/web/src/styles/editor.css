@@ -623,3 +623,19 @@ button.brand:hover .tile img { filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)) br
   0% { background: #BEE0FF; box-shadow: 0 0 0 6px #BEE0FF; }
   100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
 }
+
+/* 헤더 구조 보기 — Wireshark 패킷 상세 창 모양, 라이트 테마 (T0.64) */
+.pkt-structure { margin: 6px 10px 10px; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font: 11.5px/1.75 "JetBrains Mono", ui-monospace, Menlo, monospace; color: var(--navy); }
+.pkt-structure .ws-layer { border-bottom: 1px solid var(--ice-200); }
+.pkt-structure .ws-layer:last-child { border-bottom: 0; }
+.pkt-structure .ws-layer > summary { display: flex; align-items: baseline; gap: 7px; padding: 4px 10px; cursor: pointer; list-style: none; background: #F0F6FF; font-weight: 600; user-select: none; }
+.pkt-structure .ws-layer > summary::-webkit-details-marker { display: none; }
+.pkt-structure .ws-layer > summary::before { content: "▸"; flex: none; width: 10px; color: var(--navy-60); font-weight: 400; }
+.pkt-structure .ws-layer[open] > summary::before { content: "▾"; }
+.pkt-structure .ws-layer > summary:hover { background: #E2EEFF; }
+.pkt-structure .ws-fields { padding: 2px 0 5px; }
+.pkt-structure .ws-field { display: flex; gap: 8px; padding: 0 10px 0 27px; }
+.pkt-structure .ws-field:hover { background: #EEF4FF; }
+.pkt-structure .ws-fname { color: #4A6A8A; }
+.pkt-structure .ws-fname::after { content: ":"; }
+.pkt-structure .ws-fvalue { color: var(--navy); word-break: break-all; }

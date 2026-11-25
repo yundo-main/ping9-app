@@ -194,15 +194,14 @@ test("헤더 구조 보기: 필드·바이트·값 표로 펼치고, 시뮬레�
   const html = renderToString(<PacketStructure frame={sent(trace, (event) => event.frame.icmp?.type === "echo-request").frame} />)
     .replaceAll("<!-- -->", "");
 
-  // Ethernet → IPv4 → ICMP 순서의 섹션
-  expect(html.indexOf("Ethernet II 헤더")).toBeLessThan(html.indexOf("IPv4 헤더"));
-  expect(html.indexOf("IPv4 헤더")).toBeLessThan(html.indexOf("ICMP"));
-  expect(html).toContain("0x0800 (IPv4)");
-  expect(html).toContain("8 (echo-request)");
-  expect(html).toContain("1 (ICMP)");
+  // Ethernet → IPv4 → ICMP 순서의 프로토콜 줄 (Wireshark 모양)
+  expect(html.indexOf("Ethernet II, Src:")).toBeLessThan(html.indexOf("Internet Protocol Version 4"));
+  expect(html.indexOf("Internet Protocol Version 4")).toBeLessThan(html.indexOf("Internet Control Message Protocol"));
+  expect(html).toContain("IPv4 (0x0800)");
+  expect(html).toContain("8 (Echo (ping) request)");
+  expect(html).toContain("ICMP (1)");
   // 생략한 필드는 값을 지어내지 않는다
-  expect(html).toMatch(/체크섬<\/td><td[^>]*>2B<\/td><td[^>]*>—/);
-  expect(html).toContain("페이로드 → IPv4");
+  expect(html).toMatch(/Checksum<\/span><span[^>]*>—/);
 });
 
 test("헤더 구조 보기: TCP+HTTP 프레임은 TCP 20바이트 헤더와 응용 데이터까지 펼친다", async () => {
@@ -225,9 +224,9 @@ test("헤더 구조 보기: TCP+HTTP 프레임은 TCP 20바이트 헤더와 응�
   const event = sent(trace, (item) => item.frame.tcp !== undefined && item.frame.application !== undefined);
   const html = renderToString(<PacketStructure frame={event.frame} />).replaceAll("<!-- -->", "");
 
-  expect(html).toContain("TCP 헤더");
-  expect(html).toContain("6 (TCP)");
-  expect(html).toMatch(/플래그<\/td><td[^>]*>1B<\/td><td[^>]*>(SYN\+ACK|PSH\+ACK)/);
-  expect(html).toContain("응용 데이터 (HTTP)");
+  expect(html).toContain("Transmission Control Protocol");
+  expect(html).toContain("TCP (6)");
+  expect(html).toMatch(/Flags<\/span><span[^>]*>0x0(12|18) \((SYN\+ACK|PSH\+ACK)\)/);
+  expect(html).toContain(">HTTP</summary>");
   expect(html).toContain("GET /");
 });
