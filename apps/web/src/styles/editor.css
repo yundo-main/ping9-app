@@ -36,6 +36,8 @@ button { font: inherit; cursor: pointer; }
 .brand .tile img { width: 48px; height: 48px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
 .wordmark { font-family: Nunito, sans-serif; font-weight: 900; font-size: 26px; letter-spacing: .5px; }
 .wordmark span { color: var(--cyan); }
+button.brand { border: none; background: transparent; padding: 0; font: inherit; color: inherit; text-shadow: inherit; cursor: pointer; border-radius: 10px; }
+button.brand:hover .tile img { filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)) brightness(1.1); }
 .crumb { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .crumb .sep { opacity: .5; }
 .crumb .name { font-weight: 600; }

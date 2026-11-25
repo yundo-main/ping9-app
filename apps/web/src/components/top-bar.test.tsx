@@ -49,6 +49,23 @@ describe("내보내기, 가져오기 (T7.1.1, T7.1.2)", () => {
   });
 });
 
+describe("PING9에 관하여 (T0.41, T0.50)", () => {
+  const render = (onAbout?: () => void) => renderToString(
+    <TopBar name="새 토폴로지" onExport={() => {}} onImport={() => {}} mode="realtime" onModeChange={() => {}} {...(onAbout === undefined ? {} : { onAbout })} />);
+
+  test("브랜드 아이콘은 정보 창을 여는 버튼", () => {
+    const html = render(() => {});
+    expect(html).toMatch(/<button type="button" class="brand" aria-label="PING9에 관하여" title="PING9에 관하여">/);
+  });
+
+  test("onAbout가 없으면 브랜드는 눌러지지 않는 div이고 i 버튼도 없다", () => {
+    const html = render();
+    expect(html).toContain('class="brand"');
+    expect(html).not.toMatch(/<button[^>]*class="brand"/);
+    expect(html).not.toContain("PING9에 관하여");
+  });
+});
+
 describe("시뮬레이션의 멈춤·속도 (T0.15)", () => {
   const sim = (clock: { paused: boolean; speed: 0.5 | 1 | 2 }) => ({ clock, onPause: () => {}, onResume: () => {}, onSpeed: () => {} });
   const render = (mode: "realtime" | "simulation", paused = false) => renderToString(

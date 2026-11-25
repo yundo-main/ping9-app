@@ -40,20 +40,29 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
   readonly sim?: SimControls | undefined;
   /** 도움말 창을 연다 (T0.30). 없으면 ? 버튼을 그리지 않는다 */
   readonly onHelp?: (() => void) | undefined;
-  /** PING9에 관하여 창을 연다 (T0.41). 없으면 i 버튼을 그리지 않는다 */
+  /** PING9에 관하여 창을 연다 (T0.41). 브랜드 아이콘도 이걸 연다 (T0.50). 없으면 i 버튼을 그리지 않고 브랜드는 눌러지지 않는다 */
   readonly onAbout?: (() => void) | undefined;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const brand = (
+    <>
+      <div className="tile">
+        <img src="/logo.png" alt="" />
+      </div>
+      <div className="wordmark">
+        PING<span>9</span>
+      </div>
+    </>
+  );
   return (
     <header className="topbar">
-      <div className="brand">
-        <div className="tile">
-          <img src="/logo.png" alt="" />
-        </div>
-        <div className="wordmark">
-          PING<span>9</span>
-        </div>
-      </div>
+      {onAbout === undefined ? (
+        <div className="brand">{brand}</div>
+      ) : (
+        <button type="button" className="brand" aria-label="PING9에 관하여" title="PING9에 관하여" onClick={onAbout}>
+          {brand}
+        </button>
+      )}
       <div className="crumb">
         <span className="sep">/</span>
         {onRename === undefined ? <span className="name">{name}</span> : <TopologyName name={name} onRename={onRename} />}
