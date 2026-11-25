@@ -81,6 +81,8 @@ button { font: inherit; cursor: pointer; }
 /* 올리면 오른쪽에 뜨는 툴팁 (T0.48). 네이티브 title은 늦게 떠서 data-tip을 그린다 */
 .tool { position: relative; }
 .palette h4 { position: relative; }
+/* 장비와 도구 절 사이의 구분선 (T0.50) — 두 번째 h4("도구") 위에 긋는다 */
+.palette h4 ~ h4 { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .tool[data-tip]::after, .palette h4[data-tip]::after { content: attr(data-tip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 50; width: max-content; max-width: 210px; padding: 6px 10px; border-radius: 9px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left; box-shadow: 0 4px 14px #0E3A7A33; opacity: 0; pointer-events: none; transition: opacity .12s; }
 .tool[data-tip]:hover:not(:disabled)::after, .tool[data-tip]:focus-visible::after, .palette h4[data-tip]:hover::after { opacity: 1; }
 /* 목록의 도구 네모는 작게 (T0.23) */
