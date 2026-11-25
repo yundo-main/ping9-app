@@ -3,7 +3,7 @@ import { EMPTY_DOCUMENT, LIMITS, TOPOLOGY_EXPORT_KIND, parseDocumentJson, valida
 import { fourRouterRipDocument, twoSwitchVlanDocument } from "@ping9/shared/examples";
 import { describe, expect, test } from "vitest";
 
-import { EXPORT_EXTENSION, exportFile, exportFileName, needsReplaceConfirm, readImportFile } from "./topology-file";
+import { EXPORT_EXTENSION, exportFile, exportFileName, importNameOf, needsReplaceConfirm, readImportFile } from "./topology-file";
 
 describe("내용", () => {
   test("`{ kind, name, document }`이고 document가 검증을 통과하며 schemaVersion이 있다 (완료 기준)", () => {
@@ -54,6 +54,18 @@ describe("파일 이름", () => {
     ["...", "topology.ping9.json"],
   ])("%j → %s", (name, fileName) => {
     expect(exportFileName(name)).toBe(fileName);
+  });
+
+  test.each([
+    ["랩.ping9.json", "파일 안 이름", "랩"],
+    ["my-lab.JSON", "파일 안 이름", "my-lab"],
+    ["이름바꾼파일.ping9.json", "옛남은이름", "이름바꾼파일"],
+    ["  앞뒤 공백  .ping9.json", "x", "앞뒤 공백"],
+    [".ping9.json", "파일 안 이름", "파일 안 이름"],
+    [".json", "", ""],
+    ["이름없음.json", "x", "이름없음"],
+  ])("가져온 파일 %s의 표시 이름은 파일명", (fileName, embedded, expected) => {
+    expect(importNameOf(fileName, embedded)).toBe(expected);
   });
 });
 

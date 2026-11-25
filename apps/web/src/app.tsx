@@ -34,7 +34,7 @@ import type { Mode } from "./mode";
 import { exchangeTimeline, previewTimeline } from "./replay/timeline";
 import { BROWSER_TIME, createSimClock } from "./sim-clock";
 import { TOPOLOGY_NAME, simulator, useSnapshot } from "./simulator";
-import { downloadText, exportFile, needsReplaceConfirm, pickImportFile, readImportFile } from "./topology-file";
+import { downloadText, exportFile, importNameOf, needsReplaceConfirm, pickImportFile, readImportFile } from "./topology-file";
 import { createCommandQueue } from "./terminal/command-queue";
 import { completed, historyStep, initialTerminal, refreshPrompts, runLinePaced, showCandidates, showHelp } from "./terminal/terminal-state";
 import type { TerminalState } from "./terminal/terminal-state";
@@ -608,7 +608,7 @@ export function App() {
     setImportError(null);
     const result = await readImportFile(file);
     if (!result.ok) return setImportError(result.error);
-    const pending: PendingImport = { fileName: file.name, name: result.name, document: result.document };
+    const pending: PendingImport = { fileName: file.name, name: importNameOf(file.name, result.name), document: result.document };
     if (needsReplaceConfirm(simulator.getSnapshot().document)) setImportAsk(pending);
     else replaceTopology(pending);
   };

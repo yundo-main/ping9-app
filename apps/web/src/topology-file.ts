@@ -21,6 +21,12 @@ export function exportFileName(name: string): string {
   return `${safe === "" ? FALLBACK_FILE_NAME : safe}${EXPORT_EXTENSION}`;
 }
 
+/** 가져온 파일 이름에서 표시할 토폴로지 이름 (T0.60). `.ping9.json`·`.json` 꼬리를 뗀다. 비면 파일 안의 이름을 쓴다 */
+export function importNameOf(fileName: string, embeddedName: string): string {
+  const stem = fileName.replace(/\.json$/i, "").replace(/\.ping9$/i, "").trim();
+  return (stem === "" ? embeddedName : stem).slice(0, LIMITS.maxTopologyNameLength);
+}
+
 /** 받을 파일의 이름과 내용. 내용은 들여쓰기 2칸의 JSON이다 */
 export function exportFile(name: string, document: TopologyDocument): { readonly fileName: string; readonly text: string } {
   const content: TopologyExport = { kind: TOPOLOGY_EXPORT_KIND, name, document };
