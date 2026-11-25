@@ -8,6 +8,7 @@ import { useRef } from "react";
 import type { Mode } from "../mode";
 import { SPEEDS } from "../sim-clock";
 import type { ClockState, Speed } from "../sim-clock";
+import logo from "../assets/logo.png";
 import { TopologyName } from "./topology-name";
 
 const MODES: readonly { readonly mode: Mode; readonly label: string }[] = [
@@ -49,7 +50,7 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
   const brand = (
     <>
       <div className="tile">
-        <img src="/logo.png" alt="" />
+        <img src={logo} alt="" />
       </div>
       <div className="wordmark">
         PING<span>9</span>

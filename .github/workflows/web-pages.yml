@@ -1,0 +1,74 @@
+# GitHub Pages 배포 (T0.63): main에 push할 때마다 docs 랜딩과 apps/web 빌드를 Pages로 올린다.
+# 랜딩은 사이트 루트, 웹 앱은 /app/ 아래 (vite --base=/ping9-app/app/).
+# 비밀값을 쓰지 않고, 외부 액션은 커밋 해시로 고정한다 (SEC-27).
+name: Web Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Pages 프로젝트 사이트의 /app/ 아래에 올라가므로 base를 거기에 맞춘다
+      - name: Build web app
+        run: pnpm --filter @ping9/web exec vite build --base=/ping9-app/app/
+
+      # 랜딩(docs/)은 루트에, 앱 빌드는 app/에 두고 올린다
+      - name: Assemble site
+        run: |
+          mkdir -p site/app
+          cp docs/index.html docs/manual.html site/
+          cp -r docs/assets site/assets
+          cp -r apps/web/dist/* site/app/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: site
+
+  deploy:
+    name: deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

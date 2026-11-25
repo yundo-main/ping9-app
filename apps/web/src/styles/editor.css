@@ -17,7 +17,7 @@ button { font: inherit; cursor: pointer; }
 .app { display: grid; grid-template-rows: 64px 1fr; height: 100vh; user-select: none; -webkit-user-select: none; background: var(--ice-50); }
 .app input, .app textarea, .term-body { user-select: text; -webkit-user-select: text; }
 /* 시뮬레이션 모드 배경 (T0.17): 오로라 그림을 창 전체에 비율대로 채운다. 상단 막대는 반투명이라 그림이 비친다 */
-.app.mode-simulation { background: #3B7BE0 url(/bg-sim-aurora.png) center bottom / cover no-repeat; }
+.app.mode-simulation { background: #3B7BE0 url(../assets/bg-sim-aurora.png) center bottom / cover no-repeat; }
 .app.mode-simulation .topbar { background: linear-gradient(180deg, #0B3C8C59, #0B3C8C14); text-shadow: 0 1px 2px #0B2A5C33; }
 /* 캔버스의 점 격자 대신 아래 눈밭 격자를 쓴다 */
 .app.mode-simulation .canvas { background-color: transparent; background-image: none; }
@@ -27,7 +27,7 @@ button { font: inherit; cursor: pointer; }
 .app.mode-simulation { position: relative; isolation: isolate; }
 .app.mode-simulation::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background-image: radial-gradient(circle, #C4DBF7 1.4px, transparent 1.6px); background-size: 24px 24px; background-position: 140px 70px;
-  -webkit-mask: url(/bg-sim-snow-mask.png) center bottom / cover no-repeat; mask: url(/bg-sim-snow-mask.png) center bottom / cover no-repeat; }
+  -webkit-mask: url(../assets/bg-sim-snow-mask.png) center bottom / cover no-repeat; mask: url(../assets/bg-sim-snow-mask.png) center bottom / cover no-repeat; }
 
 /* top bar */
 .topbar { display: flex; align-items: center; gap: 16px; padding: 0 20px; background: linear-gradient(90deg, var(--sky-900), var(--sky-500)); color: #fff; }

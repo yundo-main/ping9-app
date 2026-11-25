@@ -2,6 +2,7 @@
 // 도움말 창 아래의 "PING9에 관하여" 링크로 연다. Esc·바깥 클릭은 공유 뒷판이 담당한다.
 
 import { useEffect, useRef } from "react";
+import logo from "../assets/logo.png";
 
 export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
   const close = useRef<HTMLButtonElement>(null);
@@ -14,7 +15,7 @@ export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
           <button ref={close} type="button" aria-label="정보 닫기" onClick={onClose}>×</button>
         </div>
         <div className="about-body">
-          <img className="about-logo" src="/logo.png" alt="" />
+          <img className="about-logo" src={logo} alt="" />
           <p className="about-app">PING9 <span className="about-ver">1.0.0</span></p>
           <p className="about-desc">네트워크 장비를 배치하고 CLI로 설정해 통신을 실습하는 네트워크 시뮬레이터</p>
           <div className="about-credits">
