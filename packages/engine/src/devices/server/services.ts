@@ -2,7 +2,7 @@
 // 단순화: 웹 문서와 파일은 정해진 것 둘뿐이고 고칠 수 없다. FTP는 로그인 없이 제어 연결 하나로 목록과 파일을 준다.
 // DNS는 A 레코드만, NTP는 시각 없이 계층(stratum)만 답한다 (시뮬레이터에는 벽시계가 없다).
 
-import { SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf } from "@ping9/shared";
+import { SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, serverFilesOf, servicesOf } from "@ping9/shared";
 import type { ServerDevice, ServiceKind } from "@ping9/shared";
 
 export interface ServiceResponse {
@@ -10,12 +10,9 @@ export interface ServiceResponse {
   readonly data?: string;
 }
 
-/** HTTP와 FTP가 함께 내주는 파일. 이름과 내용 */
+/** HTTP와 FTP가 함께 내주는 파일. 인스펙터에서 목록을 바꾸면 그대로 내놓고, 없으면 기본 둘이다 (T0.58) */
 export function serverFiles(server: ServerDevice): Readonly<Record<string, string>> {
-  return {
-    "index.html": `<html><body><h1>${server.name}</h1><p>PING9 web server</p></body></html>`,
-    "readme.txt": `Files on ${server.name} are served over HTTP and FTP.`,
-  };
+  return Object.fromEntries(serverFilesOf(server.config, server.name).map((file) => [file.name, file.content]));
 }
 
 /** 그 프로토콜과 포트에서 듣는 서비스. 서버가 아니거나 서비스를 껐으면 undefined */
@@ -48,7 +45,7 @@ export function serviceResponse(server: ServerDevice, service: ServiceKind, mess
       return { message: record === undefined ? `NXDOMAIN ${argument}` : `${record.name} A ${record.address}` };
     }
     case "ntp":
-      return { message: "server stratum 1" };
+      return { message: `server stratum ${server.config.ntpStratum ?? 1}` };
     // SSH는 배너 하나만 주고 끝낸다. 사용자 인증과 원격 세션은 콘솔 계층이 흉내낸다 (T0.56)
     case "ssh":
       return { message: "SSH-2.0-OpenSSH_PING9" };

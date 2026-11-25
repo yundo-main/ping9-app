@@ -60,16 +60,41 @@ export function checkHostName(value: string): ErrorInfo<"DNS_NAME_INVALID"> | nu
     : errorInfo("DNS_NAME_INVALID", { value: value.slice(0, 64) });
 }
 
+/** HTTP·FTP가 내놓는 기본 파일 둘 (T0.58). `files` 칸이 없을 때의 내용 */
+export function serverFilesOf(config: ServerConfig, serverName: string): readonly { name: string; content: string }[] {
+  return config.files ?? [
+    { name: "index.html", content: `<html><body><h1>${serverName}</h1><p>PING9 web server</p></body></html>` },
+    { name: "readme.txt", content: `Files on ${serverName} are served over HTTP and FTP.` },
+  ];
+}
+
 /** 서비스 목록은 정해진 순서로, 겹침 없이 */
 export function normalizeServices(services: readonly ServiceKind[]): readonly ServiceKind[] {
   return SERVICE_KINDS.filter((kind) => services.includes(kind));
 }
 
 /** 문서 불러오기와 reducer가 같은 규칙을 쓴다. 서비스 이름의 형태는 스키마가 본다 */
+/** 파일 이름 한 개의 형식 — 비어 있지 않고 `/`가 없다 */
+export function checkFileName(name: string): ErrorInfo | null {
+  return name.length > 0 && name.length <= 64 && !name.includes("/") && !name.includes("\\")
+    ? null
+    : errorInfo("DNS_NAME_INVALID", { value: name.slice(0, 64) });
+}
+
 export function checkPcServices(config: ServerConfig, path: string): ErrorInfo | null {
   const shape = (where: string) => errorInfo("DOCUMENT_INVALID_SHAPE", { path: `${path}.${where}`.slice(0, 200) });
-  const { services, dnsRecords } = config;
+  const { services, dnsRecords, files, ntpStratum } = config;
   if (services !== undefined && normalizeServices(services).join() !== services.join()) return shape("services");
+  if (files !== undefined) {
+    if (files.length > LIMITS.maxServerFiles) return errorInfo("LIMIT_EXCEEDED", { limit: "serverFiles", max: LIMITS.maxServerFiles });
+    const names = new Set<string>();
+    for (const file of files) {
+      if (checkFileName(file.name) !== null || typeof file.content !== "string" || file.content.length > 4096) return shape("files");
+      if (names.has(file.name)) return shape("files");
+      names.add(file.name);
+    }
+  }
+  if (ntpStratum !== undefined && (!Number.isInteger(ntpStratum) || ntpStratum < 1 || ntpStratum > 15)) return shape("ntpStratum");
   if (dnsRecords === undefined) return null;
   if (dnsRecords.length > LIMITS.maxDnsRecords) return errorInfo("LIMIT_EXCEEDED", { limit: "dnsRecords", max: LIMITS.maxDnsRecords });
   const names = new Set<string>();

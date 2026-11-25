@@ -385,3 +385,47 @@ describe("Router와 서비스 요청", () => {
     expect(texts(await pc("ping -c 1 172.16.0.1")).join("\n")).toContain("Destination Net Unreachable");
   });
 });
+
+describe("서버별 서비스 설정 (T0.58)", () => {
+  test("files를 바꾸면 HTTP와 FTP가 그 내용을 내놓는다", async () => {
+    const { pc, must, serverIp } = await lab("router");
+    must({ type: "server/set-files", deviceId: SRV, files: [
+      { name: "index.html", content: "<h1>hello</h1>" },
+      { name: "notes.txt", content: "custom file" },
+    ] });
+    const http = texts(await pc(`curl http://${serverIp}/`)).join("\n");
+    expect(http).toContain("<h1>hello</h1>");
+    const list = texts(await pc(`curl ftp://${serverIp}/`)).join("\n");
+    expect(list).toContain("notes.txt");
+    expect(list).not.toContain("readme.txt");
+    const retr = texts(await pc(`curl ftp://${serverIp}/notes.txt`)).join("\n");
+    expect(retr).toContain("custom file");
+  });
+
+  test("파일을 빈 목록으로 두면 index.html이 없어 404다", async () => {
+    const { pc, must, serverIp } = await lab("router");
+    must({ type: "server/set-files", deviceId: SRV, files: [] });
+    const http = texts(await pc(`curl http://${serverIp}/`)).join("\n");
+    expect(http).toContain("404");
+  });
+
+  test("ntpStratum을 바꾸면 NTP가 그 계층을 답한다", async () => {
+    const { pc, must, serverIp } = await lab("router");
+    must({ type: "server/set-ntp", deviceId: SRV, stratum: 3 });
+    const result = texts(await pc(`ntpdate -q ${serverIp}`)).join("\n");
+    expect(result).toContain("stratum 3");
+  });
+
+  test("범위 밖의 stratum은 거부된다", async () => {
+    const { send } = await lab("router");
+    expect(send({ type: "server/set-ntp", deviceId: SRV, stratum: 0 })).toMatchObject({ ok: false });
+    expect(send({ type: "server/set-ntp", deviceId: SRV, stratum: 16 })).toMatchObject({ ok: false });
+  });
+
+  test("같은 이름의 파일은 거부된다", async () => {
+    const { send } = await lab("router");
+    expect(send({ type: "server/set-files", deviceId: SRV, files: [
+      { name: "a.txt", content: "1" }, { name: "a.txt", content: "2" },
+    ] })).toMatchObject({ ok: false });
+  });
+});

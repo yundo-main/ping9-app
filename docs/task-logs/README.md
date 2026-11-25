@@ -164,3 +164,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.55 플라이아웃 LB 항목 `L4/L7 LB` 표기 + 호버로 열고 이탈 시 닫기, 8px 데드존·터치 토글 수정 (계획에 없는 새 ID) | [T0.55-lb-layer-name-flyout-hover.md](T0.55-lb-layer-name-flyout-hover.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.56 SSH: PC·서버 콘솔 클라이언트 + 서버 계정·라우터(IOS·VyOS·Linux) SSH 설정, 원격 콘솔 위임 (계획에 없는 새 ID) | [T0.56-ssh-client-server.md](T0.56-ssh-client-server.md) | 엔진·화면·공통 | jarrod | main 직접 커밋 |
 | T0.57 IOS 라우터 루프백 인터페이스: 생성·주소·핑·SSH 대상, /32 허용과 unicast 검사 완화 (계획에 없는 새 ID) | [T0.57-ios-loopback.md](T0.57-ios-loopback.md) | 엔진·공통 | jarrod | main 직접 커밋 |
+| T0.58 서버별 서비스 설정: HTTP·FTP 파일 목록 편집 + NTP stratum, ntpdate가 응답 계층 반영 (계획에 없는 새 ID) | [T0.58-server-service-config.md](T0.58-server-service-config.md) | 엔진·화면·공통 | jarrod | main 직접 커밋 |

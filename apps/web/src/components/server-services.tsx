@@ -2,7 +2,7 @@
 // 스위치는 누르는 즉시 server/set-service를, DNS 이름은 "추가"·"삭제"로 server/add-dns-record·server/remove-dns-record를 dispatch한다 (AD-3).
 // 모양은 포트 스위치(T0.14)와 IP 설정(T1.5.2)의 것을 그대로 쓴다. 문구는 카탈로그에서 만든다 (AD-14).
 
-import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, servicesOf, sshAccountsOf } from "@ping9/shared";
+import { MAX_HOST_NAME_LENGTH, SERVICE_KINDS, SERVICE_PORTS, dnsRecordsOf, serverFilesOf, servicesOf, sshAccountsOf } from "@ping9/shared";
 import type { Command, DispatchResult, ErrorInfo, ServerDevice, ServiceKind } from "@ping9/shared";
 import { useId, useState } from "react";
 
@@ -53,6 +53,10 @@ export function ServerServices({ device, onDispatch }: {
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [sshUser, setSshUser] = useState("");
   const [sshPassword, setSshPassword] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileContent, setFileContent] = useState("");
+  const files = serverFilesOf(device.config, device.name);
+  const stratum = device.config.ntpStratum ?? 1;
   const enabled = servicesOf(device.config);
   const records = dnsRecordsOf(device.config);
   const accounts = sshAccountsOf(device.config);
@@ -119,6 +123,65 @@ export function ServerServices({ device, onDispatch }: {
         </div>
         {error !== null && <div className="form-err" role="alert">{formatError(error)}</div>}
         <button type="submit" className="apply">추가</button>
+      </form>
+
+      <h4>파일</h4>
+      <div className="sub">HTTP·FTP로 내놓는 파일이에요</div>
+      {files.map((file) => (
+        <div key={file.name} className="if-row">
+          {file.name}
+          <span className="ip">{file.content.length}자</span>
+          <button type="button" className="dns-remove" aria-label={`${file.name} 삭제`}
+            onClick={() => onDispatch({ type: "server/set-files", deviceId: device.id, files: files.filter((candidate) => candidate.name !== file.name) })}>
+            ×
+          </button>
+        </div>
+      ))}
+      <form className="pc-form dns-form" onSubmit={(event) => {
+        event.preventDefault();
+        const trimmed = fileName.trim();
+        if (trimmed === "") return;
+        const result = onDispatch({
+          type: "server/set-files", deviceId: device.id,
+          files: [...files.filter((file) => file.name !== trimmed), { name: trimmed, content: fileContent }],
+        });
+        if (!result.ok) { setError(result.error); return; }
+        setError(null);
+        setFileName("");
+        setFileContent("");
+      }}>
+        <div className="field">
+          <label htmlFor={`${id}-file-name`}>이름</label>
+          <input id={`${id}-file-name`} type="text" autoComplete="off" spellCheck={false} maxLength={64}
+            placeholder="index.html" value={fileName}
+            onChange={(event) => { setFileName(event.target.value); setError(null); }} />
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-file-content`}>내용</label>
+          <textarea id={`${id}-file-content`} rows={3} spellCheck={false} maxLength={4096}
+            placeholder="<html>…</html>" value={fileContent}
+            onChange={(event) => { setFileContent(event.target.value); setError(null); }} />
+        </div>
+        <button type="submit" className="apply">추가·덮어쓰기</button>
+      </form>
+
+      <h4>NTP</h4>
+      <form className="pc-form dns-form" onSubmit={(event) => {
+        event.preventDefault();
+        const result = onDispatch({ type: "server/set-ntp", deviceId: device.id, stratum });
+        if (!result.ok) setError(result.error); else setError(null);
+      }}>
+        <div className="field">
+          <label htmlFor={`${id}-stratum`}>계층 (stratum)</label>
+          <input id={`${id}-stratum`} type="number" min={1} max={15} value={stratum}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isInteger(value) && value >= 1 && value <= 15) {
+                onDispatch({ type: "server/set-ntp", deviceId: device.id, stratum: value });
+              }
+            }} />
+        </div>
+        <button type="submit" className="apply" hidden aria-hidden="true">적용</button>
       </form>
 
       <h4>SSH 계정</h4>

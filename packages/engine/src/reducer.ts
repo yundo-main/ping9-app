@@ -21,7 +21,7 @@ import { removeAccessList, removeNatSource, setAccessList, setNatPool, setNatSou
 import { addLink, removeDevice, removeLink } from "./reducer/link";
 import { setPcIp } from "./reducer/pc-set-ip";
 import { setPcOs } from "./reducer/pc-set-os";
-import { addServerDnsRecord, removeServerDnsRecord, setServerService, setServerSshAccounts } from "./reducer/server-services";
+import { addServerDnsRecord, removeServerDnsRecord, setServerFiles, setServerNtp, setServerService, setServerSshAccounts } from "./reducer/server-services";
 import { setServerIp } from "./reducer/server-set-ip";
 import { setServerOs } from "./reducer/server-set-os";
 import { createSvi, removeSvi, setIpRouting, setRouted } from "./reducer/l3switch";
@@ -81,6 +81,8 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "server/set-os": setServerOs,
   "server/set-service": setServerService,
   "server/set-ssh-accounts": setServerSshAccounts,
+  "server/set-files": setServerFiles,
+  "server/set-ntp": setServerNtp,
   "server/add-dns-record": addServerDnsRecord,
   "server/remove-dns-record": removeServerDnsRecord,
   "interface/set-admin": setInterfaceAdmin,

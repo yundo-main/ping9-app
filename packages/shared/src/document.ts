@@ -94,6 +94,12 @@ export interface DnsRecord {
   readonly address: string;
 }
 
+/** 서버가 HTTP·FTP로 내놓는 파일 (T0.58). 이름에 `/`는 쓰지 않는다 */
+export interface ServerFile {
+  readonly name: string;
+  readonly content: string;
+}
+
 /** SSH 로그인 계정 하나 (T0.56). 서버는 인스펙터에서, 라우터는 CLI로 만든다 */
 export interface SshAccount {
   readonly user: string;
@@ -408,6 +414,10 @@ export interface ServerConfig {
   readonly sshAccounts?: readonly SshAccount[];
   /** DNS 서비스가 답하는 이름 (T0.20). 칸이 없으면 없음 */
   readonly dnsRecords?: readonly DnsRecord[];
+  /** HTTP·HTTPS·FTP가 내놓는 파일 (T0.58). 칸이 없으면 정해진 기본 파일 둘 */
+  readonly files?: readonly ServerFile[];
+  /** NTP 서비스가 답하는 계층 (T0.58). 칸이 없으면 1 */
+  readonly ntpStratum?: number;
   /** iptables의 필터 규칙 (T0.21). 칸이 없으면 세 체인 모두 ACCEPT에 규칙 없음 */
   readonly filter?: PcFilter;
 }

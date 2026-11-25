@@ -14,6 +14,7 @@ const LIMIT_MESSAGES: Readonly<Record<LimitName, (max: number) => string>> = {
   staticRoutes: (max) => `Static route는 장비 하나에 ${max}개까지 넣을 수 있어요`,
   ripNetworks: (max) => `RIP network는 Router 하나에 ${max}개까지 넣을 수 있어요`,
   dnsRecords: (max) => `DNS 이름은 서버 하나에 ${max}개까지 넣을 수 있어요`,
+  serverFiles: (max) => `파일은 서버 하나에 ${max}개까지예요`,
   firewallRules: (max) => `필터 규칙은 체인 하나에 ${max}개까지 넣을 수 있어요`,
   vlans: (max) => `VLAN은 Switch 하나에 ${max}개까지 만들 수 있어요`,
   allowedVlanRanges: (max) => `trunk 허용 목록의 범위는 포트 하나에 ${max}개까지 쓸 수 있어요`,

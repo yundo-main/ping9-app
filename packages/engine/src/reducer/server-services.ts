@@ -59,6 +59,31 @@ export const setServerSshAccounts: CommandHandler<"server/set-ssh-accounts"> = (
   return withConfig(document, device, { ...device.config, sshAccounts: command.accounts });
 };
 
+const checkFile = (value: unknown): value is { name: string; content: string } =>
+  typeof value === "object" && value !== null &&
+  typeof (value as Record<string, unknown>)["name"] === "string" &&
+  typeof (value as Record<string, unknown>)["content"] === "string";
+
+/** HTTP·FTP가 내놓는 파일 목록을 통째로 바꾼다 (T0.58). 같은 이름을 지우려면 목록에서 빼면 된다 */
+export const setServerFiles: CommandHandler<"server/set-files"> = (document, command) => {
+  const found = findServer(document, command.deviceId);
+  if (!found.ok) return found;
+  const { device } = found;
+  if (!Array.isArray(command.files) || !command.files.every(checkFile)) {
+    return fail(errorInfo("DOCUMENT_INVALID_SHAPE", { path: "files" }));
+  }
+  return withConfig(document, device, { ...device.config, files: command.files });
+};
+
+/** NTP 서비스가 답하는 계층 (T0.58). stratum 1~15 */
+export const setServerNtp: CommandHandler<"server/set-ntp"> = (document, command) => {
+  const found = findServer(document, command.deviceId);
+  if (!found.ok) return found;
+  const { device } = found;
+  if (typeof command.stratum !== "number") return fail(errorInfo("DOCUMENT_INVALID_SHAPE", { path: "stratum" }));
+  return withConfig(document, device, { ...device.config, ntpStratum: command.stratum });
+};
+
 export const setServerService: CommandHandler<"server/set-service"> = (document, command) => {
   const found = findServer(document, command.deviceId);
   if (!found.ok) return found;

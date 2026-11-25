@@ -151,6 +151,9 @@ function runNslookup(os: OsKind) {
 /** 가상 µs를 초로 */
 const seconds = (timeUs: number, digits: number): string => (timeUs / 1_000_000).toFixed(digits);
 
+/** `server stratum N` 응답에서 N을 읽는다 (T0.58). 형식이 다르면 1로 둔다 */
+const stratumOf = (message: string): string => /stratum (\d+)/.exec(message)?.[1] ?? "1";
+
 /** Linux `ntpdate -q <서버>`. 시뮬레이터에 벽시계가 없어 offset은 0이고 날짜 줄은 없다. delay는 가상 시간의 왕복이다 */
 function runNtpdate(args: CommandArgs, context: CommandContext): CommandOutcome {
   const pc = pcOf(context);
@@ -161,7 +164,7 @@ function runNtpdate(args: CommandArgs, context: CommandContext): CommandOutcome 
   if ("error" in result) return { lines: [errorLine(result.error)] };
   const { outcome } = result;
   return done(outcome.kind === "response"
-    ? [`server ${server}, stratum 1, offset +0.000000, delay ${seconds(outcome.timeUs, 5)}`]
+    ? [`server ${server}, stratum ${stratumOf(outcome.message)}, offset +0.000000, delay ${seconds(outcome.timeUs, 5)}`]
     : ["ntpdate: no server suitable for synchronization found"], result.traceId);
 }
 

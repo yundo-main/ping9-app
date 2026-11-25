@@ -4,7 +4,7 @@
 
 import type { ErrorInfo, Notice } from "./codes";
 import type {
-  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position, RouterInterfaceConfig,
+  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position, RouterInterfaceConfig, ServerFile,
   RouterConfig, RouterSshConfig, ServiceKind, SshAccount, SwitchportMode, VlanRange, VpnMode, LbFrontend } from "./document";
 
 export type Command =
@@ -72,6 +72,8 @@ export type Command =
   | { readonly type: "server/set-service"; readonly deviceId: string; readonly service: ServiceKind; readonly enabled: boolean }
   // Server의 SSH 접속 계정 목록을 통째로 바꾼다 (T0.56)
   | { readonly type: "server/set-ssh-accounts"; readonly deviceId: string; readonly accounts: readonly SshAccount[] }
+  | { readonly type: "server/set-files"; readonly deviceId: string; readonly files: readonly ServerFile[] }
+  | { readonly type: "server/set-ntp"; readonly deviceId: string; readonly stratum: number }
   | { readonly type: "server/add-dns-record"; readonly deviceId: string; readonly name: string; readonly address: string }
   | { readonly type: "server/remove-dns-record"; readonly deviceId: string; readonly name: string }
   // Static route (FR-35)
@@ -148,6 +150,8 @@ const COMMAND_TYPE_SET = {
   "server/set-os": true,
   "server/set-service": true,
   "server/set-ssh-accounts": true,
+  "server/set-files": true,
+  "server/set-ntp": true,
   "server/add-dns-record": true,
   "server/remove-dns-record": true,
   "route/add": true,

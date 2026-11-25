@@ -42,6 +42,8 @@ const serverConfigSchema = z.object({
   services: z.array(z.enum(SERVICE_KINDS)).optional(),
   dnsRecords: z.array(z.object({ name: shortString, address: shortString })).optional(),
   sshAccounts: z.array(z.object({ user: shortString, password: shortString })).optional(),
+  files: z.array(z.object({ name: shortString, content: z.string().max(4096) })).optional(),
+  ntpStratum: integer.optional(),
   filter: z.lazy(() => filterSchema).optional(),
 });
 
