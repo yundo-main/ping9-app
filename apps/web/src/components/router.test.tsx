@@ -54,15 +54,15 @@ describe("Router 배치와 표시", () => {
   test("장비 목록은 장비 추가 버튼과 케이블 연결 버튼을 제공한다", () => {
     const html = renderToString(<Palette deviceCount={2} onConnect={noop} />);
     // 스위치류·라우터는 묶음 버튼 뒤에 있다 (T0.39, T0.52)
-    for (const label of ["PC 추가", "Server 추가", "Switch 종류", "Hub 추가", "Router 종류"]) expect(html).toContain(`aria-label="${label}"`);
-    expect(html.match(/<button/g)).toHaveLength(7);
-    expect(html.match(/draggable="false"/g)).toHaveLength(3);
+    for (const label of ["PC 추가", "Server 추가", "Switch 종류", "Router 종류"]) expect(html).toContain(`aria-label="${label}"`);
+    expect(html.match(/<button/g)).toHaveLength(6);
+    expect(html.match(/draggable="false"/g)).toHaveLength(2);
     expect(html).not.toContain("disabled");
   });
 
   test("한도에 도달하면 장비 추가 버튼을 비활성화한다", () => {
     const html = renderToString(<Palette deviceCount={LIMITS.maxDevices} onConnect={noop} />);
-    expect(html.match(/disabled=""/g)).toHaveLength(5);
+    expect(html.match(/disabled=""/g)).toHaveLength(4);
     expect(html.replaceAll("<!-- -->", "")).toContain("장비 50 / 50");
   });
 });

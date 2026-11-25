@@ -32,7 +32,7 @@ describe("장비 목록과 캔버스", () => {
     const html = renderToString(<Palette deviceCount={0} onConnect={noop} />);
     expect(html).not.toContain("Firewall");
     expect(html).not.toContain("icon-firewall");
-    expect(html.match(/class="tool device-tool"/g)).toHaveLength(3);
+    expect(html.match(/class="tool device-tool"/g)).toHaveLength(2);
     expect(html.match(/class="tool group-tool"/g)).toHaveLength(2);
   });
 

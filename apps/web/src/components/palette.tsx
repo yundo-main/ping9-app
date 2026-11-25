@@ -73,14 +73,14 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
           <DeviceIcon kind="switch" hideLayerBadge />Switch
         </button>
         {switchesOpen && (
-          <div className="switch-flyout" role="group" aria-label="스위치 종류">
+          <div className="switch-flyout" role="group" aria-label="스위치·허브 종류">
+            {tool("hub", "L1 Hub")}
             {tool("switch", "L2 Switch")}
             {tool("l3switch", "L3 Switch")}
             {tool("lb", "LB")}
           </div>
         )}
       </div>
-      {tool("hub", "Hub")}
       {/* 라우터도 한 버튼 — 플라이아웃에서 CLI 형식을 고른다 (T0.52). 배치한 뒤에도 인스펙터에서 바꿀 수 있다 */}
       <div className="tool-group">
         <button type="button" className="tool group-tool" aria-label="Router 종류" aria-expanded={routersOpen}
