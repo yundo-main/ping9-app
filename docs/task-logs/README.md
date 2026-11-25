@@ -167,3 +167,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.58 서버별 서비스 설정: HTTP·FTP 파일 목록 편집 + NTP stratum, ntpdate가 응답 계층 반영 (계획에 없는 새 ID) | [T0.58-server-service-config.md](T0.58-server-service-config.md) | 엔진·화면·공통 | jarrod | main 직접 커밋 |
 | T0.59 서비스 스위치를 켜면 해당 설정 구역으로 스크롤·강조 (계획에 없는 새 ID) | [T0.59-service-switch-jump.md](T0.59-service-switch-jump.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.60 가져온 토폴로지의 표시 이름을 파일명으로 (계획에 없는 새 ID) | [T0.60-import-shows-filename.md](T0.60-import-shows-filename.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.61 상단 막대에 가져온 파일명(확장자 포함) 표시 (계획에 없는 새 ID) | [T0.61-source-filename-display.md](T0.61-source-filename-display.md) | 화면 | jarrod | main 직접 커밋 |

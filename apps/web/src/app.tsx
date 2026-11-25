@@ -72,6 +72,8 @@ export function App() {
   const [actionError, setActionError] = useState<ErrorInfo | null>(null);
   // 토폴로지 이름. 서버가 없어 처음은 고정 이름이고, 가져온 파일의 이름으로 바뀐다 (T7.1.2)
   const [topologyName, setTopologyName] = useState(TOPOLOGY_NAME);
+  // 가져온 파일의 이름 (T0.61). 새 토폴로지면 null
+  const [sourceFile, setSourceFile] = useState<string | null>(null);
   const [importAsk, setImportAsk] = useState<PendingImport | null>(null);
   // 가져오기 실패. 닫을 때까지 보인다 (FR-45)
   const [importError, setImportError] = useState<ErrorInfo | null>(null);
@@ -615,12 +617,13 @@ export function App() {
 
   // 지금 토폴로지를 바꾼다. 열면 Runtime이 비어 있듯이 화면 상태도 처음으로: 선택, 터미널과 그 기록, 펭귄, 도구.
   // 모드는 그대로 둔다
-  const replaceTopology = ({ name, document: next }: PendingImport) => {
+  const replaceTopology = ({ fileName, name, document: next }: PendingImport) => {
     setImportAsk(null);
     for (const controller of running.current.values()) controller.abort();
     const result = simulator.load(next);
     if (!result.ok) return setImportError(result.error);
     setTopologyName(name);
+    setSourceFile(fileName);
     updateTerminals(() => ({}));
     setBusy(new Set());
     dispatch({ type: "sync", deviceIds: [] });
@@ -662,7 +665,7 @@ export function App() {
 
   return (
     <div className={`app mode-${mode}`}>
-      <TopBar name={topologyName} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
+      <TopBar name={topologyName} fileName={sourceFile} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
         onHelp={() => setHelpOpen(true)} onAbout={() => setAboutOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}

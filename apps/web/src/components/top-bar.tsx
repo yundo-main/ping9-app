@@ -26,8 +26,10 @@ export interface SimControls {
   readonly onSpeed: (speed: Speed) => void;
 }
 
-export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange, sim, onHelp, onAbout }: {
+export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onModeChange, sim, onHelp, onAbout }: {
   readonly name: string;
+  /** 가져온 파일의 이름. 새 토폴로지면 없다 (T0.61) */
+  readonly fileName?: string | null;
   /** 이름을 고친다 (T0.16). 없으면 이름을 글자로만 보인다 */
   readonly onRename?: ((name: string) => void) | undefined;
   /** 지금 토폴로지를 파일로 받는다 (T7.1.1) */
@@ -66,6 +68,7 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
       <div className="crumb">
         <span className="sep">/</span>
         {onRename === undefined ? <span className="name">{name}</span> : <TopologyName name={name} onRename={onRename} />}
+        {fileName != null && <span className="file-src" title="가져온 파일">{fileName}</span>}
       </div>
       <div className="file-actions">
         <button type="button" className="ghost" onClick={onExport}>
