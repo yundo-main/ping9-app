@@ -14,7 +14,7 @@ import { topologyDocumentSchema, traceSchema } from "./schema";
 import { checkPcServices } from "./server-config";
 import type { ParsedDocument } from "./schema";
 import type { Trace } from "./trace";
-import { checkTunnels, routerInterfaces } from "./tunnel-config";
+import { checkLoopbacks, checkTunnels, routerInterfaces } from "./tunnel-config";
 import { checkIpsec } from "./ipsec-config";
 import {
   checkDeviceName,
@@ -258,7 +258,7 @@ function checkRouterConfig(
       new Set(config.rip.passiveInterfaces).size !== config.rip.passiveInterfaces.length;
     if (repeated) return shapeError(`${path}.rip`);
   }
-  return checkTunnels(deviceId, config) ?? checkIpsec(config);
+  return checkTunnels(deviceId, config) ?? checkLoopbacks(deviceId, config) ?? checkIpsec(config);
 }
 
 function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null {

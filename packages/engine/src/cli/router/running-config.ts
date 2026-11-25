@@ -22,6 +22,13 @@ export function routerRunningConfigLines(device: RouterDevice): string[] {
     if (tunnel.adminUp) lines.push(" no shutdown");
     lines.push("!");
   }
+  // 루프백은 기본이 켜짐 — 꺼져 있을 때만 shutdown을 적는다 (T0.57)
+  for (const [name, loopback] of Object.entries(device.config.loopbacks ?? {})) {
+    lines.push(`interface ${name}`);
+    if (loopback.ip !== undefined) lines.push(` ip address ${loopback.ip} ${loopback.mask}`);
+    if (!loopback.adminUp) lines.push(" shutdown");
+    lines.push("!");
+  }
   // 실제 IOS의 순서: 인터페이스 → router rip → ip route. 묶음 안은 version → passive-interface → network → no auto-summary
   const { rip } = device.config;
   if (rip !== undefined) {

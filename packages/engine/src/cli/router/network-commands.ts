@@ -1,3 +1,4 @@
+import { routerInterfaces } from "@ping9/shared";
 import type { ConsoleLine } from "@ping9/shared";
 import { routerTtlOf } from "../../devices/router/router-model";
 import { defineCommand, param } from "../ios";
@@ -14,7 +15,7 @@ export const ROUTER_NETWORK_COMMANDS: readonly CommandDefinition[] = [
     run: (args, context) => {
       if (context.device.kind !== "router" || context.runtime === undefined) return {};
       const target = String(args.ip);
-      if (target.startsWith("127.") || Object.values(context.device.config.interfaces).some(iface => iface.adminUp && iface.ip === target)) {
+      if (target.startsWith("127.") || Object.values(routerInterfaces(context.device.config)).some(iface => iface.adminUp && iface.ip === target)) {
         return { lines: loopbackPingLines("windows", target, 4, routerTtlOf(context.device.config.cliStyle)) };
       }
       const result = context.runtime.ping({ deviceId: context.device.id, targetIp: target, count: 4, stopOnUnsent: false });
@@ -45,7 +46,7 @@ export const ROUTER_NETWORK_COMMANDS: readonly CommandDefinition[] = [
     run: (args, context) => {
       if (context.device.kind !== "router" || context.runtime === undefined) return {};
       const target = String(args.ip);
-      if (target.startsWith("127.") || Object.values(context.device.config.interfaces).some(iface => iface.adminUp && iface.ip === target)) {
+      if (target.startsWith("127.") || Object.values(routerInterfaces(context.device.config)).some(iface => iface.adminUp && iface.ip === target)) {
         return { lines: iosTracerouteLines(target, { kind: "loopback", targetIp: target }) };
       }
       const result = context.runtime.traceroute({ deviceId: context.device.id, targetIp: target, maxHops: 30 });

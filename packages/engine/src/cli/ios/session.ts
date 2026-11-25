@@ -48,7 +48,8 @@ export function effectiveSession(session: CliSession, device: Device): CliSessio
   if (session.mode === "config-ipsec" && (device.kind !== "router" || session.targetIpsec === undefined || device.config.ipsec?.[session.targetIpsec] === undefined)) return { mode: "config" };
   if (session.mode === "config-if") {
     const exists = session.targetPort !== undefined && (isPortName(device.kind, session.targetPort) ||
-      (device.kind === "router" && device.config.tunnels?.[session.targetPort] !== undefined));
+      (device.kind === "router" &&
+        (device.config.tunnels?.[session.targetPort] !== undefined || device.config.loopbacks?.[session.targetPort] !== undefined)));
     if (!exists) return { mode: "config" };
   }
   return session;

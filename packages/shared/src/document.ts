@@ -300,6 +300,8 @@ export interface RouterConfig {
   /** 동적 NAT 규칙 (T16.3). 비어 있고 outside 인터페이스만 있으면 묵시적 masquerade다 */
   readonly natSources?: readonly NatSourceRule[];
   readonly tunnels?: Readonly<Record<string, GreTunnelConfig>>;
+  /** 논리 루프백 인터페이스 (T0.57). IOS `interface LoopbackN`으로 만든다. 링크가 없고 만들면 켜진다 */
+  readonly loopbacks?: Readonly<Record<string, RouterInterfaceConfig>>;
   readonly ipsec?: Readonly<Record<string, IpsecProfileConfig>>;
   /** SSH 수신 설정 (T0.56). 칸이 없으면 SSH를 받지 않는다 */
   readonly ssh?: RouterSshConfig;

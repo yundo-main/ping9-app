@@ -105,5 +105,12 @@ export function routingTable(config: RouterConfig, ports: readonly PortView[], l
     return [{ source: "connected" as const, network: networkAddress(tunnel.ip!, tunnel.mask!)!, mask: tunnel.mask!,
       port: state.name, distance: DEFAULT_DISTANCE.connected, metric: 0 }];
   });
-  return tableFromConnected(config, [...connectedRoutes(config, ports), ...logical], learned);
+  // 루프백의 연결망. 나가는 포트가 없어 패킷은 루프백으로 배달된 뒤 버려진다 (T0.57)
+  const loopbacks = Object.entries(config.loopbacks ?? {}).flatMap(([name, loopback]) => {
+    if (!loopback.adminUp || loopback.ip === undefined || loopback.mask === undefined) return [];
+    const network = networkAddress(loopback.ip, loopback.mask);
+    return network === null ? [] : [{ source: "connected" as const, network, mask: loopback.mask,
+      port: name, distance: DEFAULT_DISTANCE.connected, metric: 0 }];
+  });
+  return tableFromConnected(config, [...connectedRoutes(config, ports), ...logical, ...loopbacks], learned);
 }

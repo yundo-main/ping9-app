@@ -30,6 +30,7 @@ import { clearRouterInterfaceIp, setRouterInterfaceIp } from "./reducer/router-i
 import { addRipNetwork, disableRip, enableRip, removeRipNetwork, setRipPassive } from "./reducer/router-rip";
 import { addRoute, removeRoute } from "./reducer/router-route";
 import { removeTunnel, setTunnel } from "./reducer/router-tunnel";
+import { removeLoopback, setLoopback } from "./reducer/router-loopback";
 import { removeIpsec, setIpsec } from "./reducer/router-ipsec";
 import { setIpForward } from "./reducer/router-ip-forward";
 import { commitVyos, setCliStyle, setRouterSsh } from "./reducer/router-vyos";
@@ -65,6 +66,8 @@ const handlers: { readonly [T in CommandType]?: CommandHandler<T> } = {
   "ipsec/remove": removeIpsec,
   "tunnel/set": setTunnel,
   "tunnel/remove": removeTunnel,
+  "loopback/set": setLoopback,
+  "loopback/remove": removeLoopback,
   "device/add": addDevice,
   "device/move": moveDevice,
   "device/rename": renameDevice,

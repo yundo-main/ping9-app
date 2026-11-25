@@ -112,6 +112,7 @@ const routerConfigSchema = z.object({
   tunnels: z.record(shortString, routerInterfaceConfigSchema.extend({
     mode: z.literal("gre"), source: shortString.optional(), destination: shortString.optional(),
   })).optional(),
+  loopbacks: z.record(shortString, routerInterfaceConfigSchema).optional(),
   ipsec: z.record(shortString, z.object({
     bypassWhenDisabled: z.boolean().optional(),
     policy: z.string().max(512).optional(),

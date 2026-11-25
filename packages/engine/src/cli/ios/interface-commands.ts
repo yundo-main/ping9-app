@@ -1,7 +1,7 @@
 // `interface <이름>`: 인터페이스 설정 모드로 들어간다 (T3.3.1). `shutdown`: 포트를 끈다 (T3.3.2).
 // 장비 종류를 가리지 않는다. 포트 이름은 그 장비 종류의 것으로 읽는다.
 
-import { errorInfo, isTunnelName } from "@ping9/shared";
+import { errorInfo, isLoopbackName, isTunnelName } from "@ping9/shared";
 
 import { customParam, defineCommand } from "./define";
 import type { CommandContext, CommandDefinition, CommandOutcome, ParamValue } from "./define";
@@ -41,9 +41,16 @@ function setAdmin(context: CommandContext, adminUp: boolean): CommandOutcome {
 }
 
 function enterInterface(context: CommandContext, port: string): CommandOutcome {
-  if (context.device.kind === "router" && isTunnelName(port) && context.device.config.tunnels?.[port] === undefined) {
-    const result = context.dispatch({ type: "tunnel/set", deviceId: context.device.id, name: port, config: { mode: "gre", adminUp: false } });
-    if (!result.ok) return { lines: linesFromDispatch(result) };
+  if (context.device.kind === "router") {
+    if (isTunnelName(port) && context.device.config.tunnels?.[port] === undefined) {
+      const result = context.dispatch({ type: "tunnel/set", deviceId: context.device.id, name: port, config: { mode: "gre", adminUp: false } });
+      if (!result.ok) return { lines: linesFromDispatch(result) };
+    }
+    // 루프백은 실제처럼 만들면 바로 켜진다 (T0.57)
+    if (isLoopbackName(port) && context.device.config.loopbacks?.[port] === undefined) {
+      const result = context.dispatch({ type: "loopback/set", deviceId: context.device.id, name: port, config: { adminUp: true } });
+      if (!result.ok) return { lines: linesFromDispatch(result) };
+    }
   }
   return { session: { mode: "config-if", targetPort: port } };
 }

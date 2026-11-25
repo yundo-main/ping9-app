@@ -1,4 +1,4 @@
-import { checkInterfaceAddress, checkRouterInterfaceOverlap, errorInfo, isTunnelName, routerInterfaces } from "@ping9/shared";
+import { checkInterfaceAddress, checkRouterInterfaceOverlap, errorInfo, isLoopbackName, isTunnelName, routerInterfaces } from "@ping9/shared";
 import type { Notice } from "@ping9/shared";
 
 import { describeValue } from "../describe";
@@ -7,6 +7,7 @@ import { findL3Switch, l3ClearInterfaceIp, l3SetInterfaceIp } from "./l3switch";
 import { findLb, lbClearInterfaceIp, lbSetInterfaceIp } from "./lb";
 import { checkRouterPort, findRouter, withRouterConfig } from "./router-common";
 import { updateTunnel } from "./router-tunnel";
+import { updateLoopback } from "./router-loopback";
 
 export const setRouterInterfaceIp: CommandHandler<"interface/set-ip"> = (document, command) => {
   const l3 = findL3Switch(document, command.deviceId);
@@ -17,6 +18,7 @@ export const setRouterInterfaceIp: CommandHandler<"interface/set-ip"> = (documen
   if (!found.ok) return found;
   const device = found.device;
   if (typeof command.port === "string" && isTunnelName(command.port)) return updateTunnel(document, device, command.port, { ip: command.ip, mask: command.mask });
+  if (typeof command.port === "string" && isLoopbackName(command.port)) return updateLoopback(document, device, command.port, { ip: command.ip, mask: command.mask });
   const portError = checkRouterPort(device, command.port);
   if (portError !== null) return { ok: false, error: portError };
 
@@ -62,6 +64,15 @@ export const clearRouterInterfaceIp: CommandHandler<"interface/clear-ip"> = (doc
       const { mode, adminUp, source, destination } = tunnel;
       const rest = { mode, adminUp, ...(source === undefined ? {} : { source }), ...(destination === undefined ? {} : { destination }) };
       return withRouterConfig(document, device, { ...device.config, tunnels: { ...device.config.tunnels, [command.port]: rest } });
+    }
+  }
+  if (typeof command.port === "string" && isLoopbackName(command.port)) {
+    const loopback = device.config.loopbacks?.[command.port];
+    if (loopback !== undefined) {
+      return withRouterConfig(document, device, {
+        ...device.config,
+        loopbacks: { ...device.config.loopbacks, [command.port]: { adminUp: loopback.adminUp } },
+      });
     }
   }
   const portError = checkRouterPort(device, command.port);

@@ -125,6 +125,8 @@ export const ROUTER_SHOW_COMMANDS: readonly CommandDefinition[] = [
         ports.find(view => view.name === port)?.status ?? "admin-down",
       ]);
       rows.push(...tunnelStates(device.config, ports).map(state => [state.name, device.config.tunnels![state.name]!.ip ?? "unassigned", state.status]));
+      rows.push(...Object.entries(device.config.loopbacks ?? {}).map(([name, loopback]) =>
+        [name, loopback.ip ?? "unassigned", loopback.adminUp ? "up" : "admin-down"]));
       return { lines: tableLines(["Interface", "IP address", "Status"], rows).map(text => ({ kind: "text", text })) };
     },
   }),

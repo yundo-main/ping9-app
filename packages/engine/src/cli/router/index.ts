@@ -12,6 +12,7 @@ import { ROUTER_TUNNEL_COMMANDS } from "./tunnel-commands";
 import { ROUTER_IPSEC_COMMANDS } from "./ipsec-commands";
 import { ROUTER_VPN_MODE_COMMANDS } from "./vpn-mode-commands";
 import { ROUTER_SSH_COMMANDS } from "./ssh-commands";
+import { ROUTER_LOOPBACK_COMMANDS } from "./loopback-commands";
 
 export const ROUTER_COMMANDS: readonly CommandDefinition[] = [
   ...BASE_COMMANDS,
@@ -27,4 +28,5 @@ export const ROUTER_COMMANDS: readonly CommandDefinition[] = [
   ...ROUTER_IPSEC_COMMANDS,
   ...ROUTER_VPN_MODE_COMMANDS,
   ...ROUTER_SSH_COMMANDS,
+  ...ROUTER_LOOPBACK_COMMANDS,
 ];

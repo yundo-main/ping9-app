@@ -4,7 +4,7 @@
 
 import type { ErrorInfo, Notice } from "./codes";
 import type {
-  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position,
+  DeviceKind, FirewallChain, FirewallPolicy, FirewallRule, GreTunnelConfig, IpsecProfileConfig, OsKind, PortRef, Position, RouterInterfaceConfig,
   RouterConfig, RouterSshConfig, ServiceKind, SshAccount, SwitchportMode, VlanRange, VpnMode, LbFrontend } from "./document";
 
 export type Command =
@@ -19,6 +19,8 @@ export type Command =
   | { readonly type: "ipsec/remove"; readonly deviceId: string; readonly name: string }
   | { readonly type: "tunnel/set"; readonly deviceId: string; readonly name: string; readonly config: GreTunnelConfig }
   | { readonly type: "tunnel/remove"; readonly deviceId: string; readonly name: string }
+  | { readonly type: "loopback/set"; readonly deviceId: string; readonly name: string; readonly config: RouterInterfaceConfig }
+  | { readonly type: "loopback/remove"; readonly deviceId: string; readonly name: string }
   // 장비 (FR-9 ~ FR-11). 기본 이름(PC1, SW1, R1)과 기본 구성은 reducer가 붙인다.
   // `os`는 PC에만 쓴다 (T0.7). 없으면 DEFAULT_OS
   | { readonly type: "device/add"; readonly id: string; readonly kind: DeviceKind; readonly position: Position; readonly os?: OsKind }
@@ -122,6 +124,8 @@ const COMMAND_TYPE_SET = {
   "ipsec/remove": true,
   "tunnel/set": true,
   "tunnel/remove": true,
+  "loopback/set": true,
+  "loopback/remove": true,
   "device/add": true,
   "device/move": true,
   "device/rename": true,

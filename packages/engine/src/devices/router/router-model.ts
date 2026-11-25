@@ -1,4 +1,4 @@
-import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, SERVICE_PORTS, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, formatIpv4, isIcmpError, isSameNetwork, isTunnelName, parseIpv4, routerInterfaces, routerSshOpen, greEnabled } from "@ping9/shared";
+import { BROADCAST_MAC, PORT_NAMES, RIP_MULTICAST_MAC, SERVICE_PORTS, UNKNOWN_MAC, checkHostIpv4, checkInterfaceAddress, formatIpv4, isIcmpError, isLoopbackName, isSameNetwork, isTunnelName, maskToPrefixLength, parseIpv4, routerInterfaces, routerSshOpen, greEnabled } from "@ping9/shared";
 import type { ApplicationData, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, NatSourceRule, NatTranslationView, Reason, RouterConfig, RouterDevice, RouterView, TcpFlags, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
@@ -513,6 +513,16 @@ export class RouterModel implements DeviceModel {
       if (profile !== undefined) { this.#protect(ctx, profile, decision, ipv4, icmp, parentSeq, originalFrame); return; }
     }
     if (isTunnelName(port)) { this.#encapsulate(ctx, port, ipv4, icmp, parentSeq, originalFrame); return; }
+    // 루프백의 연결망으로 보내는 패킷은 나가는 링크가 없어 그 자리에서 버려진다 (T0.57)
+    if (isLoopbackName(port)) {
+      const frame = originalFrame ?? ctx.createFrame({
+        ethernet: { sourceMac: portMac(device, PORT_NAMES.router[0]), destinationMac: UNKNOWN_MAC }, ipv4,
+        ...(icmp === undefined ? {} : { icmp }) });
+      ctx.record({ frame, deviceId: device.id, layer: "L3", action: "drop",
+        ...(parentSeq === undefined ? {} : { parentSeq }),
+        reason: { code: "NOT_FOR_ME", params: { device: deviceRef(device) } } });
+      return;
+    }
     const gre = ipv4.protocol === 47 ? originalFrame?.snapshot.gre : undefined;
     const esp = ipv4.protocol === 50 ? originalFrame?.snapshot.esp : undefined;
     const pending: PendingSend = {
@@ -624,8 +634,14 @@ export class RouterModel implements DeviceModel {
 
   #unicast(ip: string): boolean {
     if (checkHostIpv4(ip) !== null) return false;
-    return !Object.values(routerInterfaces(this.#device().config)).some(iface => iface.ip !== undefined && iface.mask !== undefined &&
-      isSameNetwork(ip, iface.ip, iface.mask) && checkInterfaceAddress(ip, iface.mask) !== null);
+    return !Object.values(routerInterfaces(this.#device().config)).some(iface => {
+      // 자기 인터페이스의 네트워크·브로드캐스트 주소는 유니캐스트가 아니다.
+      // /31·/32(루프백)에는 그런 주소가 없으니 건너뛴다 (T0.57)
+      if (iface.ip === undefined || iface.mask === undefined) return false;
+      const length = maskToPrefixLength(iface.mask);
+      return length !== null && length <= 30 && isSameNetwork(ip, iface.ip, iface.mask) &&
+        checkInterfaceAddress(ip, iface.mask) !== null;
+    });
   }
 
   #error(ctx: SimContext, original: Frame, type: IcmpErrorType, parentSeq: number): void {
@@ -640,7 +656,8 @@ export class RouterModel implements DeviceModel {
     const localInterface = Object.entries(routerInterfaces(device.config)).find(([name, iface]) =>
       (!isTunnelName(name) || greEnabled(device.config)) && iface.adminUp && iface.ip === ipv4.sourceIp)?.[0];
     const localPort = localInterface === undefined ? undefined : isTunnelName(localInterface)
-      ? device.config.tunnels?.[localInterface]?.source : localInterface;
+      ? device.config.tunnels?.[localInterface]?.source
+      : isLoopbackName(localInterface) ? PORT_NAMES.router[0] : localInterface;
     const message: IcmpMessage = { type, sequence, original: {
       sourceIp: ipv4.sourceIp, destinationIp: ipv4.destinationIp, sequence,
       ...(icmp !== undefined || transport === undefined ? {} : {

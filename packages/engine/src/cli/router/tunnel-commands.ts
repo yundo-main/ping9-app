@@ -3,7 +3,7 @@ import type { GreTunnelConfig } from "@ping9/shared";
 import { computeViews } from "../../views";
 import { tunnelStates } from "../../devices/router/routing";
 import { resolvePortName } from "../ios/port-name";
-import { defineCommand, linesFromDispatch, param } from "../ios";
+import { customParam, defineCommand, linesFromDispatch, param } from "../ios";
 import type { CommandContext, CommandDefinition, CommandOutcome } from "../ios";
 
 function configure(context: CommandContext, patch: Partial<GreTunnelConfig>): CommandOutcome {
@@ -12,6 +12,13 @@ function configure(context: CommandContext, patch: Partial<GreTunnelConfig>): Co
   if (name === undefined || tunnel === undefined) return { lines: [{ kind: "error", ...errorInfo("TUNNEL_INVALID_CONFIG", { detail: "Tunnel 인터페이스에서 입력하세요" }) }] };
   return { lines: linesFromDispatch(context.dispatch({ type: "tunnel/set", deviceId: context.device.id, name, config: { ...tunnel, ...patch } })) };
 }
+
+const TUNNEL = customParam("tunnel", "Tunnel0-Tunnel3", (text, kind) => {
+  const name = resolvePortName(kind, text);
+  return name !== undefined && isTunnelName(name)
+    ? { ok: true, value: name }
+    : { ok: false, error: errorInfo("CLI_INVALID_VALUE", { token: text.slice(0, 32) }) };
+});
 
 export const ROUTER_TUNNEL_COMMANDS: readonly CommandDefinition[] = [
   defineCommand({ modes: ["config-if"], devices: ["router"], tokens: ["tunnel", "mode", "gre", "ip"],
@@ -25,11 +32,9 @@ export const ROUTER_TUNNEL_COMMANDS: readonly CommandDefinition[] = [
     } }),
   defineCommand({ modes: ["config-if"], devices: ["router"], tokens: ["tunnel", "destination", param("destination", "ipv4", "Outer peer IPv4 address")],
     help: "Set the remote tunnel endpoint", run: (args, context) => configure(context, { destination: String(args.destination) }) }),
-  defineCommand({ modes: ["config"], devices: ["router"], tokens: ["no", "interface", param("tunnel", "word", "Tunnel0-Tunnel3")],
-    help: "Remove a logical tunnel interface", run: (args, context) => {
-      const name = resolvePortName("router", String(args.tunnel)) ?? String(args.tunnel);
-      return { lines: linesFromDispatch(context.dispatch({ type: "tunnel/remove", deviceId: context.device.id, name })) };
-    } }),
+  defineCommand({ modes: ["config"], devices: ["router"], tokens: ["no", "interface", TUNNEL],
+    help: "Remove a logical tunnel interface", run: (args, context) => (
+      { lines: linesFromDispatch(context.dispatch({ type: "tunnel/remove", deviceId: context.device.id, name: String(args.tunnel) })) }) }),
   defineCommand({ modes: ["privileged"], devices: ["router"], tokens: ["show", "interfaces", param("tunnel", "word", "Tunnel0-Tunnel3")],
     help: "Show a GRE tunnel and its local underlay status", run: (args, context) => {
       if (context.device.kind !== "router") return {};

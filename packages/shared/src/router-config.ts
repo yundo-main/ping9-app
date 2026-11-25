@@ -61,6 +61,7 @@ export function normalizeRouterConfig(config: RouterConfig): RouterConfig {
     ...(config.natSources === undefined || config.natSources.length === 0 ? {} : { natSources: [...config.natSources] }),
     ...(config.rip === undefined ? {} : { rip: normalizeRipConfig(config.rip) }),
     ...(config.tunnels === undefined || Object.keys(config.tunnels).length === 0 ? {} : { tunnels: config.tunnels }),
+    ...(config.loopbacks === undefined || Object.keys(config.loopbacks).length === 0 ? {} : { loopbacks: config.loopbacks }),
     ...(config.ipsec === undefined || Object.keys(config.ipsec).length === 0 ? {} : { ipsec: config.ipsec }),
     ...(config.ssh === undefined ? {} : { ssh: config.ssh }),
   };
