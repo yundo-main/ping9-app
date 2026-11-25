@@ -159,3 +159,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.50 팔레트 안내 문구를 "장비" 제목 툴팁으로 이동: 평소 문구 제거, 취소 안내는 유지 (계획에 없는 새 ID) | [T0.50-palette-note-to-tooltip.md](T0.50-palette-note-to-tooltip.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.51 상단 로고로 About 열기, `i` 버튼 제거 (계획에 없는 새 ID) | [T0.51-brand-about-no-i.md](T0.51-brand-about-no-i.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.52 라우터 팔레트 묶음(IOS·VyOS·Linux 선택)과 아이콘 CLI 형식 배지 (계획에 없는 새 ID) | [T0.52-router-cli-styles.md](T0.52-router-cli-styles.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.53 토폴로지 실행취소·재실행: Document 스냅샷 스택, Edit 메뉴 ⌘Z/⇧⌘Z (계획에 없는 새 ID) | [T0.53-undo-redo.md](T0.53-undo-redo.md) | 엔진·앱·화면 | jarrod | main 직접 커밋 |

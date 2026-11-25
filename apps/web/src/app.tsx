@@ -247,7 +247,27 @@ export function App() {
       (deviceId) => simulator.console(deviceId).prompt()));
     setSelectedLinkId(current => document.links.some(link => link.id === current) ? current : null);
     setCable(current => syncCableState(current, document));
+    // 되돌리기·가져오기로 사라진 장비·케이블이 범위 선택에 남지 않게 정리한다 (T0.53)
+    const linkIds = new Set(document.links.map(link => link.id));
+    setBoxSel(current => {
+      const devices = current.devices.filter(id => alive.has(id));
+      const links = current.links.filter(id => linkIds.has(id));
+      return devices.length === current.devices.length && links.length === current.links.length ? current : { devices, links };
+    });
   }, [document]);
+
+  // 메뉴가 없는 환경(개발용 브라우저)용 단축키. 앱에서는 메뉴의 ⌘Z·⇧⌘Z가 먼저 처리한다 (T0.53)
+  useEffect(() => {
+    const undoRedo = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "z" || !(event.metaKey || event.ctrlKey)) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      event.preventDefault();
+      if (event.shiftKey) simulator.redo(); else simulator.undo();
+    };
+    window.addEventListener("keydown", undoRedo);
+    return () => window.removeEventListener("keydown", undoRedo);
+  }, []);
 
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
@@ -633,7 +653,9 @@ export function App() {
       const b = await listen("menu-export", () => menuActions.current.doExport());
       const c = await listen("menu-about", () => setAboutOpen(true));
       const d = await listen("menu-new", () => menuActions.current.doNew());
-      off = () => { a(); b(); c(); d(); };
+      const e = await listen("menu-undo", () => simulator.undo());
+      const f = await listen("menu-redo", () => simulator.redo());
+      off = () => { a(); b(); c(); d(); e(); f(); };
     });
     return () => off?.();
   }, []);

@@ -60,12 +60,12 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `format/`, `messages/` | 포트·주소·케이블 표시 문자열과 사용자 메시지 |
 | `app.tsx` | 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
 
-### Contributors
+### 개발자
 
-Original project: [TL-cg11/PING9](https://github.com/TL-cg11/PING9) — web-based network simulator
+원본 프로젝트: [TL-cg11/PING9](https://github.com/TL-cg11/PING9) — 웹 기반 네트워크 시뮬레이터
 - SDY
 - yysong1249
 - ssunyoung2
 
-Forked and ported to a desktop app (Tauri — Windows & macOS)
+데스크톱 앱 (Tauri — Windows · macOS)
 - jarrod kim

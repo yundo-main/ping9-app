@@ -36,6 +36,10 @@ export interface Simulator {
   load(document: TopologyDocument): LoadResult;
   /** Document를 바꾼다. 동기식이다. 거부되면 아무것도 바뀌지 않는다 */
   dispatch(command: Command): DispatchResult;
+  /** 직전 Document로 되돌린다. 되돌릴 것이 없으면 false (T0.53) */
+  undo(): boolean;
+  /** 되돌린 Document를 다시 적용한다. 없으면 false */
+  redo(): boolean;
   /** 장비의 콘솔. 같은 장비에는 항상 같은 객체를 돌려준다 */
   console(deviceId: string): ConsolePort;
   /** 현재 상태. 바뀐 것이 없으면 같은 참조를 돌려준다. 값은 얼어 있어 고칠 수 없다 */
@@ -64,6 +68,11 @@ export function createSimulator(): Simulator {
   // kernel, 장비 모델(ARP 테이블), 보관 중인 추적 (T1.8.3)
   const runtime = createRuntime(() => document);
 
+  // 실행취소 기록 (T0.53). Document는 얼어 있는 불변 객체라 통째로 보관한다
+  const past: TopologyDocument[] = [];
+  const future: TopologyDocument[] = [];
+  const HISTORY_LIMIT = 100;
+
   const listeners = new Set<() => void>();
   const consoles = new Map<string, ConsolePort>();
   // 장비별 CLI 세션 (현재 모드, 설정 중인 대상). 스냅샷에 담지 않으며 바뀌어도 구독자를 부르지 않는다
@@ -84,6 +93,9 @@ export function createSimulator(): Simulator {
     const previous = document;
     document = deepFreeze(result.document);
     docVersion += 1;
+    past.push(previous);
+    if (past.length > HISTORY_LIMIT) past.shift();
+    future.length = 0;
     // IP나 링크가 바뀐 PC의 ARP 테이블과 VLAN·링크가 바뀐 Switch 포트의 MAC 항목을 비운다.
     // 실제로 지워졌을 때만 Runtime이 바뀐 것이다
     if (runtime.configChanged(previous, document)) runtimeVersion += 1;
@@ -95,6 +107,16 @@ export function createSimulator(): Simulator {
 
   const runtimeChanged = (): void => {
     runtimeVersion += 1;
+    changed();
+  };
+
+  // undo/redo의 공통 후처리. dispatch와 같다: 바뀐 쪽의 ARP·MAC을 비우고, RIP이 있으면 경로 교환 1회
+  const restore = (next: TopologyDocument): void => {
+    const previous = document;
+    document = next;
+    docVersion += 1;
+    if (runtime.configChanged(previous, document)) runtimeVersion += 1;
+    if (needsRouteExchange(previous, document) && runtime.exchangeRoutes(docVersion) !== null) runtimeVersion += 1;
     changed();
   };
 
@@ -159,6 +181,8 @@ export function createSimulator(): Simulator {
       document = deepFreeze(result.document);
       docVersion += 1;
       runtimeVersion += 1;
+      past.length = 0;
+      future.length = 0;
       runtime.reset();
       sessions.clear();
       files.clear();
@@ -169,6 +193,22 @@ export function createSimulator(): Simulator {
     },
 
     dispatch,
+
+    undo() {
+      const previous = past.pop();
+      if (previous === undefined) return false;
+      future.push(document);
+      restore(previous);
+      return true;
+    },
+
+    redo() {
+      const next = future.pop();
+      if (next === undefined) return false;
+      past.push(document);
+      restore(next);
+      return true;
+    },
 
     console(deviceId) {
       let port = consoles.get(deviceId);

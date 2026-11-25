@@ -29,6 +29,12 @@ pub fn run() {
       }
       // 기본 "About PING9"는 네이티브 창이라 개발자 정보가 안 나온다.
       // 정보 창을 여는 이벤트를 보내는 커스텀 항목으로 바꾼다 (T0.43)
+      let undo = MenuItemBuilder::with_id("menu-undo", "실행 취소")
+        .accelerator("CmdOrCtrl+Z")
+        .build(app)?;
+      let redo = MenuItemBuilder::with_id("menu-redo", "재실행")
+        .accelerator("Shift+CmdOrCtrl+Z")
+        .build(app)?;
       let about = MenuItemBuilder::with_id("menu-about", "PING9에 관하여").build(app)?;
       // Help 메뉴에도 같은 창을 여는 항목을 넣는다. 항목은 한 메뉴에만 속할 수 있어 id가 다른 복사본을 만든다
       let about_help = MenuItemBuilder::with_id("menu-about-help", "PING9에 관하여").build(app)?;
@@ -46,6 +52,20 @@ pub fn run() {
               sub.append(&PredefinedMenuItem::separator(app)?)?;
             }
             sub.append(&about_help)?;
+          }
+          // 기본 Undo·Redo는 웹뷰의 텍스트 편집용이다. 토폴로지 되돌리기 이벤트를 보내는 항목으로 바꾼다 (T0.53)
+          if sub.text()? == "Edit" {
+            for item in sub.items()? {
+              let is_undo_redo = matches!(&item, MenuItemKind::Predefined(pre) if {
+                let text = pre.text().unwrap_or_default();
+                text == "Undo" || text == "Redo"
+              });
+              if is_undo_redo {
+                sub.remove(&item)?;
+              }
+            }
+            sub.insert(&undo, 0)?;
+            sub.insert(&redo, 1)?;
           }
         }
       }
@@ -78,7 +98,7 @@ pub fn run() {
     })
     .on_menu_event(|app, event| {
       match event.id().as_ref() {
-        "menu-new" | "menu-import" | "menu-export" | "menu-about" => {
+        "menu-new" | "menu-import" | "menu-export" | "menu-about" | "menu-undo" | "menu-redo" => {
           let _ = app.emit(event.id().as_ref(), ());
         }
         // Help 메뉴의 복사본은 앱 메뉴 항목과 같은 이벤트로 변환한다

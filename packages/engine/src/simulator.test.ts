@@ -110,6 +110,38 @@ describe("load", () => {
   });
 });
 
+describe("undo·redo (T0.53)", () => {
+  test("dispatch를 되돌리고 다시 적용한다", () => {
+    const simulator = createSimulator();
+    simulator.dispatch({ type: "device/add", id: "11111111-1111-4111-8111-111111111111", kind: "pc", position: { x: 0, y: 0 } });
+    const added = simulator.getSnapshot().document;
+
+    expect(simulator.undo()).toBe(true);
+    expect(simulator.getSnapshot().document.devices).toHaveLength(0);
+    expect(simulator.redo()).toBe(true);
+    expect(simulator.getSnapshot().document).toEqual(added);
+  });
+
+  test("되돌릴 것이 없으면 false이고, 새 dispatch는 재실행 기록을 지운다", () => {
+    const simulator = createSimulator();
+    expect(simulator.undo()).toBe(false);
+    expect(simulator.redo()).toBe(false);
+
+    simulator.dispatch({ type: "device/add", id: "11111111-1111-4111-8111-111111111111", kind: "pc", position: { x: 0, y: 0 } });
+    simulator.undo();
+    simulator.dispatch({ type: "device/add", id: "22222222-2222-4222-8222-222222222222", kind: "pc", position: { x: 10, y: 0 } });
+    expect(simulator.redo()).toBe(false);
+    expect(simulator.getSnapshot().document.devices.map(d => d.id)).toEqual(["22222222-2222-4222-8222-222222222222"]);
+  });
+
+  test("load는 기록을 비운다", () => {
+    const simulator = createSimulator();
+    simulator.dispatch({ type: "device/add", id: "11111111-1111-4111-8111-111111111111", kind: "pc", position: { x: 0, y: 0 } });
+    simulator.load(twoPcDocument);
+    expect(simulator.undo()).toBe(false);
+  });
+});
+
 describe("스냅샷", () => {
   test("바뀐 것이 없으면 같은 참조를 돌려준다", () => {
     const simulator = createSimulator();
