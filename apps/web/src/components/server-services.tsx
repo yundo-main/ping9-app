@@ -10,6 +10,11 @@ import { formatError } from "../messages/errors";
 
 export const SERVICE_LABELS: Readonly<Record<ServiceKind, string>> = { http: "HTTP", https: "HTTPS", dns: "DNS", ntp: "NTP", ftp: "FTP", ssh: "SSH" };
 
+/** 서비스 스위치를 켰을 때 보여줄 설정 구역의 id 꼬리 (T0.59) */
+const SERVICE_SECTION: Partial<Readonly<Record<ServiceKind, string>>> = {
+  http: "files", https: "files", ftp: "files", dns: "dns", ntp: "ntp", ssh: "ssh",
+};
+
 /** 스위치를 눌렀을 때 낼 Command */
 export function serviceCommand(deviceId: string, service: ServiceKind, enabled: boolean): Command {
   return { type: "server/set-service", deviceId, service, enabled };
@@ -55,6 +60,7 @@ export function ServerServices({ device, onDispatch }: {
   const [sshPassword, setSshPassword] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileContent, setFileContent] = useState("");
+  const [flash, setFlash] = useState<string | null>(null);
   const files = serverFilesOf(device.config, device.name);
   const stratum = device.config.ntpStratum ?? 1;
   const enabled = servicesOf(device.config);
@@ -93,10 +99,18 @@ export function ServerServices({ device, onDispatch }: {
       <h4>서비스</h4>
       {SERVICE_KINDS.map((service) => (
         <ServiceSwitch key={service} service={service} enabled={enabled.includes(service)}
-          onChange={(next) => onDispatch(serviceCommand(device.id, service, next))} />
+          onChange={(next) => {
+            onDispatch(serviceCommand(device.id, service, next));
+            const section = next ? SERVICE_SECTION[service] : undefined;
+            if (section !== undefined) {
+              document.getElementById(`${id}-section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              setFlash(section);
+              window.setTimeout(() => setFlash(null), 1600);
+            }
+          }} />
       ))}
 
-      <h4>DNS 이름</h4>
+      <h4 id={`${id}-section-dns`} className={flash === "dns" ? "flash" : undefined}>DNS 이름</h4>
       {records.length === 0 && <div className="sub">아직 넣은 이름이 없어요</div>}
       {records.map((record) => (
         <div key={record.name} className="if-row">
@@ -125,7 +139,7 @@ export function ServerServices({ device, onDispatch }: {
         <button type="submit" className="apply">추가</button>
       </form>
 
-      <h4>파일</h4>
+      <h4 id={`${id}-section-files`} className={flash === "files" ? "flash" : undefined}>파일</h4>
       <div className="sub">HTTP·FTP로 내놓는 파일이에요</div>
       {files.map((file) => (
         <div key={file.name} className="if-row">
@@ -165,7 +179,7 @@ export function ServerServices({ device, onDispatch }: {
         <button type="submit" className="apply">추가·덮어쓰기</button>
       </form>
 
-      <h4>NTP</h4>
+      <h4 id={`${id}-section-ntp`} className={flash === "ntp" ? "flash" : undefined}>NTP</h4>
       <form className="pc-form dns-form" onSubmit={(event) => {
         event.preventDefault();
         const result = onDispatch({ type: "server/set-ntp", deviceId: device.id, stratum });
@@ -184,7 +198,7 @@ export function ServerServices({ device, onDispatch }: {
         <button type="submit" className="apply" hidden aria-hidden="true">적용</button>
       </form>
 
-      <h4>SSH 계정</h4>
+      <h4 id={`${id}-section-ssh`} className={flash === "ssh" ? "flash" : undefined}>SSH 계정</h4>
       <div className="sub">ssh &lt;사용자&gt;@&lt;이 서버의 IP&gt;로 접속합니다</div>
       {accounts.map((account) => (
         <div key={account.user} className="if-row">

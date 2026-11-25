@@ -34,7 +34,7 @@ describe("Server를 고른 PC", () => {
       expect(html).toContain(`<span class="port-name">${label}</span><span class="key">${port}</span>`);
       expect(html).toContain(`aria-checked="true" aria-label="${label} 서비스"`);
     }
-    expect(html).toContain("<h4>DNS 이름</h4>");
+    expect(html).toMatch(/<h4 id="[^"]*"[^>]*>DNS 이름<\/h4>/);
     expect(html).toContain("아직 넣은 이름이 없어요");
     // 포트 이름은 Linux처럼 eth0이다
     expect(html).toContain('<span class="port-name">eth0</span>');

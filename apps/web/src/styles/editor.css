@@ -615,3 +615,10 @@ button.brand:hover .tile img { filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)) br
 .canvas-view-menu label.all { font-weight: 700; border-bottom: 1px solid #E6EDF7; margin-bottom: 4px; padding-bottom: 9px; }
 .canvas-view-menu input:indeterminate + .box { background: var(--sky-700); border-color: var(--sky-700); }
 .canvas-view-menu input:indeterminate + .box::after { content: ""; width: 7px; height: 2px; background: #fff; }
+
+/* 서비스 스위치를 켰을 때 해당 설정 제목을 잠시 밝힌다 (T0.59) */
+.inspector h4.flash { color: var(--navy); animation: section-flash 1.6s ease-out; border-radius: 6px; }
+@keyframes section-flash {
+  0% { background: #BEE0FF; box-shadow: 0 0 0 6px #BEE0FF; }
+  100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
