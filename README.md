@@ -63,9 +63,9 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 ### 개발자
 
 원본 프로젝트: [TL-cg11/PING9](https://github.com/TL-cg11/PING9) — 웹 기반 네트워크 시뮬레이터
-- SDY
-- yysong1249
-- ssunyoung2
+- Do-yoon Sung (TL-cg11, 성도윤)
+- Seon-yu Yong (yysong1249, 용선유)
+- Seon-young Min (ssunyoung2, 민선영)
 
 데스크톱 앱 (Tauri — Windows · macOS) + 웹 버전 (GitHub Pages)
 - jarrod kim
