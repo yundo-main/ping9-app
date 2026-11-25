@@ -69,8 +69,22 @@
   .btn.ghost { color: var(--text); background: #fff; }
   .hero .ver { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--dim); }
 
-  section { padding: 72px 0; }
-  section + section { border-top: 1px solid var(--edge-soft); }
+  section { padding: 56px 0; }
+  .tabs input[name=lt] { position: absolute; opacity: 0; pointer-events: none; }
+  .tabbar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+  .tabbar label {
+    padding: 9px 22px; border-radius: 999px; border: 1px solid var(--edge);
+    font-weight: 600; font-size: 14.5px; color: var(--dim); cursor: pointer;
+    background: #fff; transition: all .15s ease; user-select: none;
+  }
+  .tabbar label:hover { color: var(--accent); border-color: var(--accent); }
+  #lt-feat:checked ~ .tabbar label[for=lt-feat], #lt-why:checked ~ .tabbar label[for=lt-why],
+  #lt-cli:checked ~ .tabbar label[for=lt-cli], #lt-docs:checked ~ .tabbar label[for=lt-docs],
+  #lt-hist:checked ~ .tabbar label[for=lt-hist] { background: var(--accent); color: #fff; border-color: transparent; }
+  .panel { display: none; }
+  #lt-feat:checked ~ .panel.p-feat, #lt-why:checked ~ .panel.p-why,
+  #lt-cli:checked ~ .panel.p-cli, #lt-docs:checked ~ .panel.p-docs,
+  #lt-hist:checked ~ .panel.p-hist { display: block; }
   h2 { font-size: 27px; margin-bottom: 8px; letter-spacing: -.02em; }
   .lead { color: var(--dim); font-size: 15px; margin-bottom: 28px; }
 
@@ -194,7 +208,21 @@
   <p class="ver">v1.0.0 · 계정 없이 바로 실습 · 설치 없이 웹에서도</p>
 </header>
 
-<section class="wrap">
+<section class="wrap tabs">
+  <input type="radio" name="lt" id="lt-feat" checked>
+  <input type="radio" name="lt" id="lt-why">
+  <input type="radio" name="lt" id="lt-cli">
+  <input type="radio" name="lt" id="lt-docs">
+  <input type="radio" name="lt" id="lt-hist">
+  <div class="tabbar">
+    <label for="lt-feat">기능</label>
+    <label for="lt-why">왜 PING9</label>
+    <label for="lt-cli">맛보기</label>
+    <label for="lt-docs">문서</label>
+    <label for="lt-hist">히스토리</label>
+  </div>
+
+  <div class="panel p-feat">
   <h2>기능</h2>
   <p class="lead">수업에서 다루는 실습 범위를 그대로 — 배치부터 패킷 추적까지</p>
   <div class="grid">
@@ -229,9 +257,10 @@
       <p>Tauri로 만든 macOS·Windows용 단일 앱. 네트워크·계정 없이 바로 켜서 쓰고, 웹 버전은 링크만 열면 됩니다.</p>
     </div>
   </div>
-</section>
 
-<section class="wrap">
+  </div>
+
+  <div class="panel p-why">
   <div class="intro">
     <img src="assets/panel-penguin.png" alt="PING9 패널 일러스트">
     <div>
@@ -248,9 +277,10 @@
       </div>
     </div>
   </div>
-</section>
 
-<section class="wrap">
+  </div>
+
+  <div class="panel p-cli">
   <h2>맛보기</h2>
   <p class="lead">Cisco IOS 형식 — 루프백 인터페이스까지 그대로</p>
   <div class="term">
@@ -264,9 +294,10 @@
 <span class="p">R1(config-if)#</span> ip address 192.168.100.1 255.255.255.255
 <span class="c"># PC1&gt; ping 192.168.100.1 — 응답이 돌아옵니다</span></pre>
   </div>
-</section>
 
-<section class="wrap">
+  </div>
+
+  <div class="panel p-docs">
   <h2>문서</h2>
   <p class="lead">설치부터 장비별 명령까지</p>
   <div class="docgrid">
@@ -291,10 +322,10 @@
       <div class="go">docs/task-logs →</div>
     </a>
   </div>
-</section>
 
-<section class="wrap history" id="history">
-  <h2>히스토리</h2>
+  </div>
+
+  <div class="panel p-hist" id="history"><h2>히스토리</h2>
   <p class="lead">Task 단위 작업 기록 — 최근 것부터. 전체 목록은 <a href="https://github.com/yundo-main/ping9-app/tree/main/docs/task-logs">docs/task-logs</a>에 있습니다.</p>
   <table>
 <!--HISTORY:BEGIN-->
@@ -464,7 +495,23 @@
       <!--HISTORY-MORE:END-->
     </table>
   </details>
+  </div>
 </section>
+
+<script>
+(() => {
+  const map = { features: "lt-feat", why: "lt-why", cli: "lt-cli", docs: "lt-docs", history: "lt-hist" };
+  const activate = () => { const id = map[location.hash.slice(1)]; if (id) document.getElementById(id).checked = true; };
+  addEventListener("hashchange", activate);
+  activate();
+  for (const radio of document.querySelectorAll("input[name=lt]")) {
+    radio.addEventListener("change", () => {
+      const name = Object.keys(map).find((key) => map[key] === radio.id);
+      if (name) history.replaceState(null, "", "#" + name);
+    });
+  }
+})();
+</script>
 
 <footer>
   <p>PING9 — 원본 프로젝트 <a href="https://github.com/TL-cg11/PING9">TL-cg11/PING9</a> (SDY · yysong1249 · ssunyoung2)를 바탕으로<br>
