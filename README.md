@@ -1,6 +1,6 @@
 # PING9
 
-네트워크 장비(PC, Switch, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. Windows·macOS용 Tauri 데스크톱 앱으로 배포합니다 — 웹 서버로는 실행하지 않습니다.
+네트워크 장비(PC, Server, Switch(L2·L3·LB), Hub, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. Windows·macOS용 Tauri 데스크톱 앱으로 배포합니다 — 웹 서버로는 실행하지 않습니다.
 
 | 내용 | 위치 |
 |---|---|
@@ -44,11 +44,11 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | 폴더 | 역할 |
 |---|---|
 | `kernel/` | 장비 종류를 모르는 이산 사건 커널 (가상 시계 + 사건 큐) |
-| `devices/` | PC, Switch(VLAN 포워딩), Router(정적 라우팅·RIP·GRE/IPsec VPN) 모델 |
+| `devices/` | PC, Server(HTTP·DNS·FTP·NTP·SSH 서비스), Hub, Switch·L3 Switch(VLAN 포워딩·SVI), LB, Router(정적 라우팅·RIP·GRE/IPsec VPN·루프백) 모델 |
 | `protocols/` | ARP, IPv4 호스트, 전송 계층, iptables 필터 |
-| `cli/` | Cisco IOS 유사 CLI(Switch·Router), Linux·Windows PC 콘솔, VyOS CLI |
+| `cli/` | Cisco IOS 유사 CLI(Switch·Router), VyOS·Linux 라우터 CLI, Linux·Windows PC·서버 콘솔, SSH 원격 세션 |
 | `reducer/` | Document 변경 명령 처리기. 불변, 거부 시 무변경 |
-| `simulator.ts` | web과 engine의 유일한 경계. `load`/`dispatch`/`console`/`getSnapshot`/`subscribe` |
+| `simulator.ts` | web과 engine의 유일한 경계. `load`/`dispatch`/`console`/`getSnapshot`/`subscribe`/`undo`/`redo` |
 
 ### `apps/web/src/` 세부 역할
 
