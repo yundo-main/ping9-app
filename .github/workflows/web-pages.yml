@@ -50,6 +50,8 @@ jobs:
           mkdir -p site/app
           cp docs/index.html docs/manual.html site/
           cp -r docs/assets site/assets
+          # 랜딩의 히스토리 섹션을 task-logs README에서 다시 만든다 (T0.65)
+          node scripts/update-landing-history.mjs site/index.html
           cp -r apps/web/dist/* site/app/
 
       - name: Configure Pages
