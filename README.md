@@ -1,6 +1,6 @@
 # PING9
 
-네트워크 장비(PC, Server, Switch(L2·L3·LB), Hub, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. 주 배포는 Windows·macOS용 Tauri 데스크톱 앱이고, 정적 웹 배포(Vercel — `vercel.json`)도 지원합니다.
+네트워크 장비(PC, Server, Switch(L2·L3·LB), Hub, Router)를 배치·연결하고, CLI로 설정해 ping의 과정과 실패 원인을 눈으로 확인하는 네트워크 시뮬레이터입니다. Windows·macOS용 Tauri **데스크톱 앱**과 **웹 버전**(GitHub Pages — [yundo-main.github.io/ping9-app](https://yundo-main.github.io/ping9-app/)) 두 갈래로 배포합니다.
 
 | 내용 | 위치 |
 |---|---|
@@ -67,5 +67,5 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 - yysong1249
 - ssunyoung2
 
-데스크톱 앱 (Tauri — Windows · macOS)
+데스크톱 앱 (Tauri — Windows · macOS) + 웹 버전 (GitHub Pages)
 - jarrod kim
