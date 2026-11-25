@@ -161,3 +161,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.52 라우터 팔레트 묶음(IOS·VyOS·Linux 선택)과 아이콘 CLI 형식 배지 (계획에 없는 새 ID) | [T0.52-router-cli-styles.md](T0.52-router-cli-styles.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.53 토폴로지 실행취소·재실행: Document 스냅샷 스택, Edit 메뉴 ⌘Z/⇧⌘Z (계획에 없는 새 ID) | [T0.53-undo-redo.md](T0.53-undo-redo.md) | 엔진·앱·화면 | jarrod | main 직접 커밋 |
 | T0.54 Hub를 스위치 묶음 플라이아웃 안으로: L1 Hub·L2·L3·LB 계층 순 나열 (계획에 없는 새 ID) | [T0.54-hub-in-switch-group.md](T0.54-hub-in-switch-group.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.55 플라이아웃 LB 항목 `L4/L7 LB` 표기 + 호버로 열고 이탈 시 닫기, 8px 데드존·터치 토글 수정 (계획에 없는 새 ID) | [T0.55-lb-layer-name-flyout-hover.md](T0.55-lb-layer-name-flyout-hover.md) | 화면 | jarrod | main 직접 커밋 |

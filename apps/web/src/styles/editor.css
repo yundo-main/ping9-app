@@ -102,6 +102,7 @@ button.brand:hover .tile img { filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)) br
 .tool.group-tool { color: inherit; }
 /* 스위치 묶음을 펼치면 목록이 커지지 않게 옆에 플라이아웃으로 띄운다 (T0.39) */
 .switch-flyout { position: absolute; left: calc(100% + 8px); top: 0; z-index: 40; width: 112px; display: flex; flex-direction: column; gap: 10px; padding: 12px 8px; background: #FFFFFFEB; border: 1px solid #FFFFFFB3; border-radius: 18px; box-shadow: 0 8px 26px #0E3A7A1F; backdrop-filter: blur(6px); }
+.switch-flyout::before { content: ""; position: absolute; left: -8px; top: 0; bottom: 0; width: 8px; } /* 그룹과의 8px 틈을 메워 호버로 닿을 수 있게 한다 (T0.55) */
 .palette-note { min-height: 15px; font-size: 11px; line-height: 1.4; text-align: center; color: var(--navy-60); }
 /* 목록에서 끌어 온 새 장비를 장비 목록에 다시 놓으면 취소된다 (T0.12). 끄는 동안 안내를 바꾸고, 목록 위에 오면 표시한다 */
 .palette.cancel-armed .palette-note { color: var(--sky-700); font-weight: 600; }

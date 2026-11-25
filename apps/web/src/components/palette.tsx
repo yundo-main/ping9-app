@@ -65,11 +65,14 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
       <h4 data-tip="장비를 캔버스로 끌어서 배치하세요">장비</h4>
       {tool("pc", "PC")}
       {tool("server", "Server")}
-      {/* 스위치는 한 버튼으로 묶는다. 누르면 옆에 뜨는 플라이아웃에서 고른다 — 목록 크기는 안 변한다 (T0.39) */}
-      <div className="tool-group">
+      {/* 스위치는 한 버튼으로 묶는다. 올리거나 누르면 옆에 뜨는 플라이아웃에서 고르고, 마우스가 나가면 닫힌다 — 목록 크기는 안 변한다 (T0.39, T0.55) */}
+      <div className="tool-group"
+        onPointerEnter={e => { if (e.pointerType === "mouse" && !full && dragCancel === "idle") setSwitchesOpen(true); }}
+        onPointerLeave={e => { if (e.pointerType === "mouse") setSwitchesOpen(false); }}>
         <button type="button" className="tool group-tool" aria-label="Switch 종류" aria-expanded={switchesOpen}
-          data-tip="눌러 스위치 종류를 고릅니다" disabled={full}
-          onClick={() => setSwitchesOpen(open => !open)}>
+          data-tip="올리거나 눌러 스위치 종류를 고릅니다" disabled={full}
+          onPointerDown={e => { if (e.pointerType !== "mouse") { e.preventDefault(); setSwitchesOpen(open => !open); } }}
+          onClick={e => { if (e.detail === 0) setSwitchesOpen(open => !open); }}>
           <DeviceIcon kind="switch" hideLayerBadge />Switch
         </button>
         {switchesOpen && (
@@ -77,15 +80,18 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
             {tool("hub", "L1 Hub")}
             {tool("switch", "L2 Switch")}
             {tool("l3switch", "L3 Switch")}
-            {tool("lb", "LB")}
+            {tool("lb", "L4/L7 LB")}
           </div>
         )}
       </div>
       {/* 라우터도 한 버튼 — 플라이아웃에서 CLI 형식을 고른다 (T0.52). 배치한 뒤에도 인스펙터에서 바꿀 수 있다 */}
-      <div className="tool-group">
+      <div className="tool-group"
+        onPointerEnter={e => { if (e.pointerType === "mouse" && !full && dragCancel === "idle") setRoutersOpen(true); }}
+        onPointerLeave={e => { if (e.pointerType === "mouse") setRoutersOpen(false); }}>
         <button type="button" className="tool group-tool" aria-label="Router 종류" aria-expanded={routersOpen}
-          data-tip="눌러 라우터 CLI 형식을 고릅니다" disabled={full}
-          onClick={() => setRoutersOpen(open => !open)}>
+          data-tip="올리거나 눌러 라우터 CLI 형식을 고릅니다" disabled={full}
+          onPointerDown={e => { if (e.pointerType !== "mouse") { e.preventDefault(); setRoutersOpen(open => !open); } }}
+          onClick={e => { if (e.detail === 0) setRoutersOpen(open => !open); }}>
           <DeviceIcon kind="router" hideLayerBadge />Router
         </button>
         {routersOpen && (
