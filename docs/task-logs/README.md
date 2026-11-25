@@ -157,3 +157,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.49 파일 메뉴에 새 토폴로지(⌘N): 빈 문서로 초기화, 확인 대화상자 재사용 (계획에 없는 새 ID) | [T0.49-new-topology-menu.md](T0.49-new-topology-menu.md) | 앱·화면 | jarrod | main 직접 커밋 |
 | T0.50 브랜드 아이콘으로 PING9에 관하여 열기 (계획에 없는 새 ID) | [T0.50-brand-about.md](T0.50-brand-about.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.50 팔레트 안내 문구를 "장비" 제목 툴팁으로 이동: 평소 문구 제거, 취소 안내는 유지 (계획에 없는 새 ID) | [T0.50-palette-note-to-tooltip.md](T0.50-palette-note-to-tooltip.md) | 화면 | jarrod | main 직접 커밋 |
+| T0.51 상단 로고로 About 열기, `i` 버튼 제거 (계획에 없는 새 ID) | [T0.51-brand-about-no-i.md](T0.51-brand-about-no-i.md) | 화면 | jarrod | main 직접 커밋 |

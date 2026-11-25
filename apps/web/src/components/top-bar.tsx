@@ -101,9 +101,6 @@ export function TopBar({ name, onRename, onExport, onImport, mode, onModeChange,
           </div>
         </div>
       )}
-      {onAbout !== undefined && (
-        <button type="button" className="help-open" aria-label="PING9에 관하여" title="PING9에 관하여" onClick={onAbout}>i</button>
-      )}
       {onHelp !== undefined && (
         <button type="button" className="help-open" aria-label="도움말" title="도움말" onClick={onHelp}>?</button>
       )}
