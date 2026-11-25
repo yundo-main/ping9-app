@@ -468,3 +468,31 @@ describe("subscribe", () => {
     expect(second).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("resetSimulation (T0.67)", () => {
+  test("추적·ARP 테이블을 비우고 Document와 콘솔 세션은 그대로 둔다", async () => {
+    const simulator = createSimulator();
+    simulator.load(twoPcDocument);
+    await simulator.console(TWO_PC.pc1.id).exec("ping 192.168.1.2");
+    const filled = simulator.getSnapshot();
+    expect(filled.traces.length).toBeGreaterThan(0);
+    expect(filled.views[TWO_PC.pc1.id]).toMatchObject({ kind: "pc" });
+    const runtimeBefore = filled.runtimeVersion;
+
+    simulator.resetSimulation();
+
+    const after = simulator.getSnapshot();
+    expect(after.traces).toEqual([]);
+    expect(after.runtimeVersion).toBe(runtimeBefore + 1);
+    expect(after.document).toBe(filled.document); // 토폴로지는 유지
+    // 배운 ARP도 비웠다 — 다시 핑하면 ARP부터 시작한다
+    expect(after.views[TWO_PC.pc1.id]).toMatchObject({ arpTable: [] });
+  });
+
+  test("비어 있어도 오류 없이 버전만 오른다", () => {
+    const simulator = createSimulator();
+    simulator.load(twoPcDocument);
+    expect(() => simulator.resetSimulation()).not.toThrow();
+    expect(simulator.getSnapshot().traces).toEqual([]);
+  });
+});

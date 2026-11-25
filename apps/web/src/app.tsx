@@ -667,7 +667,8 @@ export function App() {
     <div className={`app mode-${mode}`}>
       <TopBar name={topologyName} fileName={sourceFile} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
         onHelp={() => setHelpOpen(true)} onAbout={() => setAboutOpen(true)}
-        sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined} />
+        sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined}
+        onReset={() => simulator.resetSimulation()} />
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>

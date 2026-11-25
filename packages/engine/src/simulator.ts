@@ -56,6 +56,12 @@ export interface Simulator {
    * 그 교환의 Trace가 목록에 없거나 ping Trace면 undefined
    */
   getRouteChanges(traceId: number): readonly RouteChangeView[] | undefined;
+  /**
+   * 시뮬레이션 상태를 처음으로 되돌린다 (T0.67). Document·콘솔 세션은 두고,
+   * 추적 목록·장비 모델(ARP·MAC 테이블·배운 경로 등 Runtime 전부)을 비운다.
+   * RIP Router가 있으면 비운 뒤 경로 교환 1회를 다시 돌린다
+   */
+  resetSimulation(): void;
   /** 상태가 바뀔 때마다 불린다. 돌려주는 함수를 부르면 구독이 끝난다 */
   subscribe(listener: () => void): () => void;
 }
@@ -242,6 +248,14 @@ export function createSimulator(): Simulator {
       const trace = runtime.exchangeRoutes(docVersion);
       if (trace !== null) runtimeChanged();
       return trace;
+    },
+
+    resetSimulation() {
+      runtime.reset();
+      // 배운 경로는 저장하지 않는다 — 비우자마자 다시 배운다 (load와 같은 규칙)
+      if (hasRipRouter(document)) runtime.exchangeRoutes(docVersion);
+      runtimeVersion += 1;
+      changed();
     },
 
     subscribe(listener) {

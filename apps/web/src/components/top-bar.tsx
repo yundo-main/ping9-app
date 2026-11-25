@@ -27,7 +27,7 @@ export interface SimControls {
   readonly onSpeed: (speed: Speed) => void;
 }
 
-export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onModeChange, sim, onHelp, onAbout }: {
+export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onModeChange, sim, onReset, onHelp, onAbout }: {
   readonly name: string;
   /** 가져온 파일의 이름. 새 토폴로지면 없다 (T0.61) */
   readonly fileName?: string | null;
@@ -41,6 +41,8 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
   readonly onModeChange: (mode: Mode) => void;
   /** 시뮬레이션 모드에서만 준다. 없으면 멈춤·속도를 그리지 않는다 */
   readonly sim?: SimControls | undefined;
+  /** 시뮬레이션 상태 초기화 (T0.67): 추적·ARP·배운 경로를 지운다. 없으면 리셋 버튼을 그리지 않는다 */
+  readonly onReset?: (() => void) | undefined;
   /** 도움말 창을 연다 (T0.30). 없으면 ? 버튼을 그리지 않는다 */
   readonly onHelp?: (() => void) | undefined;
   /** PING9에 관하여 창을 연다 (T0.41). 브랜드 아이콘도 이걸 연다 (T0.50). 없으면 i 버튼을 그리지 않고 브랜드는 눌러지지 않는다 */
@@ -104,6 +106,11 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
             ))}
           </div>
         </div>
+      )}
+      {onReset !== undefined && (
+        <button type="button" className="ghost" title="추적·ARP 테이블·배운 경로를 지웁니다 (토폴로지는 유지)" onClick={onReset}>
+          ⟲ 리셋
+        </button>
       )}
       {onHelp !== undefined && (
         <button type="button" className="help-open" aria-label="도움말" title="도움말" onClick={onHelp}>?</button>
