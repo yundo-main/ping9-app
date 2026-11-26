@@ -33,3 +33,18 @@ pnpm --filter @ping9/edu dev
 2. **Root Directory**를 `edu/app`으로 설정한다 — 그러면 `edu/app/vercel.json`이 적용된다
 3. **Ignored Build Step**에 `git diff HEAD^ HEAD --quiet -- edu/ packages/`를 넣으면 edu와 패키지가 바뀐 커밋만 배포된다
 4. 환경변수·도메인은 이 프로젝트의 설정에만 생긴다 — PING9의 Pages/데스크톱 배포와 무관하다
+
+## 수동 배포 (CLI)
+
+Git 연동 없이 CLI로 바로 올릴 수도 있다 — 저장소 **루트**에서 실행한다 (프로젝트의 `rootDirectory: edu/app` 설정이 루트 기준이라 `edu/app` 안에서 deploy하면 경로가 꼬인다):
+
+```bash
+vercel link --yes --project ping9-edu       # 한 번만
+vercel pull --yes --environment=production  # 설정·env 다운로드
+vercel build --prod                         # 로컬 빌드 → .vercel/output
+vercel deploy --prebuilt --prod             # 프로덕션 배포
+```
+
+- 로컬 빌드라 pnpm 워크스페이스(`@ping9/*`)를 그대로 해결한다
+- CLI가 만드는 `.vercel/`, `.env.local`은 gitignore 대상 — 커밋하지 않는다
+- 도메인 관리: `vercel domains add <도메인> ping9-edu` — 프로젝트 도메인으로 붙여야 프로덕션 배포를 따라간다
