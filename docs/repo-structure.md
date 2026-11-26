@@ -7,6 +7,8 @@
 | **ping9-app** | 네트워크 시뮬레이터 본체 — 장비 배치·CLI·패킷 추적 | GitHub Pages(`web-pages.yml`) + Tauri 데스크톱(`desktop-release.yml`) |
 | **PING9 Edu** | 네트워크 진도별 학습도구 — 레슨·자동 채점 | Vercel 프로젝트 `ping9-edu` (Root Directory `edu/app`) → `ping9-edu.vercel.app` |
 
+> 코어 공유의 계약과 연결부(seam)는 [core-sharing.md](core-sharing.md)에 따로 정리했다.
+
 ## 레이어
 
 ```
