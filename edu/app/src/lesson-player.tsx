@@ -19,6 +19,7 @@ export function LessonPlayer({ lesson, nextLesson, onExit, onPassed, onNext }: {
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState<GradeResult | null>(null);
   const [briefOpen, setBriefOpen] = useState(true);
+  const [step, setStep] = useState(0);
   const running = useRef(false);
 
   // 레슨 진입 시 시작 토폴로지를 올린다 — EditorApp은 스냅샷을 구독하므로 먼저 load하면 그 상태로 그린다
@@ -26,6 +27,7 @@ export function LessonPlayer({ lesson, nextLesson, onExit, onPassed, onNext }: {
     simulator.load(lesson.startDocument);
     setReady(true);
     setResult(null);
+    setStep(0);
   }, [lesson]);
 
   const gradeNow = async () => {
@@ -62,7 +64,22 @@ export function LessonPlayer({ lesson, nextLesson, onExit, onPassed, onNext }: {
       <div className={`edu-player-body${briefOpen ? "" : " brief-closed"}`}>
         {briefOpen && (
           <aside className="edu-brief">
-            <Markdown text={lesson.brief} />
+            <div className="edu-step">
+              <div className="edu-step-nav">
+                <button type="button" disabled={step === 0} onClick={() => setStep((value) => value - 1)}>← 이전</button>
+                <span>단계 {step + 1} / {lesson.steps.length}</span>
+                <button type="button" disabled={step + 1 >= lesson.steps.length} onClick={() => setStep((value) => value + 1)}>다음 →</button>
+              </div>
+              <div className="edu-step-dots">
+                {lesson.steps.map((_, index) => (
+                  <button key={index} type="button" className={index === step ? "on" : ""} onClick={() => setStep(index)} aria-label={`단계 ${index + 1}`} />
+                ))}
+              </div>
+              <Markdown text={lesson.steps[step]!.text} />
+              {lesson.steps[step]!.hint !== undefined && (
+                <details className="edu-hint"><summary>힌트</summary><p>{lesson.steps[step]!.hint}</p></details>
+              )}
+            </div>
             <h3>완료 조건</h3>
             <ul className="edu-checks">
               {lesson.checks.map((check, index) => (

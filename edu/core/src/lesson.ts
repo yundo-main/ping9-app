@@ -34,8 +34,13 @@ export const lessonSchema = z.object({
   /** 단원 안 순서 */
   order: z.number().int().positive(),
   title: z.string().min(1),
-  /** 학생에게 보이는 과제 설명 (마크다운 허용) */
-  brief: z.string().min(1),
+  /** 목록 카드에 보이는 한 줄 요약 */
+  summary: z.string().min(1),
+  /** 단계 안내 — 학생이 순서대로 넘기는 안내 카드 (마크다운 허용, hint는 접는 힌트) */
+  steps: z.array(z.object({
+    text: z.string().min(1),
+    hint: z.string().optional(),
+  })).min(1),
   /** 시작 토폴로지 — 엔진의 Document와 같은 형식. shared의 topologyDocumentSchema는
    *  내부용이라 여기선 `validateDocument`로 검증한다 */
   startDocument: z.custom<TopologyDocument>((value) => validateDocument(value).ok),
@@ -43,8 +48,8 @@ export const lessonSchema = z.object({
 });
 export type Lesson = z.infer<typeof lessonSchema>;
 
-/** 레슨을 정의하고 검증한다 — 잘못된 토폴로지나 빈 checks는 정의 시점에 걸린다 */
-export function defineLesson(input: Lesson): Lesson {
+/** 레슨을 정의하고 검증한다 — JSON 데이터든 코드든 잘못된 내용은 정의 시점에 걸린다 */
+export function defineLesson(input: unknown): Lesson {
   return lessonSchema.parse(input);
 }
 

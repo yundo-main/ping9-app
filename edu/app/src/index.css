@@ -115,3 +115,16 @@ body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans
 .edu-dash-lessons button:hover { background: #F1F5F9; color: var(--blue); }
 .edu-dash-lessons button.ok { color: #047857; }
 .edu-user .edu-login-link { margin: 0 12px 0 0; }
+
+/* ── 단계(step) 진행 — step-through 레슨 안내 ── */
+.edu-step { margin-bottom: 16px; }
+.edu-step-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.edu-step-nav span { font-size: 12.5px; color: var(--navy-60); font-weight: 600; }
+.edu-step-nav button { border: 1px solid #E2E8F0; background: #fff; color: var(--blue); border-radius: 8px; font-size: 12.5px; font-weight: 700; padding: 6px 12px; cursor: pointer; }
+.edu-step-nav button:disabled { color: var(--navy-60); opacity: .5; cursor: default; }
+.edu-step-dots { display: flex; gap: 6px; margin-bottom: 12px; }
+.edu-step-dots button { width: 8px; height: 8px; border-radius: 50%; border: none; background: #CBD5E1; padding: 0; cursor: pointer; }
+.edu-step-dots button.on { background: var(--blue); }
+.edu-hint { margin: 4px 0 10px; font-size: 13px; }
+.edu-hint summary { color: var(--blue); cursor: pointer; font-weight: 600; font-size: 12.5px; }
+.edu-hint p { margin: 6px 0 0; padding: 8px 10px; background: #F1F5F9; border-radius: 6px; }

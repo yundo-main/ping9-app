@@ -41,7 +41,7 @@ export function LessonList({ lessons, passed, onPick }: {
                 return (
                   <button key={lesson.id} className={`edu-card${done ? " done" : ""}`} onClick={() => onPick(lesson)} type="button">
                     <b>{lesson.title}{done && <i className="edu-done">완료</i>}</b>
-                    <span>{lesson.brief.split("\n")[0]}</span>
+                    <span>{lesson.summary}</span>
                     <span>목표 {lesson.checks.length}개</span>
                   </button>
                 );

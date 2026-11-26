@@ -3,7 +3,9 @@
 import { createSimulator } from "@ping9/engine";
 import { describe, expect, test } from "vitest";
 import { grade } from "./grader";
-import { n1FirstPing } from "./lessons/n1-first-ping";
+import { LESSONS } from "./lessons";
+
+const n1FirstPing = LESSONS[0]!;
 
 const PC1 = "11111111-1111-4111-8111-111111111111";
 const PC2 = "33333333-3333-4333-8333-333333333333";
