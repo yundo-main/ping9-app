@@ -36,10 +36,25 @@ export const lessonSchema = z.object({
   title: z.string().min(1),
   /** 목록 카드에 보이는 한 줄 요약 */
   summary: z.string().min(1),
+  /** 난이도 — 카드·플레이어의 배지 (designed-to-scale의 level) */
+  level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  /** 예상 소요 시간(분) */
+  minutes: z.number().int().positive().optional(),
+  /** 학습 목표 — 레슨 시작 시 보이는 목록, step은 해당 목표가 다뤄지는 단계 번호(1-based) */
+  goals: z.array(z.object({ text: z.string().min(1), step: z.number().int().positive() })).optional(),
   /** 단계 안내 — 학생이 순서대로 넘기는 안내 카드 (마크다운 허용, hint는 접는 힌트) */
   steps: z.array(z.object({
+    /** 짧은 단계 제목 — 네비·제목줄에 보인다 */
+    short: z.string().optional(),
+    /** 챕터 이름 — 같은 챕터의 단계들을 묶어 보여 준다 */
+    chapter: z.string().optional(),
     text: z.string().min(1),
     hint: z.string().optional(),
+    /** 강조 박스 — 본문과 별도로 눈에 띄는 팁/경고 */
+    callout: z.object({
+      kind: z.enum(["tip", "warn", "note"]),
+      text: z.string().min(1),
+    }).optional(),
   })).min(1),
   /** 시작 토폴로지 — 엔진의 Document와 같은 형식. shared의 topologyDocumentSchema는
    *  내부용이라 여기선 `validateDocument`로 검증한다 */

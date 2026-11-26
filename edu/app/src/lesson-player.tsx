@@ -10,6 +10,12 @@ import { recordAttempt } from "./classes";
 import { UNIT_TITLES } from "./lesson-list";
 import { Markdown } from "./markdown";
 
+const LEVEL_LABELS: Record<string, string> = {
+  beginner: "초급",
+  intermediate: "중급",
+  advanced: "고급",
+};
+
 export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, onNext }: {
   readonly lesson: Lesson;
   readonly nextLesson: Lesson | null;
@@ -57,6 +63,8 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
         <div className="edu-player-title">
           <span className="edu-player-unit">{UNIT_TITLES[lesson.unit] ?? lesson.unit}</span>
           <b>{lesson.title}</b>
+          {lesson.level !== undefined && <i className={`edu-level lvl-${lesson.level}`}>{LEVEL_LABELS[lesson.level] ?? lesson.level}</i>}
+          {lesson.minutes !== undefined && <span className="edu-minutes">~{lesson.minutes}분</span>}
         </div>
         <button type="button" className="edu-brief-toggle" onClick={() => setBriefOpen((open) => !open)}>
           {briefOpen ? "과제 닫기" : "과제 보기"}
@@ -68,6 +76,18 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
       <div className={`edu-player-body${briefOpen ? "" : " brief-closed"}`}>
         {briefOpen && (
           <aside className="edu-brief">
+            {lesson.goals !== undefined && lesson.goals.length > 0 && (
+              <ul className="edu-goals">
+                {lesson.goals.map((goal, index) => (
+                  <li key={index}>
+                    <button type="button" onClick={() => setStep(goal.step - 1)}
+                      className={step === goal.step - 1 ? "on" : ""}>
+                      {goal.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="edu-step">
               <div className="edu-step-nav">
                 <button type="button" disabled={step === 0} onClick={() => setStep((value) => value - 1)}>← 이전</button>
@@ -75,11 +95,23 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                 <button type="button" disabled={step + 1 >= lesson.steps.length} onClick={() => setStep((value) => value + 1)}>다음 →</button>
               </div>
               <div className="edu-step-dots">
-                {lesson.steps.map((_, index) => (
-                  <button key={index} type="button" className={index === step ? "on" : ""} onClick={() => setStep(index)} aria-label={`단계 ${index + 1}`} />
+                {lesson.steps.map((stepItem, index) => (
+                  <button key={index} type="button" className={index === step ? "on" : ""} onClick={() => setStep(index)}
+                    aria-label={stepItem.short ?? `단계 ${index + 1}`} title={stepItem.short} />
                 ))}
               </div>
+              {lesson.steps[step]!.chapter !== undefined && (
+                <span className="edu-eyebrow">{lesson.steps[step]!.chapter}</span>
+              )}
+              {lesson.steps[step]!.short !== undefined && (
+                <b className="edu-step-title">{lesson.steps[step]!.short}</b>
+              )}
               <Markdown text={lesson.steps[step]!.text} />
+              {lesson.steps[step]!.callout !== undefined && (
+                <p className={`edu-callout ${lesson.steps[step]!.callout!.kind}`}>
+                  {lesson.steps[step]!.callout!.text}
+                </p>
+              )}
               {lesson.steps[step]!.hint !== undefined && (
                 <details className="edu-hint"><summary>힌트</summary><p>{lesson.steps[step]!.hint}</p></details>
               )}

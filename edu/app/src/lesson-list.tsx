@@ -3,6 +3,12 @@
 import type { Lesson } from "@ping9/edu-core";
 import { TopologyThumb } from "./topology-thumb";
 
+const LEVEL_LABELS: Record<string, string> = {
+  beginner: "초급",
+  intermediate: "중급",
+  advanced: "고급",
+};
+
 /** 단원 id → 보이는 이름. 커리큘럼은 dev-plan의 N1–N12다 */
 export const UNIT_TITLES: Record<string, string> = {
   "n1-basics": "N1 네트워크 기초",
@@ -55,7 +61,11 @@ export function LessonList({ lessons, passed, onPick }: {
                     <TopologyThumb document={lesson.startDocument} />
                     <b>{lesson.title}{done && <i className="edu-done">완료</i>}</b>
                     <span>{lesson.summary}</span>
-                    <span>목표 {lesson.checks.length}개 · 단계 {lesson.steps.length}개</span>
+                    <span>
+                      {lesson.level !== undefined && <i className={`edu-level lvl-${lesson.level}`}>{LEVEL_LABELS[lesson.level] ?? lesson.level}</i>}
+                      {lesson.minutes !== undefined && `~${lesson.minutes}분 · `}
+                      목표 {lesson.checks.length}개 · 단계 {lesson.steps.length}개
+                    </span>
                   </button>
                 );
               })}

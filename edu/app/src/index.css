@@ -197,3 +197,29 @@ body { margin: 0; font-family: var(--sans); color: var(--ink); min-width: 0; ove
 .edu-thumb rect { stroke: var(--line-strong); stroke-width: 1; }
 .edu-thumb text { font-size: 9px; font-weight: 700; fill: var(--ink); font-family: var(--mono); }
 .edu-thumb .edu-thumb-name { font-size: 7.5px; font-weight: 500; fill: var(--muted); }
+
+/* ── 난이도 배지·소요 시간 (designed-to-scale의 level/minutes) ── */
+.edu-level { display: inline-block; padding: 0 7px; border-radius: 7px; border: 1px solid var(--line-strong); font-size: 10px; font-weight: 700; font-style: normal; vertical-align: 1px; margin-right: 4px; }
+.edu-level.lvl-beginner { background: var(--green); }
+.edu-level.lvl-intermediate { background: var(--orange); }
+.edu-level.lvl-advanced { background: var(--violet); }
+.edu-minutes { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.edu-player-title .edu-level { margin: 0 6px 0 2px; }
+
+/* ── 학습 목표 (designed-to-scale의 goals — 클릭 시 해당 단계로 이동) ── */
+.edu-goals { list-style: none; margin: 0 0 14px; padding: 10px 12px; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; gap: 4px; }
+.edu-goals li { display: flex; align-items: baseline; gap: 8px; }
+.edu-goals li::before { content: "◎"; color: var(--line-strong); font-size: 11px; }
+.edu-goals button { border: none; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--ink); text-align: left; cursor: pointer; }
+.edu-goals button:hover { color: var(--sky); text-decoration: underline; }
+.edu-goals button.on { color: var(--sky); font-weight: 700; }
+
+/* ── 단계 제목·챕터 ── */
+.edu-step-title { display: block; font-size: 14px; margin: 0 0 8px; }
+.edu-step .edu-eyebrow { margin-bottom: 2px; }
+
+/* ── 강조 박스 (designed-to-scale의 callout) ── */
+.edu-callout { margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; border: 1px solid var(--line-strong); border-left-width: 4px; }
+.edu-callout.tip { background: #e8f7ff; border-left-color: var(--green-3); }
+.edu-callout.warn { background: var(--orange); border-left-color: var(--amber); }
+.edu-callout.note { background: var(--sheet); border-left-color: var(--sky); }
