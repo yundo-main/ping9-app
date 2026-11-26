@@ -14,7 +14,7 @@ const PC1 = id(1);
 const PC2 = id(2);
 const CLOUD = id(3);
 
-/** PC1──cloud Port0, PC2──cloud Port1. PC는 각 포트 /30의 상대 주소를 쓰고 게이트웨이는 클라우드 쪽이다 */
+/** PC1──cloud FastEthernet0, PC2──cloud FastEthernet1. PC는 각 포트 /30의 상대 주소를 쓰고 게이트웨이는 클라우드 쪽이다 */
 async function open(): Promise<Simulator> {
   const sim = createSimulator();
   for (const [deviceId, kind] of [[PC1, "pc"], [PC2, "pc"], [CLOUD, "cloud"]] as const) {
@@ -22,8 +22,8 @@ async function open(): Promise<Simulator> {
   }
   const link = (idSuffix: number, pc: string, cloudPort: string) =>
     sim.dispatch({ type: "link/add", id: id(idSuffix), ends: [{ deviceId: pc, port: "Ethernet0" }, { deviceId: CLOUD, port: cloudPort }] });
-  expect(link(10, PC1, "Port0").ok).toBe(true);
-  expect(link(11, PC2, "Port1").ok).toBe(true);
+  expect(link(10, PC1, "FastEthernet0").ok).toBe(true);
+  expect(link(11, PC2, "FastEthernet1").ok).toBe(true);
   expect(validateDocument(sim.getSnapshot().document).ok).toBe(true);
   for (const [deviceId, index] of [[PC1, 0], [PC2, 1]] as const) {
     const { mask, cloudIp, peerIp } = cloudPortInfo(index);
@@ -97,7 +97,7 @@ describe("클라우드 내부 RIP (T0.69)", () => {
   const PCA = id(4);
   const PCB = id(5);
 
-  /** PCA──R1──cloud Port0, R2──cloud Port1──PCB의 뒤로 PCB. 각 라우터는 링크 주소 + PC가 붙은 LAN을 갖고 RIP를 켠다 */
+  /** PCA──R1──cloud FastEthernet0, R2──cloud FastEthernet1──PCB의 뒤로 PCB. 각 라우터는 링크 주소 + PC가 붙은 LAN을 갖고 RIP를 켠다 */
   async function ripLab(): Promise<Simulator> {
     const sim = createSimulator();
     for (const [deviceId, kind] of [[R1, "router"], [R2, "router"], [CLOUD, "cloud"], [PCA, "pc"], [PCB, "pc"]] as const) {
@@ -105,8 +105,8 @@ describe("클라우드 내부 RIP (T0.69)", () => {
     }
     const link = (idSuffix: number, router: string, cloudPort: string) =>
       sim.dispatch({ type: "link/add", id: id(idSuffix), ends: [{ deviceId: router, port: "GigabitEthernet0/0" }, { deviceId: CLOUD, port: cloudPort }] });
-    expect(link(30, R1, "Port0").ok).toBe(true);
-    expect(link(31, R2, "Port1").ok).toBe(true);
+    expect(link(30, R1, "FastEthernet0").ok).toBe(true);
+    expect(link(31, R2, "FastEthernet1").ok).toBe(true);
     // LAN 인터페이스에 장비가 붙어야 그 네트워크가 라우팅 테이블에 올라 광고된다 (no-link면 광고하지 않는다)
     const lanLink = (idSuffix: number, router: string, pc: string) =>
       sim.dispatch({ type: "link/add", id: id(idSuffix), ends: [{ deviceId: router, port: "GigabitEthernet0/1" }, { deviceId: pc, port: "Ethernet0" }] });

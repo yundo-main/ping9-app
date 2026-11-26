@@ -8,9 +8,9 @@ import { useEffect, useRef } from "react";
 
 /** 에지 라우터 세 개의 자리 (구름 안, K3 메시) */
 const NODE = [
-  { x: 148, y: 104 },  // Port0 — 왼쪽 위
-  { x: 312, y: 104 },  // Port1 — 오른쪽 위
-  { x: 230, y: 222 },  // Port2 — 아래 가운데
+  { x: 148, y: 104 },  // Fa0 — 왼쪽 위
+  { x: 312, y: 104 },  // Fa1 — 오른쪽 위
+  { x: 230, y: 222 },  // Fa2 — 아래 가운데
 ] as const;
 
 /** 포트의 에지 라우터에서 바깥 장비 쪽으로 나가는 꼬리 방향 */
@@ -81,7 +81,7 @@ export function CloudInsideDialog({ document, deviceId, view, onClose }: {
                   {/* 에지 라우터 노드 */}
                   <circle className="ci-node" cx={node.x} cy={node.y} r="15" />
                   <text className="ci-node-name" x={node.x} y={node.y + 3.5} textAnchor="middle">R{index}</text>
-                  <text className="ci-port" x={node.x} y={node.y + 27} textAnchor="middle">Port{index} · {info.cloudIp}</text>
+                  <text className="ci-port" x={node.x} y={node.y + 27} textAnchor="middle">{port?.name ?? `Port${index}`} · {info.cloudIp}</text>
                   {/* 이 포트로 배운 네트워크 */}
                   {learnedHere.map((route, n) => (
                     <text key={`${route.network}-${n}`} className="ci-learned" x={node.x}
