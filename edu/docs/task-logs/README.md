@@ -27,3 +27,4 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E6.6 사이드바 핑구 레일 + 플레이어 로그아웃 | [E6.6-sidebar-rail-logout.md](E6.6-sidebar-rail-logout.md) | 화면 | jarrod | main 직접 커밋 |
 | E6.7 About 제품별 내용 + 로그아웃 후 복귀 | [E6.7-about-logout.md](E6.7-about-logout.md) | 화면 / 코어 | jarrod | main 직접 커밋 |
 | E6.8 3D 펭귄 + 로그인 필수 게이트 | [E6.8-penguin3d-auth-gate.md](E6.8-penguin3d-auth-gate.md) | 화면 / 인증 | jarrod | main 직접 커밋 |
+| E6.9 장비 3D 썸네일 + 로그인 정보 사이드바 이동 | [E6.9-thumb3d-user-move.md](E6.9-thumb3d-user-move.md) | 화면 | jarrod | main 직접 커밋 |

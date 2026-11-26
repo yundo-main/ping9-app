@@ -1,7 +1,10 @@
 // 커리큘럼 목록 — 단원별로 묶은 레슨 카드. 진도(통과 배지·단원 진행률)를 보여 준다 (E3.3)
 
 import type { Lesson } from "@ping9/edu-core";
+import { lazy, Suspense } from "react";
 import { TopologyThumb } from "./topology-thumb";
+
+const TopologyThumb3D = lazy(() => import("./topology-thumb-3d").then((module) => ({ default: module.TopologyThumb3D })));
 
 const LEVEL_LABELS: Record<string, string> = {
   beginner: "초급",
@@ -58,7 +61,9 @@ export function LessonList({ lessons, passed, onPick }: {
                 const done = passed.has(lesson.id);
                 return (
                   <button key={lesson.id} className={`edu-card${done ? " done" : ""}`} onClick={() => onPick(lesson)} type="button">
-                    <TopologyThumb document={lesson.startDocument} />
+                    <Suspense fallback={<TopologyThumb document={lesson.startDocument} />}>
+                      <TopologyThumb3D document={lesson.startDocument} />
+                    </Suspense>
                     <b>{lesson.title}{done && <i className="edu-done">완료</i>}</b>
                     <span>{lesson.summary}</span>
                     <span>

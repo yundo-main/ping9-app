@@ -131,6 +131,14 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                 )}
               </div>
             )}
+            {session !== null && (
+              <div className="edu-brief-user">
+                <span className="edu-brief-email" title={session.guest ? "게스트" : session.email}>
+                  {session.guest ? "게스트" : session.email}
+                </span>
+                <button type="button" className="edu-btn" onClick={() => { void signOut(); window.location.hash = "#/login"; }}>로그아웃</button>
+              </div>
+            )}
           </aside>
         )}
         <div className="edu-player-sim">
@@ -172,13 +180,8 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                     {grading ? "채점 중…" : "채점하기"}
                   </button>
                   {session !== null && (
-                    <span className="edu-tb-user" title={session.guest ? "게스트" : session.email}>
-                      <a className="edu-tb-btn" href="#/dashboard">대시보드</a>
-                      {session.guest ? "게스트" : session.email}
-                      <button type="button" className="edu-tb-btn" onClick={() => { void signOut(); window.location.hash = "#/login"; }}>로그아웃</button>
-                    </span>
+                    <a className="edu-tb-btn" href="#/dashboard">대시보드</a>
                   )}
-                  {session === null && <a className="edu-tb-btn" href="#/login">로그인</a>}
                 </div>
               } />
           )}
