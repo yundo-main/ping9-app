@@ -23,9 +23,19 @@ export function signInWithEmail(email: string, password: string): Promise<string
   return call(supabase.auth.signInWithPassword({ email, password }));
 }
 
-export function signUpWithEmail(email: string, password: string): Promise<string | null> {
+/** 가입 시 함께 저장할 프로필 — user_metadata로 들어가고 E4.2의 users 테이블로 옮긴다 */
+export interface SignUpMeta {
+  readonly name: string;
+  readonly role: "student" | "teacher";
+}
+
+export function signUpWithEmail(email: string, password: string, meta: SignUpMeta): Promise<string | null> {
   if (supabase === undefined) return Promise.resolve("로그인이 아직 설정되지 않았어요");
-  return call(supabase.auth.signUp({ email, password }));
+  return call(supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: meta.name, role: meta.role } },
+  }));
 }
 
 export function signInWithGoogle(): Promise<string | null> {
