@@ -4,14 +4,14 @@
 import type { Lesson } from "@ping9/edu-core";
 
 const KIND_STYLE: Record<string, { readonly fill: string; readonly label: string }> = {
-  pc: { fill: "#d6e5f6", label: "PC" },
-  server: { fill: "#dff0de", label: "SV" },
-  switch: { fill: "#e7ddf5", label: "SW" },
-  l3switch: { fill: "#d5c8e2", label: "L3" },
+  pc: { fill: "#d3e6fc", label: "PC" },
+  server: { fill: "#cfe9dc", label: "SV" },
+  switch: { fill: "#8fc4fa", label: "SW" },
+  l3switch: { fill: "#6fa8ef", label: "L3" },
   router: { fill: "#fcdcbd", label: "R" },
-  hub: { fill: "#fde3a7", label: "H" },
-  lb: { fill: "#f6e6c9", label: "LB" },
-  cloud: { fill: "#fbf6ef", label: "☁" },
+  hub: { fill: "#f9e3ae", label: "H" },
+  lb: { fill: "#f6d9c9", label: "LB" },
+  cloud: { fill: "#ffffff", label: "☁" },
 };
 
 const W = 240;

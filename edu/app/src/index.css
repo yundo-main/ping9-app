@@ -1,19 +1,25 @@
 /* PING9 Edu 테마 — designed-to-scale.vercel.app의 종이 느낌:
    크림 배경 + JetBrains Mono + pop 버튼(초록·굵은 테두리·오프셋 그림자) + 카드 */
 :root {
-  --paper: #f4ebe0; --card: #f8f0e6; --sheet: #f9f2e8;
-  --line: #ddd3c5; --line-strong: #c6bbac;
-  --ink: #1d1b18; --muted: #6f6961;
-  --green: #cfe3b2; --green-2: #b2d491; --green-3: #4c9a54;
-  --violet: #e7ddf5; --orange: #fcdcbd; --red: #e5534b; --amber: #e8a33a;
-  --pop-shadow: 1.5px 2.5px 0 var(--ink);
-  --card-shadow: inset 0 1px 0 #ffffffa6, 0 1px 0 #503c230f, 0 10px 22px -16px #503c2359;
+  /* 핑구 팔레트 — packages/editor의 sky/ice/navy/beak 체계와 같은 톤 */
+  --paper: #e6f1fe; --card: #ffffff; --sheet: #f4f9ff;
+  --line: #c9dcf5; --line-strong: #9dbde8;
+  --ink: #262a47; --muted: #5a6385;
+  --green: #8fdcff; --green-2: #6fcdf9; --green-3: #2ba36b;
+  --violet: #8fc4fa; --orange: #fcdcbd; --red: #e5484d; --amber: #f5b230;
+  --sky: #1565d8; --term: #0e1b38;
+  --pop-shadow: 1.5px 2.5px 0 #0e3a7a;
+  --card-shadow: inset 0 1px 0 #ffffffa6, 0 1px 0 #0e3a7a0f, 0 10px 22px -16px #0e3a7a59;
   --radius: 12px;
-  --mono: "JetBrains Mono", ui-monospace, "Pretendard", "Noto Sans KR", monospace;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --sans: "Pretendard", -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 * { box-sizing: border-box; }
 /* editor.css가 본체용으로 둔 body 규칙을 edu 화면에 맞게 되돌린다 */
-body { margin: 0; font-family: var(--mono); background: var(--paper); color: var(--ink); min-width: 0; overflow: auto; font-size: 13px; }
+body { margin: 0; font-family: var(--sans); color: var(--ink); min-width: 0; overflow: auto; font-size: 13px;
+  background-color: var(--paper);
+  background-image: radial-gradient(circle, #c4dbf7 1.4px, transparent 1.6px); /* 시뮬 캔버스와 같은 도트 그리드 */
+  background-size: 24px 24px; background-attachment: fixed; }
 .edu { max-width: 880px; margin: 0 auto; padding: 52px 20px 72px; display: flex; flex-direction: column; gap: 14px; }
 .edu h1 { font-size: 26px; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; letter-spacing: -.02em; }
 .edu-logo { width: 42px; height: 42px; }
@@ -24,7 +30,7 @@ body { margin: 0; font-family: var(--mono); background: var(--paper); color: var
 .edu-code { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-weight: 700; }
 
 /* ── 버튼 ── */
-.edu-btn { padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--sheet); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 1px 0 #503c2314; }
+.edu-btn { padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--sheet); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 1px 0 #0e3a7a14; }
 .edu-btn:hover { border-color: var(--ink); }
 .edu-btn-pop { padding: 9px 16px; background: var(--green); border: 1.5px solid var(--ink); border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; box-shadow: inset 0 1px 0 #ffffff8c, var(--pop-shadow); }
 .edu-btn-pop:hover { background: var(--green-2); }
@@ -88,7 +94,7 @@ body { margin: 0; font-family: var(--mono); background: var(--paper); color: var
 .edu-matrix th, .edu-matrix td { border: 1px solid var(--line); padding: 6px 10px; text-align: center; }
 .edu-matrix th { background: var(--sheet); font-weight: 700; font-size: 10.5px; color: var(--muted); }
 .edu-matrix td:first-child, .edu-matrix th:first-child { text-align: left; }
-.edu-matrix td.ok { color: var(--green-3); font-weight: 700; background: #2f8a4312; }
+.edu-matrix td.ok { color: var(--green-3); font-weight: 700; background: #2ba36b12; }
 .edu-matrix td:not(.ok) { color: var(--line-strong); }
 
 /* ── 목록 화면 ── */
@@ -124,10 +130,10 @@ body { margin: 0; font-family: var(--mono); background: var(--paper); color: var
 .edu-checks li span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .edu-result { margin-top: 18px; border-radius: 10px; padding: 14px; }
 .edu-result.pass { background: #dff0de; border: 1px solid var(--green-3); }
-.edu-result.fail { background: var(--orange); border: 1px solid #d97a4f; }
+.edu-result.fail { background: var(--orange); border: 1px solid var(--amber); }
 .edu-result b { display: block; font-size: 13px; margin-bottom: 8px; }
 .edu-result li.ok { color: var(--green-3); }
-.edu-result li.no { color: #b85c1e; }
+.edu-result li.no { color: #b57a0e; }
 .edu-player-body.brief-closed { grid-template-columns: 1fr; }
 .edu-player-sim { min-width: 0; overflow: hidden; }
 .edu-player-sim .app { height: 100%; }
@@ -143,7 +149,7 @@ body { margin: 0; font-family: var(--mono); background: var(--paper); color: var
 .edu-md h3, .edu-md h4 { font-size: 13px; margin: 12px 0 5px; }
 .edu-md ul { margin: 0 0 10px; padding-left: 18px; }
 .edu-md code { padding: 1px 5px; border-radius: 4px; background: var(--sheet); border: 1px solid var(--line); font-size: 11.5px; }
-.edu-md pre { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--ink); color: #dbeafe; overflow-x: auto; font-size: 12px; line-height: 1.55; }
+.edu-md pre { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--term); color: #dbeafe; overflow-x: auto; font-size: 12px; line-height: 1.55; }
 .edu-md pre code { padding: 0; background: none; border: none; color: inherit; }
 
 /* ── 단계(step) 진행 ── */
