@@ -3,7 +3,7 @@
 // Google 버튼은 Supabase 대시보드에서 provider를 켜면 그대로 동작한다.
 
 import { useState } from "react";
-import { signInWithEmail, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
+import { signInAsGuest, signInWithEmail, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
 
 export function AuthPage({ mode, onBack, onDone }: {
   readonly mode: "login" | "signup";
@@ -38,6 +38,11 @@ export function AuthPage({ mode, onBack, onDone }: {
     }
   };
 
+  const guest = (
+    <button type="button" className="edu-guest" disabled={busy}
+      onClick={() => { signInAsGuest(); onDone(); }}>게스트로 시작하기</button>
+  );
+
   return (
     <div className="edu-auth">
       <div className="edu-auth-card">
@@ -47,7 +52,10 @@ export function AuthPage({ mode, onBack, onDone }: {
           {signup ? "진도와 제출을 계정에 저장하려면 가입이 필요해요" : "PING9 Edu 계정으로 로그인해요"}
         </p>
         {supabase === undefined ? (
-          <p className="edu-login-note">로그인 설정 전이에요 — Supabase env가 없어 비로그인으로 동작 중입니다</p>
+          <>
+            <p className="edu-login-note">계정 로그인은 설정 전이에요 — 게스트로는 바로 시작할 수 있습니다</p>
+            {guest}
+          </>
         ) : (
           <>
             <form onSubmit={submit}>
@@ -82,6 +90,7 @@ export function AuthPage({ mode, onBack, onDone }: {
             <div className="edu-auth-divider"><span>또는</span></div>
             <button type="button" className="edu-google" disabled={busy}
               onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>Google로 계속</button>
+            {guest}
             {message !== null && <p className="edu-login-note">{message}</p>}
             <p className="edu-auth-switch">
               {signup ? "이미 계정이 있으신가요? " : "계정이 없으신가요? "}

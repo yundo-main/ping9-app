@@ -4,9 +4,8 @@
 // 로그인한 사용자의 홈은 대시보드: 루트로 오면 대시보드로 보내고 레슨 목록은 `#/lessons`에 둔다
 
 import { LESSONS, type Lesson } from "@ping9/edu-core";
-import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { onSession, signOut } from "./auth";
+import { onSession, signOut, type EduSession } from "./auth";
 import { AuthPage } from "./auth-page";
 import { Dashboard } from "./dashboard";
 import { LessonList } from "./lesson-list";
@@ -18,7 +17,7 @@ const LESSON_HASH = /^#\/lesson\/(.+)$/;
 export function App() {
   const [route, setRoute] = useState(() => window.location.hash);
   const [passed, setPassed] = useState<Set<string>>(() => loadPassed());
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<EduSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   useEffect(() => onSession((next) => { setSession(next); setSessionReady(true); }), []);
   useEffect(() => {
@@ -40,7 +39,7 @@ export function App() {
         </div>
         {sessionReady && (session === null
           ? <a className="edu-login-link" href="#/login">로그인</a>
-          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.user.email}<button onClick={() => void signOut()}>로그아웃</button></p>)}
+          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.guest ? "게스트" : session.email}<button onClick={() => void signOut()}>로그아웃</button></p>)}
       </div>
       <LessonList lessons={LESSONS} passed={passed} onPick={openLesson} />
     </main>

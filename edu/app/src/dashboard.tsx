@@ -2,24 +2,16 @@
 // 표시 이름·역할은 가입 시 user_metadata에 넣은 값, 진도는 지금은 localStorage (E4.2에서 계정 DB로)
 
 import type { Lesson } from "@ping9/edu-core";
-import type { Session } from "@supabase/supabase-js";
+import type { EduSession } from "./auth";
 import { UNIT_TITLES } from "./lesson-list";
 
-function profile(session: Session): { readonly name: string; readonly role: string } {
-  const meta = session.user.user_metadata as Record<string, unknown> | undefined;
-  const name = typeof meta?.["display_name"] === "string" ? meta["display_name"] : (session.user.email?.split("@")[0] ?? "사용자");
-  const role = meta?.["role"] === "teacher" ? "교사" : "학생";
-  return { name, role };
-}
-
 export function Dashboard({ session, lessons, passed, onPick, onBack }: {
-  readonly session: Session;
+  readonly session: EduSession;
   readonly lessons: readonly Lesson[];
   readonly passed: ReadonlySet<string>;
   readonly onPick: (lesson: Lesson) => void;
   readonly onBack: () => void;
 }) {
-  const user = profile(session);
   const totalPassed = lessons.filter((lesson) => passed.has(lesson.id)).length;
   const resume = lessons.find((lesson) => !passed.has(lesson.id)) ?? null;
 
@@ -34,8 +26,9 @@ export function Dashboard({ session, lessons, passed, onPick, onBack }: {
     <main className="edu">
       <div className="edu-top">
         <div>
-          <h1>{user.name}님의 대시보드</h1>
-          <p className="sub">{session.user.email} · {user.role}</p>
+          <h1>{session.name}님의 대시보드</h1>
+          <p className="sub">{session.guest ? "게스트 모드" : session.email} · {session.role === "teacher" ? "교사" : "학생"}</p>
+          {session.guest && <p className="edu-guest-note">진도는 이 브라우저에만 저장돼요 — <a href="#/signup">가입</a>하면 계정에 남습니다</p>}
         </div>
         <button type="button" className="edu-back" onClick={onBack}>← 레슨 목록</button>
       </div>
