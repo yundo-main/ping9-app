@@ -131,15 +131,15 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                 )}
               </div>
             )}
-            {session !== null && (
-              <div className="edu-brief-user">
-                <span className="edu-brief-email" title={session.guest ? "게스트" : session.email}>
-                  {session.guest ? "게스트" : session.email}
-                </span>
-                <button type="button" className="edu-btn" onClick={() => { void signOut(); window.location.hash = "#/login"; }}>로그아웃</button>
-              </div>
-            )}
           </aside>
+        )}
+        {session !== null && (
+          <div className="edu-brief-user">
+            <span className="edu-brief-email" title={session.guest ? "게스트" : session.email}>
+              {session.guest ? "게스트" : session.email}
+            </span>
+            <button type="button" className="edu-btn" onClick={() => { void signOut(); window.location.hash = "#/login"; }}>로그아웃</button>
+          </div>
         )}
         <div className="edu-player-sim">
           {ready && (
