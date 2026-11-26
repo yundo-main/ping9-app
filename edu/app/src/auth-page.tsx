@@ -6,6 +6,14 @@ import heroUrl from "@ping9/editor/assets/panel-penguin.png";
 import { useState } from "react";
 import { signInAsGuest, signInWithEmail, signInWithGithub, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
 
+// 소셜 버튼의 브랜드 마크 — 공식 단순 로고의 SVG 패스 (E6.13 후속)
+const GOOGLE_MARK = (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.1 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.3 1.2-3.3 0-6.1-2.2-7.1-5.3l-3.9 3C3 20.5 7.2 24 12 24z"/><path fill="#FBBC05" d="M4.9 14.1c-.3-.8-.4-1.6-.4-2.1s.1-1.5.4-2.1l-3.9-3C.4 8.3 0 10.1 0 12s.4 3.7 1 5.1l3.9-3z"/><path fill="#EA4335" d="M12 4.6c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.2 0 3 3.5 1 8l3.9 3c1-3.1 3.8-6.4 7.1-6.4z"/></svg>
+);
+const GITHUB_MARK = (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.3 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
+);
+
 export function AuthPage({ mode, onDone }: {
   readonly mode: "login" | "signup";
   readonly onDone: () => void;
@@ -91,9 +99,9 @@ export function AuthPage({ mode, onDone }: {
             <div className="edu-auth-divider"><span>또는</span></div>
             <div className="edu-auth-socials">
               <button type="button" className="edu-google" disabled={busy}
-                onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>Google로 계속</button>
-              <button type="button" className="edu-google" disabled={busy}
-                onClick={() => void run(signInWithGithub, "GitHub로 이동합니다")}>GitHub로 계속</button>
+                onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>{GOOGLE_MARK}Google로 계속</button>
+              <button type="button" className="edu-google edu-github" disabled={busy}
+                onClick={() => void run(signInWithGithub, "GitHub로 이동합니다")}>{GITHUB_MARK}GitHub로 계속</button>
             </div>
             {guest}
             {message !== null && <p className="edu-login-note">{message}</p>}
