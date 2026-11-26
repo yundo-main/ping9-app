@@ -49,9 +49,9 @@ export function App() {
           <h1><img src={logoUrl} className="edu-logo" alt="" /> PING9 Edu</h1>
           <p className="sub">네트워크 진도별 학습도구 — 단원을 골라 실습하고 자동 채점까지 받습니다</p>
         </div>
-        {sessionReady && (session === null
-          ? <a className="edu-login-link" href="#/login">로그인</a>
-          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.guest ? "게스트" : session.email}<button onClick={logout}>로그아웃</button></p>)}
+        {session !== null && (
+          <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.guest ? "게스트" : session.email}<button onClick={logout}>로그아웃</button></p>
+        )}
       </div>
       <LessonList lessons={LESSONS} passed={passed} onPick={openLesson} />
     </main>
@@ -61,28 +61,27 @@ export function App() {
     return (
       <AuthPage
         mode={route === "#/signup" ? "signup" : "login"}
-        onBack={() => { window.location.hash = "#/lessons"; }}
         onDone={() => { window.location.hash = "#/dashboard"; }}
       />
     );
   }
 
+  // 세션(계정·게스트) 없이는 어디로도 못 간다 — 로그인 화면이 서비스의 문 (E6.8)
+  if (!sessionReady) return null;
+  if (session === null) {
+    window.location.hash = "#/login";
+    return null;
+  }
+
   if (route === "#/dashboard") {
-    if (sessionReady && session === null) {
-      window.location.hash = "#/login";
-      return null;
-    }
-    if (session !== null) {
-      if (session.role === "teacher") {
-        return <TeacherDashboard session={session} lessons={LESSONS}
-          onBack={() => { window.location.hash = "#/lessons"; }}
-          onSignOut={logout} />;
-      }
-      return <Dashboard session={session} lessons={LESSONS} passed={passed} onPick={openLesson}
+    if (session.role === "teacher") {
+      return <TeacherDashboard session={session} lessons={LESSONS}
         onBack={() => { window.location.hash = "#/lessons"; }}
         onSignOut={logout} />;
     }
-    return null;
+    return <Dashboard session={session} lessons={LESSONS} passed={passed} onPick={openLesson}
+      onBack={() => { window.location.hash = "#/lessons"; }}
+      onSignOut={logout} />;
   }
 
   if (route === "#/lessons") {
@@ -111,16 +110,7 @@ export function App() {
     );
   }
 
-  // 첫 화면은 로그인 — 세션이 있으면 대시보드가 홈. 레슨 목록은 `#/lessons`로 열린다
-  if (session !== null) {
-    window.location.hash = "#/dashboard";
-    return null;
-  }
-  return (
-    <AuthPage
-      mode="login"
-      onBack={() => { window.location.hash = "#/lessons"; }}
-      onDone={() => { window.location.hash = "#/dashboard"; }}
-    />
-  );
+  // 게이트를 지나면 세션은 항상 있다 — 나머지 경로는 전부 대시보드로
+  window.location.hash = "#/dashboard";
+  return null;
 }

@@ -1,14 +1,15 @@
 // 인증 화면 — 로그인(`#/login`)과 회원가입(`#/signup`) 두 페이지 (E3.4).
-// 비로그인이어도 레슨은 열리고, 진도를 계정에 저장하려면 로그인이 필요하다.
+// 세션(계정 또는 게스트) 없이는 어떤 화면으로도 못 간다 — 이 화면이 서비스의 문이다 (E6.8).
 // Google 버튼은 Supabase 대시보드에서 provider를 켜면 그대로 동작한다.
 
 import logoUrl from "@ping9/editor/assets/logo.png";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { signInAsGuest, signInWithEmail, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
 
-export function AuthPage({ mode, onBack, onDone }: {
+const Penguin3D = lazy(() => import("./penguin-3d").then((module) => ({ default: module.Penguin3D })));
+
+export function AuthPage({ mode, onDone }: {
   readonly mode: "login" | "signup";
-  readonly onBack: () => void;
   readonly onDone: () => void;
 }) {
   const [email, setEmail] = useState("");
@@ -47,8 +48,9 @@ export function AuthPage({ mode, onBack, onDone }: {
   return (
     <div className="edu-auth">
       <div className="edu-auth-card">
-        <button type="button" className="edu-back" onClick={onBack}>← 목록으로</button>
-        <img src={logoUrl} className="edu-auth-logo" alt="PING9 펭귄" />
+        <Suspense fallback={<img src={logoUrl} className="edu-auth-logo" alt="PING9 펭귄" />}>
+          <Penguin3D size={170} />
+        </Suspense>
         <h1>{signup ? "회원가입" : "PING9 Edu"}</h1>
         <p className="edu-auth-sub">
           {signup ? "진도와 제출을 계정에 저장하려면 가입이 필요해요" : "PING9 Edu 계정으로 로그인해요"}
