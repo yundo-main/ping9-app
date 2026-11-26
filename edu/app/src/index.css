@@ -128,8 +128,10 @@ body { margin: 0; font-family: var(--sans); color: var(--ink); min-width: 0; ove
 .edu-grade:disabled { opacity: .55; cursor: default; }
 .edu-brief-toggle { border: 1px solid var(--line-strong); background: var(--sheet); color: var(--muted); border-radius: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer; }
 .edu-brief-toggle:hover { color: var(--ink); border-color: var(--ink); }
-.edu-player-body { display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
-.edu-brief { overflow-y: auto; padding: 18px; background: linear-gradient(180deg, #0b4fc4, #0e3a7a); border-right: none; color: #e6f1fe; }
+/* sim(=EditorApp)이 전체 폭을 차지하고, 그 안의 topbar가 가로 전체를 지나간다 —
+   사이드바는 topbar(64px) 아래에 겹쳐 두므로 메인바가 사이드바 윗부분을 덮는다 (E6.6) */
+.edu-player-body { position: relative; display: block; min-height: 0; }
+.edu-brief { position: absolute; top: 64px; left: 0; width: 300px; bottom: 0; overflow-y: auto; padding: 18px; background: linear-gradient(180deg, #0b4fc4, #0e3a7a); border-right: none; color: #e6f1fe; }
 /* 왼쪽 사이드바 = 펭귄 기둥 — topbar 왼쪽 끝의 sky-900에서 시작해 아래로 내려가는 같은 파란 레일 (E6.6) */
 .edu-brief h3 { color: var(--green); }
 .edu-brief .edu-checks li span { color: #a8c8f0; }
@@ -159,8 +161,8 @@ body { margin: 0; font-family: var(--sans); color: var(--ink); min-width: 0; ove
 .edu-result b { display: block; font-size: 13px; margin-bottom: 8px; }
 .edu-result li.ok { color: var(--green-3); }
 .edu-result li.no { color: #b57a0e; }
-.edu-player-body.brief-closed { grid-template-columns: 1fr; }
-.edu-player-sim { min-width: 0; overflow: hidden; }
+.edu-player-body:not(.brief-closed) .edu-player-sim .app .work { margin-left: 300px; }
+.edu-player-sim { position: absolute; inset: 0; min-width: 0; overflow: hidden; }
 .edu-player-sim .app { height: 100%; }
 .edu-next { display: block; width: 100%; margin-top: 12px; padding: 10px 14px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--green); color: var(--ink); font: inherit; font-weight: 700; text-align: left; cursor: pointer; box-shadow: var(--pop-shadow); }
 .edu-next span { display: block; font-size: 11.5px; font-weight: 500; opacity: .75; margin-top: 2px; }
