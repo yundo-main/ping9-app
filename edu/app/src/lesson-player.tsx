@@ -165,6 +165,7 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                   </button>
                   {session !== null && (
                     <span className="edu-tb-user" title={session.guest ? "게스트" : session.email}>
+                      <a className="edu-tb-btn" href="#/dashboard">대시보드</a>
                       {session.guest ? "게스트" : session.email}
                       <button type="button" className="edu-tb-btn" onClick={() => void signOut()}>로그아웃</button>
                     </span>
