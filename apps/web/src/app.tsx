@@ -11,6 +11,7 @@ import { Canvas, cableLength } from "./components/canvas";
 import { ConfirmDialog } from "./components/confirm-dialog";
 import { HelpDialog } from "./components/help-dialog";
 import { AboutDialog } from "./components/about-dialog";
+import { CloudInsideDialog } from "./components/cloud-inside-dialog";
 import { EventPanel, highlightOf, SideTabs } from "./components/event-panel";
 import type { SideTab } from "./components/event-panel";
 import { isRemoveKey, removeKeyAction } from "./components/canvas-keys";
@@ -94,6 +95,7 @@ export function App() {
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [cloudInside, setCloudInside] = useState<string | null>(null);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const selectedLink = document.links.find(link => link.id === selectedLinkId);
   // 범위 선택(Shift+드래그)으로 고른 장비·케이블 (T0.42). 하나만 걸리면 평소 선택이 된다
@@ -286,6 +288,13 @@ export function App() {
   const openTerminal = (deviceId: string) => {
     setCable(CABLE_OFF);
     setSelectedLinkId(null);
+    // 클라우드는 콘솔이 없다 — 두 번 누르면 내부 구조 창이 열린다 (T0.70)
+    const picked = simulator.getSnapshot().document.devices.find((candidate) => candidate.id === deviceId);
+    if (picked?.kind === "cloud") {
+      setCloudInside(deviceId);
+      dispatch({ type: "select", deviceId });
+      return;
+    }
     updateTerminals((current) =>
       current[deviceId] === undefined
         ? { ...current, [deviceId]: initialTerminal(simulator.console(deviceId).prompt()) }
@@ -672,6 +681,10 @@ export function App() {
         onReset={() => simulator.resetSimulation()} />
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {cloudInside !== null && snapshot.views[cloudInside]?.kind === "cloud" &&
+        <CloudInsideDialog document={document} deviceId={cloudInside}
+          view={snapshot.views[cloudInside] as Extract<typeof snapshot.views[string], { kind: "cloud" }>}
+          onClose={() => setCloudInside(null)} />}
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}

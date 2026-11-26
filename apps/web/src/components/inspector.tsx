@@ -209,7 +209,7 @@ export function Inspector({
       {rip !== undefined && <RouteExchange document={document} summary={rip} changes={changes} onPlay={onPlayExchange} />}
 
       <button className="open-term" onClick={() => onOpenTerminal(device.id)}>
-        터미널 열기
+        {device.kind === "cloud" ? "내부 구조 보기" : "터미널 열기"}
       </button>
       {onRemove !== undefined && (removeAsk ? (
         <div className="remove-ask" role="group" aria-label="장비 삭제 확인">
