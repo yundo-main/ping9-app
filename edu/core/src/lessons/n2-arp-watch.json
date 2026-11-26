@@ -1,0 +1,39 @@
+{
+  "id": "n2-arp-watch",
+  "unit": "n2-arp",
+  "order": 1,
+  "title": "주소 해결 — ping보다 ARP가 먼저다",
+  "summary": "ping 한 번에 숨어 있는 ARP 요청·응답·테이블 학습을 추적으로 관찰합니다",
+  "steps": [
+    {
+      "text": "PC1과 PC2에는 **이미 주소가 있습니다** (192.168.1.10/24, 192.168.1.20/24).\n\nPC는 상대 IP만 알아도 바로 보낼 수 없습니다 — 같은 네트워크에서 실제로 프레임을 배달하는 건 **MAC 주소**입니다. IP를 MAC으로 풀어 주는 일이 ARP입니다.",
+      "hint": "인스펙터에서 각 PC의 주소를 확인해 보세요"
+    },
+    {
+      "text": "PC1 콘솔을 열고 `ping 192.168.1.20`을 실행하세요.\n\nping이 성공하면 완료 조건도 같이 채워집니다."
+    },
+    {
+      "text": "이제 **추적 패널**을 펼쳐 보세요. ping 앞에는 세 가지 ARP 이벤트가 숨어 있습니다:\n\n- `ARP_REQUEST_SENT` — \"192.168.1.20의 MAC은 누구?\" 방송\n- `ARP_REPLY_SENT`/`ARP_REPLY_RECEIVED` — PC2의 응답\n- `ARP_ENTRY_LEARNED` — PC1의 ARP 표에 기록됨\n\n두 번째 ping부터는 ARP가 다시 나타나지 않습니다 — 표를 이미 알기 때문입니다."
+    }
+  ],
+  "startDocument": {
+    "schemaVersion": 1,
+    "devices": [
+      { "id": "21111111-1111-4111-8111-111111111111", "kind": "pc", "name": "PC1", "position": { "x": 160, "y": 220 },
+        "config": { "ip": "192.168.1.10", "mask": "255.255.255.0" } },
+      { "id": "22222222-2222-4222-8222-222222222222", "kind": "switch", "name": "SW1", "position": { "x": 320, "y": 220 },
+        "config": { "vlans": [{ "id": 1, "name": "default" }], "ports": {} } },
+      { "id": "23333333-3333-4333-8333-333333333333", "kind": "pc", "name": "PC2", "position": { "x": 480, "y": 220 },
+        "config": { "ip": "192.168.1.20", "mask": "255.255.255.0" } }
+    ],
+    "links": [
+      { "id": "2aaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "ends": [{ "deviceId": "21111111-1111-4111-8111-111111111111", "port": "Ethernet0" }, { "deviceId": "22222222-2222-4222-8222-222222222222", "port": "FastEthernet0/1" }] },
+      { "id": "2bbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2", "ends": [{ "deviceId": "23333333-3333-4333-8333-333333333333", "port": "Ethernet0" }, { "deviceId": "22222222-2222-4222-8222-222222222222", "port": "FastEthernet0/2" }] }
+    ]
+  },
+  "checks": [
+    { "kind": "trace", "code": "ARP_REQUEST_SENT" },
+    { "kind": "trace", "code": "ARP_ENTRY_LEARNED" },
+    { "kind": "ping", "from": "PC1", "to": "192.168.1.20" }
+  ]
+}

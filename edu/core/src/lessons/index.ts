@@ -5,8 +5,14 @@
 import { defineLesson } from "../lesson";
 import type { Lesson } from "../lesson";
 import n1FirstPing from "./n1-first-ping.json";
+import n2ArpWatch from "./n2-arp-watch.json";
+import n3VlanSplit from "./n3-vlan-split.json";
+import n6RouterGateway from "./n6-router-gateway.json";
 
 /** 커리큘럼 순서의 모든 레슨 — unit, order 순으로 정렬돼 있다고 가정한다 */
 export const LESSONS: readonly Lesson[] = [
   defineLesson(n1FirstPing),
+  defineLesson(n2ArpWatch),
+  defineLesson(n3VlanSplit),
+  defineLesson(n6RouterGateway),
 ];
