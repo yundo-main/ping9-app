@@ -31,7 +31,7 @@ pnpm dev
 
 ## 구조
 
-pnpm 모노레포. 의존 방향은 `web → editor → engine → shared`, `edu → editor`뿐입니다.
+pnpm 모노레포. 의존 방향은 `web → editor → engine → shared`, `edu → editor`뿐입니다. 두 제품(ping9-app·PING9 Edu)의 경계와 의존 규칙은 [docs/repo-structure.md](docs/repo-structure.md) — `pnpm check:imports`가 자동으로 지키게 한다.
 
 | 폴더 | 내용 |
 |---|---|

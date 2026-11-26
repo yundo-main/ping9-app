@@ -8,6 +8,7 @@ PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한
 
 - [docs/README.md](docs/README.md) — **Edu 스펙 문서 모음** (ping9-app의 `docs/`와 별도 관리)
 - [docs/dev-plan.md](docs/dev-plan.md) — 개발 계획과 소스 트리 제안
+- [../docs/repo-structure.md](../docs/repo-structure.md) — 저장소 구조와 두 제품의 경계 규칙 (공용 문서)
 
 ## 분리 규칙
 
