@@ -144,7 +144,7 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
         <div className="edu-player-sim">
           {ready && (
             <EditorApp key={lesson.id}
-              features={{ fileActions: false, crumb: false, icons3d: true }}
+              features={{ fileActions: false, crumb: false }}
               aboutDesc="네트워크 진도별 학습도구 — PING9 엔진 위의 커리큘럼·과제·자동 채점"
               aboutExtra={
                 <section>
