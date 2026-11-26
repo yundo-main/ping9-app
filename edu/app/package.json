@@ -13,6 +13,7 @@
   "dependencies": {
     "@ping9/engine": "workspace:*",
     "@ping9/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.119.2",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
