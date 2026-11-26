@@ -48,3 +48,19 @@ vercel deploy --prebuilt --prod             # 프로덕션 배포
 - 로컬 빌드라 pnpm 워크스페이스(`@ping9/*`)를 그대로 해결한다
 - CLI가 만드는 `.vercel/`, `.env.local`은 gitignore 대상 — 커밋하지 않는다
 - 도메인 관리: `vercel domains add <도메인> ping9-edu` — 프로젝트 도메인으로 붙여야 프로덕션 배포를 따라간다
+## Supabase Auth 설정
+
+프로젝트: `etquisloivqtbjjdbduk` (리전 Seoul). 클라이언트 env는 `VITE_SUPABASE_URL`·`VITE_SUPABASE_ANON_KEY` — Vercel Production env와 `edu/app/.env.local`에 둘 다 들어가 있다.
+
+- 이메일 로그인: `mailer_autoconfirm`이 켜져 있어 확인 메일 없이 가입 즉시 로그인된다. 비밀번호 최소 길이는 플랫폼 하한인 6자.
+- 테이블: `progress`(진도)·`classes`·`class_members`·`assignments`·`attempts` — RLS가 본인/반 교사 행만 연다. 참가는 `join_class(code)` RPC.
+
+### 소셜 로그인 (Google)
+
+provider는 이미 켜져 있고(`external_google_enabled`) Site URL·리다이렉트 허용 목록도 설정됐다 — **Google 자격증명만 넣으면 된다**:
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth 동의 화면 설정 → 클라이언트 ID 만들기 (웹 애플리케이션)
+2. 승인된 리다이렉션 URI에 등록: `https://etquisloivqtbjjdbduk.supabase.co/auth/v1/callback`
+3. Supabase 대시보드 → Authentication → Sign In / Providers → Google에 **Client ID + Client Secret** 입력 후 저장
+
+코드는 `signInWithGoogle()`(`edu/app/src/auth.ts`)이 그대로 동작한다 — 버튼은 로그인/가입 화면에 이미 있다.
