@@ -278,6 +278,12 @@ importers:
 
   edu/app:
     dependencies:
+      '@ping9/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
+      '@ping9/edu-core':
+        specifier: workspace:*
+        version: link:../core
       '@ping9/engine':
         specifier: workspace:*
         version: link:../../packages/engine

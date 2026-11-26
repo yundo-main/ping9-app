@@ -1,13 +1,17 @@
 :root { --navy: #0D2035; --navy-60: #0D203599; --blue: #0284C7; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans-serif; background: #F8FAFC; color: var(--navy); }
+/* editor.css가 본체용으로 둔 body 규칙을 edu 목록 화면에 맞게 되돌린다 */
+body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans-serif; background: #F8FAFC; color: var(--navy); min-width: 0; overflow: auto; }
 .edu { max-width: 860px; margin: 0 auto; padding: 56px 20px; }
 .edu h1 { font-size: 28px; margin: 0 0 8px; }
 .edu .sub { color: var(--navy-60); margin: 0 0 32px; }
 .edu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.edu-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; }
+.edu-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.edu-card:hover { border-color: var(--blue); }
 .edu-card b { display: block; font-size: 15px; margin-bottom: 4px; }
-.edu-card span { font-size: 12.5px; color: var(--navy-60); }
+.edu-card span { display: block; font-size: 12.5px; color: var(--navy-60); }
+.edu-units { display: flex; flex-direction: column; gap: 28px; }
+.edu-unit h2 { font-size: 17px; margin: 0 0 12px; }
 .edu-login form { display: flex; flex-direction: column; gap: 10px; max-width: 340px; }
 .edu-login input { padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; }
 .edu-login-actions { display: flex; gap: 8px; }
@@ -17,3 +21,28 @@ body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans
 .edu-login-note { font-size: 12.5px; color: var(--navy-60); margin: 8px 0 0; }
 .edu-user { font-size: 13px; color: var(--navy-60); margin: 0 0 20px; }
 .edu-user button { margin-left: 8px; border: none; background: none; color: #0284C7; font-size: 13px; cursor: pointer; padding: 0; }
+
+/* ── 레슨 플레이어: 위에 과제 바 + 왼쪽 브리프/채점 + 오른쪽 EditorApp ── */
+.edu-player { display: grid; grid-template-rows: 52px 1fr; height: 100vh; overflow: hidden; background: #F8FAFC; }
+.edu-player-bar { display: flex; align-items: center; gap: 16px; padding: 0 14px; background: #fff; border-bottom: 1px solid #E2E8F0; }
+.edu-back { border: none; background: none; color: var(--blue); font-size: 13.5px; font-weight: 600; cursor: pointer; padding: 8px; }
+.edu-player-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
+.edu-player-title b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edu-player-unit { font-size: 12px; color: var(--navy-60); white-space: nowrap; }
+.edu-grade { padding: 8px 18px; border: none; border-radius: 8px; background: var(--blue); color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.edu-grade:disabled { opacity: .55; cursor: default; }
+.edu-player-body { display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
+.edu-brief { overflow-y: auto; padding: 18px; background: #fff; border-right: 1px solid #E2E8F0; }
+.edu-brief-text { font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; margin: 0 0 16px; }
+.edu-brief h3 { font-size: 13px; margin: 0 0 8px; }
+.edu-checks { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.edu-checks li span { display: block; font-size: 12px; color: var(--navy-60); margin-top: 2px; }
+.edu-result { margin-top: 18px; border-radius: 10px; padding: 14px; }
+.edu-result.pass { background: #ECFDF5; border: 1px solid #A7F3D0; }
+.edu-result.fail { background: #FFF7ED; border: 1px solid #FDBA74; }
+.edu-result b { display: block; font-size: 13.5px; margin-bottom: 8px; }
+.edu-result li.ok { color: #047857; }
+.edu-result li.no { color: #B45309; }
+/* 본체의 .app은 100vh라 임베드 안에서는 칸을 채우게 바꾼다 */
+.edu-player-sim { min-width: 0; overflow: hidden; }
+.edu-player-sim .app { height: 100%; }

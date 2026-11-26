@@ -11,6 +11,8 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@ping9/editor": "workspace:*",
+    "@ping9/edu-core": "workspace:*",
     "@ping9/engine": "workspace:*",
     "@ping9/shared": "workspace:*",
     "@supabase/supabase-js": "^2.119.2",
