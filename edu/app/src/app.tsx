@@ -3,6 +3,7 @@
 // 화면 전환은 해시 라우팅 — `#/lesson/<id>`·`#/lessons`·`#/login`·`#/signup`·`#/dashboard`
 // 로그인한 사용자의 홈은 대시보드: 루트로 오면 대시보드로 보내고 레슨 목록은 `#/lessons`에 둔다
 
+import logoUrl from "@ping9/editor/assets/logo.png";
 import { LESSONS, type Lesson } from "@ping9/edu-core";
 import { useEffect, useState } from "react";
 import { onSession, signOut, type EduSession } from "./auth";
@@ -10,7 +11,7 @@ import { AuthPage } from "./auth-page";
 import { Dashboard } from "./dashboard";
 import { LessonList } from "./lesson-list";
 import { LessonPlayer } from "./lesson-player";
-import { loadPassed, markPassed } from "./progress";
+import { loadPassed, markPassed, pullPassed, pushPassed } from "./progress";
 
 const LESSON_HASH = /^#\/lesson\/(.+)$/;
 
@@ -19,7 +20,11 @@ export function App() {
   const [passed, setPassed] = useState<Set<string>>(() => loadPassed());
   const [session, setSession] = useState<EduSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  useEffect(() => onSession((next) => { setSession(next); setSessionReady(true); }), []);
+  useEffect(() => onSession((next) => {
+    setSession(next);
+    setSessionReady(true);
+    if (next !== null && !next.guest) void pullPassed(next).then(setPassed);
+  }), []);
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash);
     window.addEventListener("hashchange", onHash);
@@ -34,7 +39,7 @@ export function App() {
     <main className="edu">
       <div className="edu-top">
         <div>
-          <h1>PING9 Edu</h1>
+          <h1><img src={logoUrl} className="edu-logo" alt="" /> PING9 Edu</h1>
           <p className="sub">네트워크 진도별 학습도구 — 단원을 골라 실습하고 자동 채점까지 받습니다</p>
         </div>
         {sessionReady && (session === null
@@ -82,16 +87,25 @@ export function App() {
         lesson={lesson}
         nextLesson={nextLesson}
         onExit={() => openLesson(null)}
-        onPassed={(id) => setPassed(markPassed(id))}
+        onPassed={(id) => {
+          setPassed(markPassed(id));
+          if (session !== null) pushPassed(id, session);
+        }}
         onNext={openLesson}
       />
     );
   }
 
-  // 루트(`""`·`#`·`#/`)와 알 수 없는 해시 — 로그인한 사용자는 대시보드가 홈
-  if (sessionReady && session !== null) {
+  // 첫 화면은 로그인 — 세션이 있으면 대시보드가 홈. 레슨 목록은 `#/lessons`로 열린다
+  if (session !== null) {
     window.location.hash = "#/dashboard";
     return null;
   }
-  return list;
+  return (
+    <AuthPage
+      mode="login"
+      onBack={() => { window.location.hash = "#/lessons"; }}
+      onDone={() => { window.location.hash = "#/dashboard"; }}
+    />
+  );
 }

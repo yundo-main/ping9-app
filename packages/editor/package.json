@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./editor.css": "./src/styles/editor.css"
+    "./editor.css": "./src/styles/editor.css",
+    "./assets/*": "./src/assets/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

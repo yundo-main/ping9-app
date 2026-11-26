@@ -2,6 +2,7 @@
 // 비로그인이어도 레슨은 열리고, 진도를 계정에 저장하려면 로그인이 필요하다.
 // Google 버튼은 Supabase 대시보드에서 provider를 켜면 그대로 동작한다.
 
+import logoUrl from "@ping9/editor/assets/logo.png";
 import { useState } from "react";
 import { signInAsGuest, signInWithEmail, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
 
@@ -47,7 +48,8 @@ export function AuthPage({ mode, onBack, onDone }: {
     <div className="edu-auth">
       <div className="edu-auth-card">
         <button type="button" className="edu-back" onClick={onBack}>← 목록으로</button>
-        <h1>{signup ? "회원가입" : "로그인"}</h1>
+        <img src={logoUrl} className="edu-auth-logo" alt="PING9 펭귄" />
+        <h1>{signup ? "회원가입" : "PING9 Edu"}</h1>
         <p className="edu-auth-sub">
           {signup ? "진도와 제출을 계정에 저장하려면 가입이 필요해요" : "PING9 Edu 계정으로 로그인해요"}
         </p>

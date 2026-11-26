@@ -3,7 +3,8 @@
 /* editor.css가 본체용으로 둔 body 규칙을 edu 목록 화면에 맞게 되돌린다 */
 body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans-serif; background: #F8FAFC; color: var(--navy); min-width: 0; overflow: auto; }
 .edu { max-width: 860px; margin: 0 auto; padding: 56px 20px; }
-.edu h1 { font-size: 28px; margin: 0 0 8px; }
+.edu h1 { font-size: 28px; margin: 0 0 8px; display: flex; align-items: center; gap: 10px; }
+.edu-logo { width: 40px; height: 40px; }
 .edu .sub { color: var(--navy-60); margin: 0 0 32px; }
 .edu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 .edu-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; text-align: left; cursor: pointer; font: inherit; color: inherit; }
@@ -84,6 +85,7 @@ body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans
 .edu-auth { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 .edu-auth-card { width: 100%; max-width: 400px; background: #fff; border: 1px solid #E2E8F0; border-radius: 16px; padding: 28px; }
 .edu-auth-card h1 { font-size: 22px; margin: 12px 0 6px; }
+.edu-auth-logo { width: 84px; height: 84px; margin: 4px auto 0; display: block; }
 .edu-auth-sub { font-size: 13.5px; color: var(--navy-60); margin: 0 0 20px; }
 .edu-auth form { display: flex; flex-direction: column; gap: 14px; }
 .edu-auth label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--navy); }

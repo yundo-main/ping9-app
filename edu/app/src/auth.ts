@@ -15,6 +15,8 @@ export const supabase = url !== undefined && anonKey !== undefined
 
 /** 화면이 쓰는 세션 — Supabase 세션과 게스트 세션을 같은 모양으로 */
 export interface EduSession {
+  /** auth.users의 id — DB 행의 user_id로 쓴다. 게스트는 빈 문자열 */
+  readonly id: string;
   readonly email: string;
   readonly name: string;
   readonly role: "student" | "teacher";
@@ -29,13 +31,14 @@ function readGuest(): EduSession | null {
   } catch {
     return null;
   }
-  return { email: "", name: "게스트", role: "student", guest: true };
+  return { id: "", email: "", name: "게스트", role: "student", guest: true };
 }
 
 function mapSession(session: Session): EduSession {
   const meta = session.user.user_metadata as Record<string, unknown> | undefined;
   const email = session.user.email ?? "";
   return {
+    id: session.user.id,
     email,
     name: typeof meta?.["display_name"] === "string" ? meta["display_name"] : email.split("@")[0] ?? "사용자",
     role: meta?.["role"] === "teacher" ? "teacher" : "student",
