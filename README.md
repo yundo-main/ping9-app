@@ -38,6 +38,7 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `packages/shared` | 엔진·화면이 함께 쓰는 타입·Zod 스키마·검증·포트 규칙·예시 자료 |
 | `packages/engine` | 시뮬레이션 엔진. 브라우저와 Node의 기능을 쓰지 않는 순수 TypeScript |
 | `apps/web` | React 화면 + Tauri 데스크톱 껍데기 (`src-tauri/`) |
+| `edu/app` | 교육용 도구 — PING9 엔진 기반, 별도 Vercel 프로젝트로 배포 ([edu/README.md](edu/README.md)) |
 | `docs/` | 랜딩(`index.html`)·사용설명서(`manual.html`) — GitHub Pages로 배포. `project-plan/` 계획 문서, `task-logs/` 작업 기록 |
 | `scripts/` | `desktop-release.mjs`(dmg 수집), `check-secrets.mjs`(비밀값 검사), `update-landing-history.mjs`(랜딩 히스토리 생성) |
 | `deploy/` | `desktop-release` 산출물(dmg·manifest). gitignore 대상 |

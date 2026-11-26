@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - edu/*
 
 # 버전은 여기 한 곳에서만 고정한다. 각 패키지의 package.json에는 "catalog:"라고 적는다.
 # 출처: ARCHITECTURE-SPINE.md의 Stack 표 (2026-11-05). 표에 없는 항목은 주석으로 표시.

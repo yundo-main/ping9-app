@@ -1,0 +1,10 @@
+:root { --navy: #0D2035; --navy-60: #0D203599; --blue: #0284C7; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Pretendard", "Noto Sans KR", sans-serif; background: #F8FAFC; color: var(--navy); }
+.edu { max-width: 860px; margin: 0 auto; padding: 56px 20px; }
+.edu h1 { font-size: 28px; margin: 0 0 8px; }
+.edu .sub { color: var(--navy-60); margin: 0 0 32px; }
+.edu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.edu-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; }
+.edu-card b { display: block; font-size: 15px; margin-bottom: 4px; }
+.edu-card span { font-size: 12.5px; color: var(--navy-60); }
