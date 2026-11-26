@@ -2,7 +2,7 @@
 
 PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한 **교육용 도구**. PING9 본체와 **배포가 완전히 분리된 별도 Vercel 프로젝트**다.
 
-- 배포 주소: **https://ping9-edu.vercel.app** (Vercel 프로젝트 이름 `ping9-edu`)
+- 배포 주소: **https://ping9-edu.vercel.app** (Vercel 프로젝트 이름 `ping9-edu`, 프로젝트 ID `prj_FlKFlMRIYRjSVsKs2mul12EJh11e`)
 
 ## 문서
 
@@ -14,7 +14,7 @@ PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한
 | 항목 | 내용 |
 |---|---|
 | 디렉터리 | `edu/` — `apps/`(PING9 본체)와 형제 관계의 최상위 디렉터리. 본체 코드와 섞이지 않는다 |
-| 의존 방향 | `edu/app → packages/engine, packages/shared`만 허용. `apps/web`을 import하지 않는다 |
+| 의존 방향 | `edu/app → packages/*(editor·engine·shared), edu/core`만 허용. `apps/web`을 import하지 않는다 |
 | 배포 | `apps/web` → GitHub Pages + Tauri 데스크톱. `edu/app` → 별도 Vercel 프로젝트 |
 | 저장소 | 같은 저장소 — 엔진 변경이 자동으로 반영된다 (버전 공유) |
 | 스펙 문서 | `edu/docs/` — ping9-app의 `docs/`와 별개. 작업 기록도 `edu/docs/task-logs/`의 E-시리즈 |
