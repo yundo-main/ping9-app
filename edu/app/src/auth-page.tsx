@@ -2,11 +2,9 @@
 // 세션(계정 또는 게스트) 없이는 어떤 화면으로도 못 간다 — 이 화면이 서비스의 문이다 (E6.8).
 // Google 버튼은 Supabase 대시보드에서 provider를 켜면 그대로 동작한다.
 
-import logoUrl from "@ping9/editor/assets/logo.png";
-import { lazy, Suspense, useState } from "react";
+import heroUrl from "@ping9/editor/assets/panel-penguin.png";
+import { useState } from "react";
 import { signInAsGuest, signInWithEmail, signInWithGithub, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
-
-const Penguin3D = lazy(() => import("./penguin-3d").then((module) => ({ default: module.Penguin3D })));
 
 export function AuthPage({ mode, onDone }: {
   readonly mode: "login" | "signup";
@@ -48,9 +46,8 @@ export function AuthPage({ mode, onDone }: {
   return (
     <div className="edu-auth">
       <div className="edu-auth-card">
-        <Suspense fallback={<img src={logoUrl} className="edu-auth-logo" alt="PING9 펭귄" />}>
-          <Penguin3D size={170} />
-        </Suspense>
+        <img src={heroUrl} className="edu-auth-hero" alt="네트워크 탐험을 시작해 볼까요?" />
+        <div className="edu-auth-body">
         <h1>{signup ? "회원가입" : "PING9 Edu"}</h1>
         <p className="edu-auth-sub">
           {signup ? "진도와 제출을 계정에 저장하려면 가입이 필요해요" : "PING9 Edu 계정으로 로그인해요"}
@@ -92,10 +89,12 @@ export function AuthPage({ mode, onDone }: {
               </button>
             </form>
             <div className="edu-auth-divider"><span>또는</span></div>
-            <button type="button" className="edu-google" disabled={busy}
-              onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>Google로 계속</button>
-            <button type="button" className="edu-google" disabled={busy}
-              onClick={() => void run(signInWithGithub, "GitHub로 이동합니다")}>GitHub로 계속</button>
+            <div className="edu-auth-socials">
+              <button type="button" className="edu-google" disabled={busy}
+                onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>Google로 계속</button>
+              <button type="button" className="edu-google" disabled={busy}
+                onClick={() => void run(signInWithGithub, "GitHub로 이동합니다")}>GitHub로 계속</button>
+            </div>
             {guest}
             {message !== null && <p className="edu-login-note">{message}</p>}
             <p className="edu-auth-switch">
@@ -104,6 +103,7 @@ export function AuthPage({ mode, onDone }: {
             </p>
           </>
         )}
+        </div>
       </div>
     </div>
   );

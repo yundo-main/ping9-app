@@ -33,3 +33,4 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E6.10 팔레트 도구 3D 아이콘 (edu 전용 seam) | [E6.10-palette-3d-icons.md](E6.10-palette-3d-icons.md) | 화면 | jarrod | main 직접 커밋 |
 | E6.11 로그인 정보 좌하단 도킹 스트립 | [E6.11-session-strip.md](E6.11-session-strip.md) | 화면 | jarrod | main 직접 커밋 |
 | E6.12 GitHub OAuth 로그인 버튼 | [E6.12-github-login.md](E6.12-github-login.md) | 인증 | jarrod | main 직접 커밋 |
+| E6.13 로그인 히어로 이미지 재디자인 | [E6.13-auth-hero.md](E6.13-auth-hero.md) | 화면 | jarrod | main 직접 커밋 |
