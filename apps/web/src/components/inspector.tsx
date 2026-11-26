@@ -1,8 +1,8 @@
 // 오른쪽 속성 패널. 시안의 selectDevice가 만드는 마크업과 클래스를 따른다.
 // 구성 값은 스냅샷의 Document에서, 포트 상태와 테이블은 스냅샷의 views에서 읽는다 (AD-7).
 
-import { LIMITS, cloudPortInfo, filterOf, isPcDevice, isServerDevice, portIndex, shortPortName } from "@ping9/shared";
-import type { Command, DeviceKind, DispatchResult, PortView, RouteChangeView, Snapshot, TopologyDocument } from "@ping9/shared";
+import { LIMITS, cloudPortInfo, filterOf, isPcDevice, isServerDevice, maskToPrefixLength, parseIpv4, portIndex, shortPortName } from "@ping9/shared";
+import type { CloudView, Command, DeviceKind, DispatchResult, PortView, RouteChangeView, RouteEntryView, Snapshot, TopologyDocument } from "@ping9/shared";
 import type { ReactNode } from "react";
 
 import panelPenguin from "../assets/panel-penguin.png";
@@ -24,6 +24,35 @@ function peerName(document: TopologyDocument, deviceId: string, port: PortView):
   const link = document.links.find((candidate) => candidate.id === port.linkId);
   const peer = link?.ends.find((end) => end.deviceId !== deviceId);
   return document.devices.find((device) => device.id === peer?.deviceId)?.name;
+}
+
+const CLOUD_SOURCE: Readonly<Record<RouteEntryView["source"], string>> = { connected: "C", static: "S", rip: "R" };
+const routeKey = (route: RouteEntryView) => `${route.network}/${route.mask}`;
+
+/** 클라우드의 라우팅 표 (T0.69). 직결 /30과 RIP로 배운 경로 — Router의 표와 같은 행 마크업 */
+function CloudRoutes({ view }: { readonly view: CloudView }) {
+  const routes = [...view.routes].sort((a, b) =>
+    (parseIpv4(a.network)! - parseIpv4(b.network)!) || (parseIpv4(b.mask)! - parseIpv4(a.mask)!));
+  return (
+    <>
+      <h4>라우팅 테이블</h4>
+      <div className="routes">
+        {routes.map((route) => (
+          <div key={`${route.source}-${routeKey(route)}`} className="route-row">
+            <span className="route-main">
+              <span className="code">{CLOUD_SOURCE[route.source]}</span>
+              <span>{route.network}/{maskToPrefixLength(route.mask) ?? route.mask}</span>
+              <span className="hop">{route.nextHop ?? "직접"} {route.port === undefined ? "" : shortPortName(route.port)}</span>
+            </span>
+            {route.source !== "connected" && (
+              <span className="route-meta"><span className="metric">[{route.distance}/{route.metric}]</span></span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="sub">RIP로 붙은 라우터의 네트워크를 배워 다시 광고해요</div>
+    </>
+  );
 }
 
 /** 클라우드 포트의 링크망과 붙은 장비 — "1.0.0.0/30 · PC1" */
@@ -164,6 +193,7 @@ export function Inspector({
           <span className="ip">{binding.clientIp}:{binding.clientPort} → {binding.backendIp}:{binding.backendPort}</span>
         </div>)}
       </>}
+      {view.kind === "cloud" && <CloudRoutes view={view} />}
       {view.kind === "switch" && <SwitchMacTable view={view} />}
       {view.kind === "l3switch" && view.interfaces.length > 0 && <>
         <h4>L3 인터페이스</h4>

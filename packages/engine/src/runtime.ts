@@ -255,9 +255,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const currentRipRoutes = (): RipRoutes => {
     const result = new Map<string, ReadonlyMap<string, RipRouteHop>>();
     for (const device of getDocument().devices) {
-      if (device.kind !== "router" && device.kind !== "l3switch") continue;
+      if (device.kind !== "router" && device.kind !== "l3switch" && device.kind !== "cloud") continue;
       const routes = new Map<string, RipRouteHop>();
-      const l3model = device.kind === "l3switch" ? l3switchModel(device.id) : routerModel(device.id);
+      const l3model = device.kind === "l3switch" ? l3switchModel(device.id)
+        : device.kind === "cloud" ? cloudModel(device.id) : routerModel(device.id);
       for (const route of l3model!.routingTable()) {
         if (route.source !== "rip") continue;
         routes.set(`${route.network}/${route.mask}`, { nextHop: route.nextHop!, port: route.port!, metric: route.metric });
@@ -486,6 +487,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
           for (const device of ripRouters) {
             (device.kind === "l3switch" ? l3switchModel(device.id)! : routerModel(device.id)!).startRipExchange(ctx);
           }
+          // 클라우드도 RIP 스피커다 — 붙은 라우터의 광고를 배우고 다른 포트로 다시 광고한다 (T0.69)
+          for (const device of getDocument().devices) {
+            if (device.kind === "cloud") cloudModel(device.id)!.startRipExchange(ctx);
+          }
         },
         outcome: () => "success",
       }));
@@ -530,7 +535,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       }
       for (const [deviceId, model] of clouds) {
         const view = views[deviceId];
-        if (view?.kind === "cloud") views[deviceId] = { ...view, arpTable: model.arpTable() };
+        if (view?.kind === "cloud") views[deviceId] = model.view();
       }
       return views;
     },
@@ -584,7 +589,7 @@ function roundOf(trace: Trace, sourceId: string, sequence: number, targetIp: str
 function diffRipRoutes(document: TopologyDocument, before: RipRoutes, after: RipRoutes): RouteChangeView[] {
   const changes: RouteChangeView[] = [];
   for (const device of document.devices) {
-    if (device.kind !== "router") continue;
+    if (device.kind !== "router" && device.kind !== "l3switch" && device.kind !== "cloud") continue;
     const old = before.get(device.id) ?? new Map<string, RipRouteHop>();
     const now = after.get(device.id) ?? new Map<string, RipRouteHop>();
     const keys = [...new Set([...old.keys(), ...now.keys()])].sort(byNetwork);

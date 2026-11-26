@@ -56,7 +56,7 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
         };
         break;
       case "cloud":
-        views[device.id] = { kind: "cloud", ports, arpTable: [] };
+        views[device.id] = { kind: "cloud", ports, arpTable: [], routes: [] };
         break;
       case "lb":
         views[device.id] = {

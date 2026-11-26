@@ -1,10 +1,11 @@
 // T0.68: 인터넷 클라우드 모델. 가상의 ISP 망 — 포트 순번 i마다 `cloudPortInfo(i)`의
 // /30 링크망(1.0.0.0/8을 자른 것)이 고정 배정되어, 붙은 장비 사이를 라우팅한다.
 // 설정과 콘솔이 없다. 동작은 라우터의 최소판: ARP, 자기 주소 ICMP 응답, TTL을 줄인 전달.
-// RouterModel의 전달 흐름을 그대로 줄여 놓았고, 터널·NAT·RIP 같은 설정 의존 부분은 없다.
+// T0.69: 클라우드 내부는 RIP로 동작한다 — 포트마다 RIP에 참여해서 붙은 라우터가 광고한
+// 네트워크를 배우고, 다른 포트로 다시 광고한다. `RipModule`(T11.2.2)을 RipHost로 재사용한다.
 
-import { BROADCAST_MAC, cloudPortInfo, isIcmpError, isSameNetwork, maskToPrefixLength, PORT_NAMES, checkHostIpv4, checkInterfaceAddress } from "@ping9/shared";
-import type { ArpEntryView, CloudDevice, DeviceView, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, TopologyDocument } from "@ping9/shared";
+import { BROADCAST_MAC, cloudPortInfo, DEFAULT_DISTANCE, isIcmpError, isSameNetwork, maskToPrefixLength, PORT_NAMES, RIP_MULTICAST_MAC, checkHostIpv4, checkInterfaceAddress } from "@ping9/shared";
+import type { ArpEntryView, CloudDevice, DeviceView, FrameSnapshot, IcmpErrorType, IcmpMessage, Ipv4Header, RipConfig, TopologyDocument } from "@ping9/shared";
 
 import type { Frame, SimContext, TimerRef } from "../../kernel";
 import { ArpModule } from "../../protocols/arp";
@@ -14,22 +15,20 @@ import { deviceRef, findDevice, portLink, portMac } from "../../topology";
 import { portViewsOf } from "../../views";
 import { transmit } from "../link";
 import type { DeviceModel } from "../model";
+import { RipModule } from "../router/rip";
+import type { RoutingEntry } from "../router/routing";
 
 /** 클라우드가 직접 만드는 패킷(ICMP 응답·오류)의 TTL */
 const CLOUD_TTL = 64;
 /** 링크망 마스크 — `cloudPortInfo`와 같은 값 */
 const LINK_MASK = "255.255.255.252";
+/** 클라우드의 RIP 설정 — 포트의 클래스풀 네트워크 1.0.0.0 하나로 네 포트가 모두 참여한다 */
+const CLOUD_RIP: RipConfig = { networks: ["1.0.0.0"], passiveInterfaces: [] };
 
 function cloudIn(document: TopologyDocument, deviceId: string): CloudDevice | undefined {
   const device = findDevice(document, deviceId);
   return device?.kind === "cloud" ? device : undefined;
 }
-
-/** 포트의 클라우드 쪽 IP. `PORT_NAMES.cloud`의 순번과 `cloudPortInfo`의 순번이 같다 */
-const ipOf = (port: string): string | undefined => {
-  const index = (PORT_NAMES.cloud as readonly string[]).indexOf(port);
-  return index < 0 ? undefined : cloudPortInfo(index).cloudIp;
-};
 
 /** 그 IP가 어느 포트의 상대(장비) 주소인지. 포트 순번, 아니면 -1 */
 const peerPortIndex = (ip: string): number =>
@@ -43,20 +42,37 @@ export class CloudModel implements DeviceModel {
   readonly deviceId: string;
   readonly #getDocument: () => TopologyDocument;
   readonly #arps = new Map<string, ArpModule>();
+  readonly #rip: RipModule;
 
   constructor(deviceId: string, getDocument: () => TopologyDocument) {
     this.deviceId = deviceId;
     this.#getDocument = getDocument;
     const device = () => cloudIn(getDocument(), this.deviceId)!;
+    const linkOf = (name: string) => portLink(getDocument(), { deviceId, port: name })?.linkId;
     for (const port of PORT_NAMES.cloud) {
       this.#arps.set(port, new ArpModule({
         device: deviceRef(device()),
-        ipOf,
+        ipOf: (name) => {
+          const index = (PORT_NAMES.cloud as readonly string[]).indexOf(name);
+          return index < 0 ? undefined : cloudPortInfo(index).cloudIp;
+        },
         macOf: (name) => portMac(device(), name),
-        linkOf: (name) => portLink(getDocument(), { deviceId, port: name })?.linkId,
+        linkOf,
         transmit: (ctx, name, frame) => { transmit(ctx, getDocument(), { deviceId, port: name }, frame); },
       }));
     }
+    // RIP에 참여하는 인터페이스는 링크가 있는 포트다 — RipModule이 수신·주기 갱신·split horizon을 한다
+    this.#rip = new RipModule({
+      device,
+      rip: () => CLOUD_RIP,
+      interfaces: () => PORT_NAMES.cloud.flatMap((name, index) =>
+        linkOf(name) === undefined ? [] : [{
+          name, ip: cloudPortInfo(index).cloudIp, network: cloudPortInfo(index).network, mask: LINK_MASK,
+        }]),
+      macOf: (name) => portMac(device(), name),
+      linkOf,
+      send: (ctx, name, frame, parentSeq) => { transmit(ctx, getDocument(), { deviceId, port: name }, frame, parentSeq); },
+    });
   }
 
   onFrame(ctx: SimContext, port: string, frame: Frame): void {
@@ -64,12 +80,13 @@ export class CloudModel implements DeviceModel {
     if (device === undefined) throw new Error(`CloudModel: cloud ${this.deviceId} is not in the document`);
     const ref = deviceRef(device);
     const mac = frame.snapshot.ethernet.destinationMac;
-    if (mac !== portMac(device, port) && mac !== BROADCAST_MAC) {
+    if (mac !== portMac(device, port) && mac !== BROADCAST_MAC && mac !== RIP_MULTICAST_MAC) {
       ctx.record({ frame, deviceId: device.id, inPort: port, layer: "L2", action: "drop",
         reason: { code: "NOT_FOR_ME", params: { device: ref } } });
       return;
     }
     if (frame.snapshot.arp !== undefined) { this.#arps.get(port)?.onArp(ctx, port, frame); return; }
+    if (frame.snapshot.rip !== undefined) { this.#rip.onFrame(ctx, port, frame); return; }
     this.#receiveIp(ctx, port, frame);
   }
 
@@ -114,9 +131,9 @@ export class CloudModel implements DeviceModel {
       return;
     }
 
-    // 전달 — 목적지가 어느 포트의 상대 주소인지 본다. 링크망의 네트워크·브로드캐스트는 받을 곳이 없다
-    const outIndex = peerPortIndex(ipv4.destinationIp);
-    if (ipv4.ttl <= 1 || outIndex < 0 || PORT_NAMES.cloud[outIndex] === port) {
+    // 전달 — 목적지가 어느 포트의 상대 주소거나 RIP로 배운 네트워크 안이다
+    const route = this.#lookup(ipv4.destinationIp);
+    if (ipv4.ttl <= 1 || route === undefined || route.port === port) {
       const droppedFrame = ipv4.ttl <= 1 ? ctx.updateFrame(frame, { ...frame.snapshot, ipv4: { ...ipv4, ttl: 0 } }) : frame;
       const dropped = ctx.record({ frame: droppedFrame, deviceId: device.id, inPort: port, layer: "L3", action: "drop", parentSeq: received,
         reason: ipv4.ttl <= 1 ? { code: "TTL_EXPIRED", params: { device: ref } }
@@ -124,7 +141,21 @@ export class CloudModel implements DeviceModel {
       this.#error(ctx, frame, ipv4.ttl <= 1 ? "time-exceeded" : "destination-unreachable", dropped);
       return;
     }
-    this.#send(ctx, PORT_NAMES.cloud[outIndex]!, ipv4.destinationIp, { ...ipv4, ttl: ipv4.ttl - 1 }, icmp, "forward", received, frame, port);
+    this.#send(ctx, route.port, route.nextHop, { ...ipv4, ttl: ipv4.ttl - 1 }, icmp, "forward", received, frame, port);
+  }
+
+  /** 나갈 포트와 다음 홉 — /30 상대 주소는 직결이고, 그 외는 RIP로 배운 경로의 longest-prefix다 */
+  #lookup(ip: string): { readonly port: string; readonly nextHop: string } | undefined {
+    const direct = peerPortIndex(ip);
+    if (direct >= 0) return { port: PORT_NAMES.cloud[direct]!, nextHop: cloudPortInfo(direct).peerIp };
+    let best: RoutingEntry | undefined;
+    let bestLength = -1;
+    for (const route of this.#rip.routes()) {
+      const length = maskToPrefixLength(route.mask);
+      if (length === null || !isSameNetwork(ip, route.network, route.mask)) continue;
+      if (length > bestLength) { best = route; bestLength = length; }
+    }
+    return best?.nextHop === undefined ? undefined : { port: best.port, nextHop: best.nextHop };
   }
 
   /** 다음 홉으로 보낸다 — 링크망 직결이라 다음 홉은 목적지 자신 (router의 #send와 같은 형태의 축소판) */
@@ -152,23 +183,22 @@ export class CloudModel implements DeviceModel {
     this.#arps.get(outPort)!.send(ctx, outPort, nextHop, pending, parentSeq);
   }
 
-  /** ICMP 오류를 보낸 쪽으로 돌린다 — 링크망 상대에게만 온다 (router의 #error 축소판) */
+  /** ICMP 오류를 보낸 쪽으로 돌린다 — 라우팅 테이블이 닿는 주소에만 온다 (router의 #error 축소판) */
   #error(ctx: SimContext, original: Frame, type: IcmpErrorType, parentSeq: number): void {
     const { ipv4, icmp, tcp, udp, ethernet } = original.snapshot;
     const transport = tcp ?? udp;
     if (ipv4 === undefined || (icmp === undefined && transport === undefined) || isIcmpError(icmp) ||
       ethernet.destinationMac === BROADCAST_MAC || !this.#unicast(ipv4.sourceIp) || !this.#unicast(ipv4.destinationIp)) return;
-    const outIndex = peerPortIndex(ipv4.sourceIp);
-    if (outIndex < 0) return;
-    const outPort = PORT_NAMES.cloud[outIndex]!;
+    const route = this.#lookup(ipv4.sourceIp);
+    if (route === undefined) return;
     const message: IcmpMessage = { type, sequence: icmp?.sequence ?? 0, original: {
       sourceIp: ipv4.sourceIp, destinationIp: ipv4.destinationIp, sequence: icmp?.sequence ?? 0,
       ...(icmp !== undefined || transport === undefined ? {} : {
         protocol: tcp === undefined ? "udp" as const : "tcp" as const, destinationPort: transport.destinationPort,
       }),
     } };
-    this.#send(ctx, outPort, ipv4.sourceIp, {
-      sourceIp: cloudPortInfo(outIndex).cloudIp, destinationIp: ipv4.sourceIp, ttl: CLOUD_TTL,
+    this.#send(ctx, route.port, route.nextHop, {
+      sourceIp: ipv4.destinationIp, destinationIp: ipv4.sourceIp, ttl: CLOUD_TTL,
     }, message, "reply", parentSeq);
   }
 
@@ -184,24 +214,42 @@ export class CloudModel implements DeviceModel {
 
   onTimer(ctx: SimContext, timer: TimerRef): void {
     for (const arp of this.#arps.values()) arp.onTimer(ctx, timer);
+    this.#rip.onTimer(ctx, timer);
   }
 
-  /** 회차가 시작될 때 런타임이 부른다 — 남은 ARP 대기열만 비우면 된다 */
+  /** 회차가 시작될 때 런타임이 부른다 — 남은 ARP 대기열만 비우면 된다. 배운 경로는 라우터처럼 유지한다 */
   startRun(): void {
     for (const arp of this.#arps.values()) arp.discardPending();
+  }
+
+  /** 경로 교환의 시작 (T0.69). RIP Router가 있어 교환이 돌 때 런타임이 함께 부른다 */
+  startRipExchange(ctx: SimContext): void {
+    this.#rip.startExchange(ctx);
   }
 
   onConfigChanged(): void {
     // 클라우드의 설정은 고정이라 배운 것을 지울 이유가 링크 변화뿐이다 — 안전하게 전부 지운다
     for (const arp of this.#arps.values()) arp.clear();
+    this.#rip.clear();
   }
 
   arpTable(): readonly ArpEntryView[] { return [...this.#arps.values()].flatMap(arp => arp.view()); }
+
+  /** 연결된 /30 링크망 + RIP로 배운 경로. 인스펙터의 라우팅 표와 경로 변화 diff가 쓴다 */
+  routingTable(): readonly RoutingEntry[] {
+    return [
+      ...PORT_NAMES.cloud.map((port, index): RoutingEntry => ({
+        source: "connected", network: cloudPortInfo(index).network, mask: LINK_MASK, port,
+        distance: DEFAULT_DISTANCE.connected, metric: 0,
+      })),
+      ...this.#rip.routes(),
+    ];
+  }
 
   view(): DeviceView {
     const document = this.#getDocument();
     const device = cloudIn(document, this.deviceId);
     if (device === undefined) throw new Error(`CloudModel: cloud ${this.deviceId} is not in the document`);
-    return { kind: "cloud", ports: portViewsOf(document, device), arpTable: this.arpTable() };
+    return { kind: "cloud", ports: portViewsOf(document, device), arpTable: this.arpTable(), routes: this.routingTable() };
   }
 }

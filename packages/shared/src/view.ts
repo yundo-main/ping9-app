@@ -112,11 +112,13 @@ export interface HubView {
   readonly ports: readonly PortView[];
 }
 
-/** 클라우드의 표시용 값 (T0.68). 고정 /30 링크망은 `cloudPortInfo`로 계산하고, 여기에는 배운 ARP만 있다 */
+/** 클라우드의 표시용 값 (T0.68). 고정 /30 링크망은 `cloudPortInfo`로 계산하고, 여기에는 배운 ARP와 라우팅 표가 있다 */
 export interface CloudView {
   readonly kind: "cloud";
   readonly ports: readonly PortView[];
   readonly arpTable: readonly ArpEntryView[];
+  /** 직결 /30 + RIP로 배운 경로 (T0.69) */
+  readonly routes: readonly RouteEntryView[];
 }
 
 /** L3 인터페이스(SVI 또는 라우티드 포트)의 표시용 값 (T0.33) */

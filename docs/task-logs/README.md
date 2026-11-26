@@ -175,3 +175,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.66 랜딩 페이지 디자인 개선: 내비·히어로·카드·다크 터미널·히스토리 접기 (계획에 없는 새 ID) | [T0.66-landing-redesign.md](T0.66-landing-redesign.md) | 배포·문서 | jarrod | main 직접 커밋 |
 | T0.67 시뮬레이션 리셋 버튼: 추적·ARP·배운 경로 초기화, 토폴로지 유지 (계획에 없는 새 ID) | [T0.67-simulation-reset.md](T0.67-simulation-reset.md) | 엔진·화면 | jarrod | main 직접 커밋 |
 | T0.68 인터넷 클라우드 장비: 1.0.0.0/8을 /30으로 자른 가상 ISP 라우터 망 (계획에 없는 새 ID) | [T0.68-internet-cloud.md](T0.68-internet-cloud.md) | 엔진·화면·문서 | jarrod | main 직접 커밋 |
+| T0.69 클라우드 내부 RIP: 광고된 네트워크를 배우고 다시 광고, 라우터 뒤 LAN 연결 (계획에 없는 새 ID) | [T0.69-cloud-rip.md](T0.69-cloud-rip.md) | 엔진·화면·문서 | jarrod | main 직접 커밋 |

@@ -89,3 +89,73 @@ describe("인터넷 클라우드 (T0.68)", () => {
     expect(cleared?.kind === "cloud" ? cleared.arpTable : ["unexpected"]).toEqual([]);
   });
 });
+
+describe("클라우드 내부 RIP (T0.69)", () => {
+  const R1 = id(20);
+  const R2 = id(21);
+
+  const PCA = id(4);
+  const PCB = id(5);
+
+  /** PCA──R1──cloud Port0, R2──cloud Port1──PCB의 뒤로 PCB. 각 라우터는 링크 주소 + PC가 붙은 LAN을 갖고 RIP를 켠다 */
+  async function ripLab(): Promise<Simulator> {
+    const sim = createSimulator();
+    for (const [deviceId, kind] of [[R1, "router"], [R2, "router"], [CLOUD, "cloud"], [PCA, "pc"], [PCB, "pc"]] as const) {
+      expect(sim.dispatch({ type: "device/add", id: deviceId, kind, position: { x: 0, y: 0 } }).ok).toBe(true);
+    }
+    const link = (idSuffix: number, router: string, cloudPort: string) =>
+      sim.dispatch({ type: "link/add", id: id(idSuffix), ends: [{ deviceId: router, port: "GigabitEthernet0/0" }, { deviceId: CLOUD, port: cloudPort }] });
+    expect(link(30, R1, "Port0").ok).toBe(true);
+    expect(link(31, R2, "Port1").ok).toBe(true);
+    // LAN 인터페이스에 장비가 붙어야 그 네트워크가 라우팅 테이블에 올라 광고된다 (no-link면 광고하지 않는다)
+    const lanLink = (idSuffix: number, router: string, pc: string) =>
+      sim.dispatch({ type: "link/add", id: id(idSuffix), ends: [{ deviceId: router, port: "GigabitEthernet0/1" }, { deviceId: pc, port: "Ethernet0" }] });
+    expect(lanLink(32, R1, PCA).ok).toBe(true);
+    expect(lanLink(33, R2, PCB).ok).toBe(true);
+    for (const [router, transitIp, lanIp, pc, pcIp] of [
+      [R1, cloudPortInfo(0).peerIp, "192.168.1.1", PCA, "192.168.1.10"],
+      [R2, cloudPortInfo(1).peerIp, "192.168.2.1", PCB, "192.168.2.10"],
+    ] as const) {
+      expect(sim.dispatch({ type: "interface/set-ip", deviceId: router, port: "GigabitEthernet0/0", ip: transitIp, mask: "255.255.255.252" }).ok).toBe(true);
+      expect(sim.dispatch({ type: "interface/set-admin", deviceId: router, port: "GigabitEthernet0/0", adminUp: true }).ok).toBe(true);
+      expect(sim.dispatch({ type: "interface/set-ip", deviceId: router, port: "GigabitEthernet0/1", ip: lanIp, mask: "255.255.255.0" }).ok).toBe(true);
+      expect(sim.dispatch({ type: "interface/set-admin", deviceId: router, port: "GigabitEthernet0/1", adminUp: true }).ok).toBe(true);
+      expect(sim.dispatch({ type: "router/set-ip-forward", deviceId: router, enabled: true }).ok).toBe(true);
+      expect(sim.dispatch({ type: "pc/set-ip", deviceId: pc, ip: pcIp, mask: "255.255.255.0", gateway: lanIp }).ok).toBe(true);
+    }
+    return sim;
+  }
+
+  test("RIP를 켠 라우터의 LAN을 배우고 다른 포트로 다시 광고한다", async () => {
+    const sim = await ripLab();
+    for (const [router, lan] of [[R1, "192.168.1.0"], [R2, "192.168.2.0"]] as const) {
+      expect(sim.dispatch({ type: "rip/enable", deviceId: router }).ok).toBe(true);
+      // dispatch마다 경로 교환이 도는 동안 클라우드도 Request/Response를 주고받는다
+      expect(sim.dispatch({ type: "rip/add-network", deviceId: router, network: "1.0.0.0" }).ok).toBe(true);
+      expect(sim.dispatch({ type: "rip/add-network", deviceId: router, network: lan }).ok).toBe(true);
+    }
+    // 클라우드가 양쪽 LAN을 배웠다
+    const cloud = sim.getSnapshot().views[CLOUD];
+    expect(cloud?.kind).toBe("cloud");
+    if (cloud?.kind !== "cloud") return;
+    const learned = cloud.routes.filter(route => route.distance === 120);
+    expect(learned.map(route => `${route.network} via ${route.nextHop}`).sort())
+      .toEqual(["192.168.1.0 via 1.0.0.2", "192.168.2.0 via 1.0.0.6"]);
+    // 라우터는 클라우드가 재광고한 상대 LAN을 배웠고, PC끼리도 통한다 — 정적 경로가 하나도 없어도
+    for (const [router, lanIp] of [[R1, "192.168.2.1"], [R2, "192.168.1.1"]] as const) {
+      const result = await sim.console(router).exec(`ping ${lanIp}`);
+      expect(text(result)).toContain("Success rate: 4/4");
+    }
+    const pcResult = await sim.console(PCA).exec("ping -n 1 192.168.2.10");
+    expect(success(pcResult)).toHaveLength(1);
+  });
+
+  test("RIP를 켜지 않으면 /30 링크 주소까지만 닿는다", async () => {
+    const sim = await ripLab();
+    // RIP 없이는 상대 라우터의 LAN으로 가는 경로가 없다
+    const result = await sim.console(R1).exec("ping -n 1 192.168.2.1");
+    expect(success(result)).toHaveLength(0);
+    const cloud = sim.getSnapshot().views[CLOUD];
+    expect(cloud?.kind === "cloud" ? cloud.routes.filter(route => route.distance === 120) : ["unexpected"]).toEqual([]);
+  });
+});
