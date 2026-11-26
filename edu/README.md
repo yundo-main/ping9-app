@@ -6,6 +6,7 @@ PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한
 
 ## 문서
 
+- [docs/README.md](docs/README.md) — **Edu 스펙 문서 모음** (ping9-app의 `docs/`와 별도 관리)
 - [docs/dev-plan.md](docs/dev-plan.md) — 개발 계획과 소스 트리 제안
 
 ## 분리 규칙
@@ -16,6 +17,7 @@ PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한
 | 의존 방향 | `edu/app → packages/engine, packages/shared`만 허용. `apps/web`을 import하지 않는다 |
 | 배포 | `apps/web` → GitHub Pages + Tauri 데스크톱. `edu/app` → 별도 Vercel 프로젝트 |
 | 저장소 | 같은 저장소 — 엔진 변경이 자동으로 반영된다 (버전 공유) |
+| 스펙 문서 | `edu/docs/` — ping9-app의 `docs/`와 별개. 작업 기록도 `edu/docs/task-logs/`의 E-시리즈 |
 
 ## 로컬 실행
 
