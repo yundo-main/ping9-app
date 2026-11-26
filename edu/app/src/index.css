@@ -234,7 +234,8 @@ a.edu-tb-btn { display: inline-flex; align-items: center; text-decoration: none;
 .edu-penguin3d { display: block; margin: 0 auto 4px; }
 
 /* ── 사이드바 하단 사용자 블록 + 3D 썸네일 (E6.9) ── */
-.edu-brief-user { position: fixed; left: 12px; bottom: 12px; z-index: 30; padding: 8px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px rgba(38, 42, 71, 0.14); display: flex; align-items: center; gap: 8px; max-width: 280px; }
+/* 사이드바 폭과 같은 왼쪽 아래 구석 푸터 — 열려 있으면 사이드바의 끝 칸처럼 이어지고, 닫혀도 모서리에 붙은 상태바로 보인다 */
+.edu-brief-user { position: fixed; left: 0; bottom: 0; z-index: 30; width: 300px; box-sizing: border-box; padding: 10px 16px; background: var(--card); border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 0 10px 0 0; display: flex; align-items: center; gap: 8px; }
 .edu-brief-email { flex: 1; min-width: 0; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .edu-brief-user .edu-btn { padding: 5px 10px; font-size: 11.5px; }
 .edu-thumb3d { display: block; width: 100%; height: 110px; margin: -6px -8px 10px; width: calc(100% + 16px); background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
