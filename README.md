@@ -35,30 +35,51 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 
 | 폴더 | 내용 |
 |---|---|
-| `packages/shared` | 엔진·화면이 함께 쓰는 타입, Zod 스키마, 예시 자료 |
+| `packages/shared` | 엔진·화면이 함께 쓰는 타입·Zod 스키마·검증·포트 규칙·예시 자료 |
 | `packages/engine` | 시뮬레이션 엔진. 브라우저와 Node의 기능을 쓰지 않는 순수 TypeScript |
 | `apps/web` | React 화면 + Tauri 데스크톱 껍데기 (`src-tauri/`) |
+| `docs/` | 랜딩(`index.html`)·사용설명서(`manual.html`) — GitHub Pages로 배포. `project-plan/` 계획 문서, `task-logs/` 작업 기록 |
+| `scripts/` | `desktop-release.mjs`(dmg 수집), `check-secrets.mjs`(비밀값 검사), `update-landing-history.mjs`(랜딩 히스토리 생성) |
+| `deploy/` | `desktop-release` 산출물(dmg·manifest). gitignore 대상 |
+| `.github/workflows/` | `ci.yml`(check), `desktop-release.yml`, `web-pages.yml`(Pages 배포) |
+| `vercel.json` | 예전 Vercel 배포의 잔재 — 지금은 쓰지 않는 예비 설정 |
+
+### `packages/shared/src/` 세부 역할
+
+| 파일 | 역할 |
+|---|---|
+| `document.ts` | `Device`·`Link`·`TopologyDocument` 정의와 `PORT_NAMES`(장비별 포트 이름·수) |
+| `schema.ts`, `validate.ts` | 저장 파일 스키마(Zod)와 토폴로지 검증 |
+| `view.ts` | 화면에 보이는 장비 뷰 타입 — 포트 상태, ARP·MAC·라우팅 표, 배운 경로 |
+| `trace.ts`, `codes.ts` | 추적 이벤트 타입과 이유 코드·메시지 |
+| `command.ts`, `console.ts` | 명령(`dispatch`) 타입과 콘솔 입출력 타입 |
 
 ### `packages/engine/src/` 세부 역할
 
 | 폴더 | 역할 |
 |---|---|
 | `kernel/` | 장비 종류를 모르는 이산 사건 커널 (가상 시계 + 사건 큐) |
-| `devices/` | PC, Server(HTTP·DNS·FTP·NTP·SSH 서비스), Hub, Switch·L3 Switch(VLAN 포워딩·SVI), LB, Router(정적 라우팅·RIP·GRE/IPsec VPN·루프백) 모델 |
+| `devices/` | PC, Server(HTTP·DNS·FTP·NTP·SSH 서비스), Hub, Switch·L3 Switch(VLAN 포워딩·SVI), LB, Router(정적 라우팅·RIP·GRE/IPsec VPN·루프백), Cloud(1.0.0.0/8을 /30으로 자른 가상 ISP 망 — 포트별 RIP 스피커) 모델 |
 | `protocols/` | ARP, IPv4 호스트, 전송 계층, iptables 필터 |
 | `cli/` | Cisco IOS 유사 CLI(Switch·Router), VyOS·Linux 라우터 CLI, Linux·Windows PC·서버 콘솔, SSH 원격 세션 |
 | `reducer/` | Document 변경 명령 처리기. 불변, 거부 시 무변경 |
+| `runtime.ts` | 장비 모델 관리 — 모델 생성, 프레임 전달, 타이머, RIP 경로 교환, 스냅샷 뷰 채우기 |
+| `views.ts`, `topology.ts` | 스냅샷 뷰 계산과 링크·포트 조회 도우미 |
 | `simulator.ts` | web과 engine의 유일한 경계. `load`/`dispatch`/`console`/`getSnapshot`/`subscribe`/`undo`/`redo` |
 
 ### `apps/web/src/` 세부 역할
 
 | 폴더 | 역할 |
 |---|---|
-| `components/` | 캔버스, 터미널 창, 속성·링크 패널, 패킷 카드 등 화면 부품 |
+| `components/` | 캔버스, 터미널 창, 속성·링크 패널, 패킷 카드, 클라우드 내부 구조 창 등 화면 부품 |
 | `replay/` | ping·경로 교환 재생의 단계·타임라인 계산 |
 | `terminal/` | 터미널 상태, 키 처리, 명령 큐, ping 출력 간격 |
 | `format/`, `messages/` | 포트·주소·케이블 표시 문자열과 사용자 메시지 |
+| `styles/` | `editor.css` — 편집기 전체 스타일 |
+| `simulator.ts` | 엔진 Simulator 인스턴스와 React의 연결 (`useSnapshot`) |
+| `topology-file.ts` | 토폴로지 파일 저장·불러오기 |
 | `app.tsx` | 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
+| `src-tauri/` | Tauri 데스크톱 껍데기 (Rust 최소 부팅 코드, 아이콘, 번들 설정) |
 
 ### 개발자
 
