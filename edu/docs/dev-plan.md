@@ -37,7 +37,7 @@ PING9 시뮬레이터 코어(`packages/shared` + `packages/engine`) 위에 올�
 | N3 스위치와 VLAN | VLAN으로 네트워크 분리·태깅 | 스위치 VLAN 설정, trunk |
 | N4 IP 주소와 서브넷 | 네트워크 주소·브로드캐스트·게이트웨이 | 주소 설정, 잘못된 서브넷의 실패 체험 |
 | N5 라우팅 기초 | 정적 경로·다음 홉·게이트웨이 | 라우터 `ip route`, traceroute |
-| N6 동적 라우팅 | RIP 광고와 경로 학습 | 클라우드 + 라우터 RIP, 내부 구조 창 |
+| N6 동적 라우팅 | RIP 광고·경로 학습·메트릭·split horizon·우선경로 | 클라우드 + 라우터 RIP — 광고 추적, 내부 구조 창의 배운 경로, 같은 목적지의 두 경로 비교 |
 | N7 네트워크 서비스 | DNS·HTTP·DHCP 흐름 | 서버 서비스, systemctl |
 | N8 NAT | 사설↔공인 주소 변환·포트 포워딩 | 라우터 NAT inside/outside, NAT_TRANSLATED 추적 |
 | N9 방화벽 | 규칙·체인·정책으로 트래픽 허용/차단 | 서버 `iptables`, 필터 규칙 추가·정책 변경 |
