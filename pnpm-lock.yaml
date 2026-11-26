@@ -229,12 +229,9 @@ importers:
 
   apps/web:
     dependencies:
-      '@ping9/engine':
+      '@ping9/editor':
         specifier: workspace:*
-        version: link:../../packages/engine
-      '@ping9/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/editor
       '@tauri-apps/api':
         specifier: ^2.12.5
         version: 2.12.5
@@ -331,6 +328,40 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2))
+
+  packages/editor:
+    dependencies:
+      '@ping9/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@ping9/shared':
+        specifier: workspace:*
+        version: link:../shared
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.11.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@24.19.2)
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2))

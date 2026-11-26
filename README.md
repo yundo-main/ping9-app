@@ -31,13 +31,14 @@ pnpm dev
 
 ## 구조
 
-pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared`뿐입니다.
+pnpm 모노레포. 의존 방향은 `web → editor → engine → shared`, `edu → editor`뿐입니다.
 
 | 폴더 | 내용 |
 |---|---|
 | `packages/shared` | 엔진·화면이 함께 쓰는 타입·Zod 스키마·검증·포트 규칙·예시 자료 |
 | `packages/engine` | 시뮬레이션 엔진. 브라우저와 Node의 기능을 쓰지 않는 순수 TypeScript |
-| `apps/web` | React 화면 + Tauri 데스크톱 껍데기 (`src-tauri/`) |
+| `packages/editor` | 시뮬레이터 화면 패키지 — 캔버스·터미널·인스펙터·재생. `apps/web`(본체)과 `edu/app`(교육)이 같이 쓴다. 플랫폼 동작(파일 저장·메뉴)은 prop으로 받아 Tauri를 모른다 (E3.0) |
+| `apps/web` | 본체 앱 껍데기 — `main.tsx`(EditorApp 렌더) + `file-platform.ts`(Tauri 저장 창·메뉴) + `src-tauri/` |
 | `edu/app` | 교육용 도구 — PING9 엔진 기반, 별도 Vercel 프로젝트로 배포 ([edu/README.md](edu/README.md)) |
 | `docs/` | **ping9-app**의 문서 — 랜딩·사용설명서(Pages 배포), `project-plan/`, `task-logs/`. Edu의 스펙은 `edu/docs/`가 별도 관리 |
 | `scripts/` | `desktop-release.mjs`(dmg 수집), `check-secrets.mjs`(비밀값 검사), `update-landing-history.mjs`(랜딩 히스토리 생성) |
@@ -68,7 +69,7 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `views.ts`, `topology.ts` | 스냅샷 뷰 계산과 링크·포트 조회 도우미 |
 | `simulator.ts` | web과 engine의 유일한 경계. `load`/`dispatch`/`console`/`getSnapshot`/`subscribe`/`undo`/`redo` |
 
-### `apps/web/src/` 세부 역할
+### `packages/editor/src/` 세부 역할
 
 | 폴더 | 역할 |
 |---|---|
@@ -76,10 +77,18 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `replay/` | ping·경로 교환 재생의 단계·타임라인 계산 |
 | `terminal/` | 터미널 상태, 키 처리, 명령 큐, ping 출력 간격 |
 | `format/`, `messages/` | 포트·주소·케이블 표시 문자열과 사용자 메시지 |
-| `styles/` | `editor.css` — 편집기 전체 스타일 |
+| `styles/` | `editor.css` — 편집기 전체 스타일 (`@ping9/editor/editor.css`로 import) |
 | `simulator.ts` | 엔진 Simulator 인스턴스와 React의 연결 (`useSnapshot`) |
-| `topology-file.ts` | 토폴로지 파일 저장·불러오기 |
-| `app.tsx` | 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
+| `topology-file.ts` | 토폴로지 파일 저장·불러오기 (저장 창 같은 플랫폼 동작은 앱이 prop으로 넘김) |
+| `app.tsx` | `EditorApp` — 편집기 화면 뼈대. 화면 상태만 들고 나머지는 engine 스냅샷에서 읽음 |
+| `index.ts` | 공개 표면 — `EditorApp`, `MenuActions`, `simulator`, `useSnapshot` |
+
+### `apps/web/src/` 세부 역할
+
+| 파일 | 역할 |
+|---|---|
+| `main.tsx` | 엔트리 — `EditorApp`을 렌더하고 Tauri 플랫폼 구현을 prop으로 꽂는다 |
+| `file-platform.ts` | Tauri 전용 파일·메뉴 동작 — 저장/열기 창, 메뉴 이벤트 → `MenuActions` 연결 |
 | `src-tauri/` | Tauri 데스크톱 껍데기 (Rust 최소 부팅 코드, 아이콘, 번들 설정) |
 
 ### 개발자

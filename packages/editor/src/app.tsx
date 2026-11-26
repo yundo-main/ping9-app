@@ -35,7 +35,7 @@ import type { Mode } from "./mode";
 import { exchangeTimeline, previewTimeline } from "./replay/timeline";
 import { BROWSER_TIME, createSimClock } from "./sim-clock";
 import { TOPOLOGY_NAME, simulator, useSnapshot } from "./simulator";
-import { downloadText, exportFile, importNameOf, needsReplaceConfirm, pickImportFile, readImportFile } from "./topology-file";
+import { browserDownload, exportFile, importNameOf, needsReplaceConfirm, readImportFile } from "./topology-file";
 import { createCommandQueue } from "./terminal/command-queue";
 import { completed, historyStep, initialTerminal, refreshPrompts, runLinePaced, showCandidates, showHelp } from "./terminal/terminal-state";
 import type { TerminalState } from "./terminal/terminal-state";
@@ -67,7 +67,24 @@ interface PendingImport {
 /** 경로 교환 재생의 열쇠. 장비 ID(UUID)와 겹치지 않는다 (T11.5.1) */
 const RIP_REPLAY_KEY = "rip";
 
-export function App() {
+/** 데스크톱 앱이 파일 메뉴 이벤트로 부르는 동작들 (T0.40, E3.0) */
+export interface MenuActions {
+  readonly exportTopology: () => void;
+  readonly importTopology: (file: File) => Promise<void>;
+  readonly newTopology: () => void;
+  readonly openAbout: () => void;
+  readonly undo: () => void;
+  readonly redo: () => void;
+}
+
+export interface EditorAppProps {
+  /** 파일 저장 — 없으면 브라우저 다운로드. Tauri 앱은 저장 창 구현을 넘긴다 */
+  readonly download?: (fileName: string, text: string) => Promise<void>;
+  /** 데스크톱 메뉴 액션을 받을 콜백. 브라우저는 넘기지 않는다 */
+  readonly onActions?: (actions: MenuActions) => void;
+}
+
+export function EditorApp({ download, onActions }: EditorAppProps) {
   const snapshot = useSnapshot();
   const { document } = snapshot;
   const [ui, dispatch] = useReducer(uiReducer, INITIAL_UI_STATE);
@@ -610,7 +627,7 @@ export function App() {
   const exportTopology = () => {
     const file = exportFile(topologyName, simulator.getSnapshot().document);
     // 저장 창이 거절되거나 쓰기가 실패하면 배너로 보인다 (T17.5)
-    void downloadText(file.fileName, file.text).catch((reason: unknown) => {
+    void (download ?? browserDownload)(file.fileName, file.text).catch((reason: unknown) => {
       setActionError(errorInfo("EXPORT_FAILED", { message: reason instanceof Error ? reason.message : String(reason) }));
     });
   };
@@ -651,27 +668,20 @@ export function App() {
     else replaceTopology(pending);
   };
 
-  // 데스크톱 앱의 파일 메뉴(가져오기/내보내기)가 보내는 이벤트를 같은 절차에 연결한다 (T0.40)
+  // 데스크톱 앱의 파일 메뉴(가져오기/내보내기)가 같은 절차를 부르게 액션을 넘긴다 (T0.40).
+  // Tauri 연결 자체는 앱 쪽 파일(file-platform.ts)이 한다 — editor는 Tauri를 모른다 (E3.0)
   const menuActions = useRef({ doExport: exportTopology, doImport: importTopology, doNew: newTopology });
   useEffect(() => { menuActions.current = { doExport: exportTopology, doImport: importTopology, doNew: newTopology }; });
   useEffect(() => {
-    if (!("__TAURI_INTERNALS__" in window)) return;
-    let off: (() => void) | undefined;
-    void import("@tauri-apps/api/event").then(async ({ listen }) => {
-      const a = await listen("menu-import", () => {
-        void pickImportFile().then(file => {
-          if (file !== null) return menuActions.current.doImport(file);
-        });
-      });
-      const b = await listen("menu-export", () => menuActions.current.doExport());
-      const c = await listen("menu-about", () => setAboutOpen(true));
-      const d = await listen("menu-new", () => menuActions.current.doNew());
-      const e = await listen("menu-undo", () => simulator.undo());
-      const f = await listen("menu-redo", () => simulator.redo());
-      off = () => { a(); b(); c(); d(); e(); f(); };
+    onActions?.({
+      exportTopology: () => menuActions.current.doExport(),
+      importTopology: async (file: File) => menuActions.current.doImport(file),
+      newTopology: () => menuActions.current.doNew(),
+      openAbout: () => setAboutOpen(true),
+      undo: () => simulator.undo(),
+      redo: () => simulator.redo(),
     });
-    return () => off?.();
-  }, []);
+  }, [onActions]);
 
   return (
     <div className={`app mode-${mode}`}>
