@@ -7,7 +7,7 @@
 | 지금 진행 중인 목표 | [docs/project-plan/06-two-pc-ping-plan.md](docs/project-plan/06-two-pc-ping-plan.md) |
 | 계획 문서 (요구사항, 설계, 개발 계획) | [docs/project-plan/](docs/project-plan/README.md) |
 | 작업 단위(Task) 상세 | [docs/project-plan/04-tasks/](docs/project-plan/04-tasks/) |
-| Task별 진행 기록 | [docs/task-logs/](docs/task-logs/README.md) |
+| Task별 진행 기록 | [docs/task-logs/](docs/task-logs/README.md) — 본체 T-시리즈. Edu는 [edu/docs/task-logs/](edu/docs/task-logs/README.md)의 E-시리즈 |
 | 팀 작업 규칙 | [CLAUDE.md](CLAUDE.md) |
 
 ## 시작하기

@@ -4,7 +4,8 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 
 | Task | 기록 문서 | 영역 | 담당 | 브랜치 |
 |---|---|---|---|---|
-| E4.1 로그인 기반: Supabase 클라이언트 + 이메일·비밀번호 로그인/가입 + Google 버튼 자리 | [E4.1-email-auth.md](E4.1-email-auth.md) | 화면 | jarrod | main 직접 커밋 |
+| E1.1 edu-core 패키지: Lesson·Check Zod 스키마 + N1 첫 레슨 | [E1.1-edu-core-lesson-schema.md](E1.1-edu-core-lesson-schema.md) | 공통 | jarrod | main 직접 커밋 |
+| E2.1 채점기: 다섯 Check 평가 — 채점기가 직접 ping을 쳐 확인 | [E2.1-grader.md](E2.1-grader.md) | 공통 | jarrod | main 직접 커밋 |
 | E3.0 `packages/editor` 추출 — 편집기 화면이 본체·Edu 공용 패키지로 | [E3.0-packages-editor-extraction.md](E3.0-packages-editor-extraction.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
 | E3.1 레슨 플레이어 — edu/app에 EditorApp 임베드 + 채점 버튼 | [E3.1-lesson-player.md](E3.1-lesson-player.md) | 화면 | jarrod | main 직접 커밋 |
 | E3.2 프로젝트 경계 정리 — 구조 문서 + import 경계 자동 검사 | [E3.2-boundary-check.md](E3.2-boundary-check.md) | 공통 / 배포 | jarrod | main 직접 커밋 |
@@ -13,9 +14,8 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E3.5 레슨 단계(step) 안내 + JSON 데이터화 — 코스 구조 참고 반영 | [E3.5-step-lessons-json.md](E3.5-step-lessons-json.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
 | E3.6 로그인 사용자의 홈 = 개인 대시보드 — `#/lessons` 라우트 분리 | [E3.6-dashboard-home.md](E3.6-dashboard-home.md) | 화면 | jarrod | main 직접 커밋 |
 | E3.7 게스트 로그인 — EduSession 타입 + Supabase 없이 바로 시작 | [E3.7-guest-login.md](E3.7-guest-login.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
+| E4.1 로그인 기반: Supabase 클라이언트 + 이메일·비밀번호 로그인/가입 + Google 버튼 자리 | [E4.1-email-auth.md](E4.1-email-auth.md) | 화면 | jarrod | main 직접 커밋 |
 | E4.2 Supabase 연결 — env 설정 + 첫 계정으로 실제 로그인 | [E4.2-supabase-env.md](E4.2-supabase-env.md) | 인증 | jarrod | main 직접 커밋 |
 | E4.3 진도 DB 저장 + 로그인 화면 메인 + 로고 | [E4.3-progress-db-login-home.md](E4.3-progress-db-login-home.md) | 화면 / 인증 / 데이터 | jarrod | main 직접 커밋 |
-| E5.1 교사 대시보드 + 종이 테마 — 반·과제·막힘 분석 | [E5.1-teacher-dashboard.md](E5.1-teacher-dashboard.md) | 화면 / 데이터 / 인증 | jarrod | main 직접 커밋 |
 | E4.4 소셜 로그인 준비 — Google 자격증명 입력만 남김 | [E4.4-social-login-ready.md](E4.4-social-login-ready.md) | 인증 | jarrod | main 직접 커밋 |
-| E1.1 edu-core 패키지: Lesson·Check Zod 스키마 + N1 첫 레슨 | [E1.1-edu-core-lesson-schema.md](E1.1-edu-core-lesson-schema.md) | 공통 | jarrod | main 직접 커밋 |
-| E2.1 채점기: 다섯 Check 평가 — 채점기가 직접 ping을 쳐 확인 | [E2.1-grader.md](E2.1-grader.md) | 공통 | jarrod | main 직접 커밋 |
+| E5.1 교사 대시보드 + 종이 테마 — 반·과제·막힘 분석 | [E5.1-teacher-dashboard.md](E5.1-teacher-dashboard.md) | 화면 / 데이터 / 인증 | jarrod | main 직접 커밋 |

@@ -1,5 +1,7 @@
 # Task 진행 기록
 
+이 폴더는 **ping9-app(본체)**의 기록 — **T-시리즈**. PING9 Edu의 기록은 [edu/docs/task-logs/](../../edu/docs/task-logs/README.md)의 E-시리즈로 분리돼 있다.
+
 VPN 신규 계획: [GRE·IPsec 구현 계획](../proposals/vpn-gre-ipsec.md).
 
 Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만듭니다. 진행 방식, 결과, 검증 출력, 계획과 달라진 점을 남겨 다른 팀원이 코드를 읽지 않고도 무엇이 어떻게 끝났는지 알 수 있게 합니다.

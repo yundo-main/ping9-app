@@ -11,8 +11,8 @@
 
 ## 반드시 지킬 작업 규칙
 
-1. **Task 하나를 진행할 때마다 기록 문서를 새로 만든다.** 위치는 `docs/task-logs/`, 파일 이름은 `<Task ID>-<짧은-영문-설명>.md`, 형식은 [docs/task-logs/_TEMPLATE.md](docs/task-logs/_TEMPLATE.md). 진행 방식, 결과, 검증 출력, 계획과 달라진 점을 적는다. 기존 기록 문서에 다른 Task를 이어 쓰지 않는다.
-2. 기록 문서는 그 Task의 코드와 **같은 커밋**에 넣고, [docs/task-logs/README.md](docs/task-logs/README.md)의 목록에 한 줄을 추가한다.
+1. **Task 하나를 진행할 때마다 기록 문서를 새로 만든다.** 위치는 제품별로 갈린다 — **ping9-app(본체)**은 `docs/task-logs/`의 **T-시리즈**, **PING9 Edu**는 `edu/docs/task-logs/`의 **E-시리즈**. 파일 이름은 `<Task ID>-<짧은-영문-설명>.md`, 형식은 [docs/task-logs/_TEMPLATE.md](docs/task-logs/_TEMPLATE.md). 진행 방식, 결과, 검증 출력, 계획과 달라진 점을 적는다. 기존 기록 문서에 다른 Task를 이어 쓰지 않는다.
+2. 기록 문서는 그 Task의 코드와 **같은 커밋**에 넣고, 해당 시리즈의 목록 — 본체는 [docs/task-logs/README.md](docs/task-logs/README.md), Edu는 [edu/docs/task-logs/README.md](edu/docs/task-logs/README.md) — 에 한 줄을 추가한다.
 3. 1인 작업이라 `main`에 직접 커밋한다. 팀 시절의 `feat/<Task ID>-<설명>` 브랜치 + Pull Request 규칙은 쓰지 않는다 (옛 브랜치는 병합 잔재로만 남아 있음).
 4. 완료 판단은 [개발 계획 4.3절의 공통 완료 조건](docs/project-plan/04-development-plan.md#43-분해-구조-읽는-법)을 따른다.
 5. **커밋 메시지는 영어로 쓴다.** `Co-Authored-By: Claude ...`, "Generated with Claude Code" 같은 AI 표시 줄을 넣지 않는다. 문서 본문은 한국어로 쓴다.
