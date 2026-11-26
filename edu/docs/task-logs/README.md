@@ -8,5 +8,6 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E3.0 `packages/editor` 추출 — 편집기 화면이 본체·Edu 공용 패키지로 | [E3.0-packages-editor-extraction.md](E3.0-packages-editor-extraction.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
 | E3.1 레슨 플레이어 — edu/app에 EditorApp 임베드 + 채점 버튼 | [E3.1-lesson-player.md](E3.1-lesson-player.md) | 화면 | jarrod | main 직접 커밋 |
 | E3.2 프로젝트 경계 정리 — 구조 문서 + import 경계 자동 검사 | [E3.2-boundary-check.md](E3.2-boundary-check.md) | 공통 / 배포 | jarrod | main 직접 커밋 |
+| E3.3 Edu UI 개선 — 진도 표시·완료 플로우·마크다운·해시 라우팅 | [E3.3-edu-ui.md](E3.3-edu-ui.md) | 화면 | jarrod | main 직접 커밋 |
 | E1.1 edu-core 패키지: Lesson·Check Zod 스키마 + N1 첫 레슨 | [E1.1-edu-core-lesson-schema.md](E1.1-edu-core-lesson-schema.md) | 공통 | jarrod | main 직접 커밋 |
 | E2.1 채점기: 다섯 Check 평가 — 채점기가 직접 ping을 쳐 확인 | [E2.1-grader.md](E2.1-grader.md) | 공통 | jarrod | main 직접 커밋 |
