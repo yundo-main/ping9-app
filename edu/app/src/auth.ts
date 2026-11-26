@@ -97,6 +97,13 @@ export function signInWithGoogle(): Promise<string | null> {
   }).then(result => result, () => ({ error: { message: "Google 로그인을 시작하지 못했어요" } })));
 }
 
+/** 표시 이름 변경 — user_metadata를 고치고 새 세션을 돌려준다 */
+export async function updateDisplayName(name: string): Promise<string | null> {
+  if (supabase === undefined) return "로그인이 아직 설정되지 않았어요";
+  const { error } = await supabase.auth.updateUser({ data: { display_name: name.trim() } });
+  return error?.message ?? null;
+}
+
 export async function signOut(): Promise<void> {
   try {
     localStorage.removeItem(GUEST_KEY);

@@ -12,12 +12,13 @@ import { Dashboard } from "./dashboard";
 import { LessonList } from "./lesson-list";
 import { LessonPlayer } from "./lesson-player";
 import { loadPassed, markPassed, pullPassed, pushPassed } from "./progress";
+import { TeacherDashboard } from "./teacher-dashboard";
 
 const LESSON_HASH = /^#\/lesson\/(.+)$/;
 
 export function App() {
   const [route, setRoute] = useState(() => window.location.hash);
-  const [passed, setPassed] = useState<Set<string>>(() => loadPassed());
+  const [passed, setPassed] = useState<Map<string, string>>(() => loadPassed());
   const [session, setSession] = useState<EduSession | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   useEffect(() => onSession((next) => {
@@ -66,8 +67,14 @@ export function App() {
       return null;
     }
     if (session !== null) {
+      if (session.role === "teacher") {
+        return <TeacherDashboard session={session} lessons={LESSONS}
+          onBack={() => { window.location.hash = "#/lessons"; }}
+          onSignOut={() => void signOut()} />;
+      }
       return <Dashboard session={session} lessons={LESSONS} passed={passed} onPick={openLesson}
-        onBack={() => { window.location.hash = "#/lessons"; }} />;
+        onBack={() => { window.location.hash = "#/lessons"; }}
+        onSignOut={() => void signOut()} />;
     }
     return null;
   }
@@ -86,10 +93,12 @@ export function App() {
       <LessonPlayer
         lesson={lesson}
         nextLesson={nextLesson}
+        session={session}
         onExit={() => openLesson(null)}
         onPassed={(id) => {
-          setPassed(markPassed(id));
-          if (session !== null) pushPassed(id, session);
+          const next = markPassed(id);
+          setPassed(next);
+          if (session !== null) pushPassed(id, next.get(id)!, session);
         }}
         onNext={openLesson}
       />

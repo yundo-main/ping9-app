@@ -4,13 +4,16 @@
 import { grade, type GradeResult, type Lesson } from "@ping9/edu-core";
 import { EditorApp, simulator } from "@ping9/editor";
 import { useEffect, useRef, useState } from "react";
+import type { EduSession } from "./auth";
 import { checkLabel } from "./check-label";
+import { recordAttempt } from "./classes";
 import { UNIT_TITLES } from "./lesson-list";
 import { Markdown } from "./markdown";
 
-export function LessonPlayer({ lesson, nextLesson, onExit, onPassed, onNext }: {
+export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, onNext }: {
   readonly lesson: Lesson;
   readonly nextLesson: Lesson | null;
+  readonly session: EduSession | null;
   readonly onExit: () => void;
   readonly onPassed: (lessonId: string) => void;
   readonly onNext: (lesson: Lesson) => void;
@@ -37,6 +40,7 @@ export function LessonPlayer({ lesson, nextLesson, onExit, onPassed, onNext }: {
     try {
       const graded = await grade(simulator, lesson);
       setResult(graded);
+      recordAttempt(lesson.id, graded, session);
       if (graded.ok) onPassed(lesson.id);
     } finally {
       running.current = false;

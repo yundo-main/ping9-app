@@ -9,7 +9,7 @@ export const UNIT_TITLES: Record<string, string> = {
 
 export function LessonList({ lessons, passed, onPick }: {
   readonly lessons: readonly Lesson[];
-  readonly passed: ReadonlySet<string>;
+  readonly passed: ReadonlyMap<string, string>;
   readonly onPick: (lesson: Lesson) => void;
 }) {
   const units = new Map<string, Lesson[]>();
