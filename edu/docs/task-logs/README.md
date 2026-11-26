@@ -2,6 +2,8 @@
 
 PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리즈)와 분리된 **E-시리즈**다. 한 파일에 한 Task, 형식은 `docs/task-logs/_TEMPLATE.md`를 따른다.
 
+현재 개발 현황 스냅샷: [../status.md](../status.md)
+
 | Task | 기록 문서 | 영역 | 담당 | 브랜치 |
 |---|---|---|---|---|
 | E1.1 edu-core 패키지: Lesson·Check Zod 스키마 + N1 첫 레슨 | [E1.1-edu-core-lesson-schema.md](E1.1-edu-core-lesson-schema.md) | 공통 | jarrod | main 직접 커밋 |
@@ -29,3 +31,5 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E6.8 3D 펭귄 + 로그인 필수 게이트 | [E6.8-penguin3d-auth-gate.md](E6.8-penguin3d-auth-gate.md) | 화면 / 인증 | jarrod | main 직접 커밋 |
 | E6.9 장비 3D 썸네일 + 로그인 정보 사이드바 이동 | [E6.9-thumb3d-user-move.md](E6.9-thumb3d-user-move.md) | 화면 | jarrod | main 직접 커밋 |
 | E6.10 팔레트 도구 3D 아이콘 (edu 전용 seam) | [E6.10-palette-3d-icons.md](E6.10-palette-3d-icons.md) | 화면 | jarrod | main 직접 커밋 |
+| E6.11 로그인 정보 좌하단 도킹 스트립 | [E6.11-session-strip.md](E6.11-session-strip.md) | 화면 | jarrod | main 직접 커밋 |
+| E6.12 GitHub OAuth 로그인 버튼 | [E6.12-github-login.md](E6.12-github-login.md) | 인증 | jarrod | main 직접 커밋 |
