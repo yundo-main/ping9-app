@@ -13,5 +13,6 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E3.5 레슨 단계(step) 안내 + JSON 데이터화 — 코스 구조 참고 반영 | [E3.5-step-lessons-json.md](E3.5-step-lessons-json.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
 | E3.6 로그인 사용자의 홈 = 개인 대시보드 — `#/lessons` 라우트 분리 | [E3.6-dashboard-home.md](E3.6-dashboard-home.md) | 화면 | jarrod | main 직접 커밋 |
 | E3.7 게스트 로그인 — EduSession 타입 + Supabase 없이 바로 시작 | [E3.7-guest-login.md](E3.7-guest-login.md) | 화면 / 공통 | jarrod | main 직접 커밋 |
+| E4.2 Supabase 연결 — env 설정 + 첫 계정으로 실제 로그인 | [E4.2-supabase-env.md](E4.2-supabase-env.md) | 인증 | jarrod | main 직접 커밋 |
 | E1.1 edu-core 패키지: Lesson·Check Zod 스키마 + N1 첫 레슨 | [E1.1-edu-core-lesson-schema.md](E1.1-edu-core-lesson-schema.md) | 공통 | jarrod | main 직접 커밋 |
 | E2.1 채점기: 다섯 Check 평가 — 채점기가 직접 ping을 쳐 확인 | [E2.1-grader.md](E2.1-grader.md) | 공통 | jarrod | main 직접 커밋 |
