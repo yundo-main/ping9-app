@@ -4,6 +4,10 @@ PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한
 
 - 배포 주소: **https://ping9-edu.vercel.app** (Vercel 프로젝트 이름 `ping9-edu`)
 
+## 문서
+
+- [docs/dev-plan.md](docs/dev-plan.md) — 개발 계획과 소스 트리 제안
+
 ## 분리 규칙
 
 | 항목 | 내용 |
