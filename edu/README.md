@@ -2,6 +2,8 @@
 
 PING9 시뮬레이터(`packages/engine` + `packages/shared`)를 기반으로 한 **교육용 도구**. PING9 본체와 **배포가 완전히 분리된 별도 Vercel 프로젝트**다.
 
+- 배포 주소: **https://ping9-edu.vercel.app** (Vercel 프로젝트 이름 `ping9-edu`)
+
 ## 분리 규칙
 
 | 항목 | 내용 |
@@ -20,7 +22,7 @@ pnpm --filter @ping9/edu dev
 
 ## Vercel 연결 (대시보드에서 한 번만)
 
-1. 새 프로젝트 → 이 저장소를 가져온다
+1. 새 프로젝트 → 이 저장소를 가져온다. **프로젝트 이름을 `ping9-edu`로** 지으면 기본 주소가 `ping9-edu.vercel.app`이 된다
 2. **Root Directory**를 `edu/app`으로 설정한다 — 그러면 `edu/app/vercel.json`이 적용된다
 3. **Ignored Build Step**에 `git diff HEAD^ HEAD --quiet -- edu/ packages/`를 넣으면 edu와 패키지가 바뀐 커밋만 배포된다
 4. 환경변수·도메인은 이 프로젝트의 설정에만 생긴다 — PING9의 Pages/데스크톱 배포와 무관하다
