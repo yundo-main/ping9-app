@@ -4,7 +4,7 @@
 import { grade, type GradeResult, type Lesson } from "@ping9/edu-core";
 import { EditorApp, simulator, type MenuActions } from "@ping9/editor";
 import { useEffect, useRef, useState } from "react";
-import type { EduSession } from "./auth";
+import { signOut, type EduSession } from "./auth";
 import { checkLabel } from "./check-label";
 import { recordAttempt } from "./classes";
 import { UNIT_TITLES } from "./lesson-list";
@@ -163,6 +163,13 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                   <button type="button" className="edu-grade" onClick={() => void gradeNow()} disabled={grading}>
                     {grading ? "채점 중…" : "채점하기"}
                   </button>
+                  {session !== null && (
+                    <span className="edu-tb-user" title={session.guest ? "게스트" : session.email}>
+                      {session.guest ? "게스트" : session.email}
+                      <button type="button" className="edu-tb-btn" onClick={() => void signOut()}>로그아웃</button>
+                    </span>
+                  )}
+                  {session === null && <a className="edu-tb-btn" href="#/login">로그인</a>}
                 </div>
               } />
           )}
