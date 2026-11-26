@@ -42,7 +42,7 @@ import { INITIAL_UI_STATE, uiReducer } from "./ui-state";
 
 type Terminals = Readonly<Record<string, TerminalState>>;
 
-const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "L2 Switch" | "Router" | "Hub" | "L3 Switch" | "LB">> = {
+const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "L2 Switch" | "Router" | "Hub" | "L3 Switch" | "LB" | "Cloud">> = {
   pc: "PC",
   server: "Server",
   switch: "L2 Switch",
@@ -50,6 +50,7 @@ const KIND_LABEL: Readonly<Record<PaletteKind, "PC" | "Server" | "L2 Switch" | "
   hub: "Hub",
   l3switch: "L3 Switch",
   lb: "LB",
+  cloud: "Cloud",
 };
 
 /** 시안에서 터미널 창이 쌓이기 시작하는 z-index */

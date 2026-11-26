@@ -27,6 +27,7 @@ const TIPS: Readonly<Record<PaletteKind, string>> = {
   lb: "끌어서 배치 — 요청을 백엔드로 나누는 로드밸런서 (L4·L7)",
   hub: "끌어서 배치 — 들어온 걸 모든 포트로 보내는 허브 (L1)",
   router: "끌어서 배치 — 서로 다른 네트워크를 잇는 라우터 (L3)",
+  cloud: "끌어서 배치 — 가상의 인터넷. 포트마다 /30 링크망이 배정되어 붙은 장비 사이를 이어 줍니다",
 };
 
 export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = false, selectActive = false, onSelectTool, onDeviceDragStart,
@@ -102,6 +103,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
           </div>
         )}
       </div>
+      {tool("cloud", "Cloud")}
       <p className="palette-note" aria-live="polite">{NOTE[dragCancel]}</p>
       <h4>도구</h4>
       <button type="button" className={selectActive ? "tool select-tool active" : "tool select-tool"}

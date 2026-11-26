@@ -128,6 +128,25 @@ function Lb() {
   );
 }
 
+/** 인터넷 클라우드 (T0.68). ISP 라우터 망 — 구름 안에 라우터 셋이 메시로 이어져 있다 */
+function Cloud() {
+  const c = "#0284C7";
+  return (
+    <>
+      <ellipse cx="16" cy="27.6" rx="9.5" ry="1.8" fill="#E0F2FE" stroke={c} strokeWidth="0.9" />
+      <path d="M8.5 21.5a4.4 4.4 0 0 1-.5-8.8A5.8 5.8 0 0 1 16 8.6a5.4 5.4 0 0 1 5.1 3.4 4.7 4.7 0 0 1 2.4 9.5Z"
+        fill="#E0F2FE" stroke={c} strokeWidth="1.1" {...LINE} />
+      <path d="M11.6 16.4l4.4 1.9M20.4 14.6l-4.4 3.7M11.6 19.8l4.4-1.5M20.4 19.2l-4.4-1.1" fill="none"
+        stroke={c} strokeWidth="0.85" strokeLinecap="round" />
+      <circle cx="11.6" cy="16.4" r="1.15" fill="#E0F2FE" stroke={c} strokeWidth="0.85" />
+      <circle cx="20.4" cy="14.6" r="1.15" fill="#E0F2FE" stroke={c} strokeWidth="0.85" />
+      <circle cx="20.4" cy="19.2" r="1.15" fill="#E0F2FE" stroke={c} strokeWidth="0.85" />
+      <circle cx="16" cy="18.3" r="1.15" fill="#E0F2FE" stroke={c} strokeWidth="0.85" />
+      <circle cx="11.6" cy="19.8" r="1.15" fill="#E0F2FE" stroke={c} strokeWidth="0.85" />
+    </>
+  );
+}
+
 /** 관문의 기둥과 지붕. 열린 문과 닫힌 문이 같이 쓴다 */
 function GateFrame() {
   const green = "#17725F";
@@ -255,8 +274,9 @@ export function DeviceIcon({ kind, os, filtering = false, hideLayerBadge = false
   const osClass = (kind === "pc" || kind === "server") && os !== undefined ? ` icon-os-${os}` : "";
   return (
     <svg className={`icon icon-${kind}${osClass}`} viewBox="0 0 32 32" aria-hidden="true" {...box}>
-      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : kind === "lb" ? <Lb /> : <GateOpen />}
+      {kind === "pc" ? (os === "server" ? <Rack /> : <Igloo os={os} />) : kind === "server" ? <Rack /> : kind === "switch" ? <Signpost /> : kind === "hub" ? <Hub /> : kind === "l3switch" ? <L3Switch /> : kind === "lb" ? <Lb /> : kind === "cloud" ? <Cloud /> : <GateOpen />}
       {!hideLayerBadge && kind === "hub" && <LayerBadge text="L1" />}
+      {!hideLayerBadge && kind === "cloud" && <LayerBadge text="WAN" />}
       {!hideLayerBadge && kind === "switch" && <LayerBadge text="L2" />}
       {!hideLayerBadge && kind === "l3switch" && <LayerBadge text="L3" />}
       {!hideLayerBadge && kind === "lb" && <LayerBadge text="L4·7" />}

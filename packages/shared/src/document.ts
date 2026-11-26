@@ -1,7 +1,7 @@
 // 저장되는 문서(Document)의 형태. 출처: docs/project-plan/03-system-design.md 3.4절 "Document 형태", AD-9.
 // 모든 값은 변경 불가능한 단순 JSON 자료다 (AD-16). 바꿀 때는 새 객체를 만든다.
 
-export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub", "l3switch", "lb"] as const;
+export const DEVICE_KINDS = ["pc", "server", "switch", "router", "hub", "l3switch", "lb", "cloud"] as const;
 export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
 /** 장비 종류별 포트의 전체 이름. 배열의 순서가 포트 순번이다 (MAC 주소 계산에 씀) */
@@ -37,6 +37,8 @@ export const PORT_NAMES = {
   ],
   // LB (T0.34). 리눅스 기반이라 포트 이름이 ethN이다
   lb: ["eth0", "eth1"],
+  // 인터넷 클라우드 (T0.68). 포트별로 1.0.0.0/8을 자른 /30 링크망이 고정 배정된다
+  cloud: ["Port0", "Port1", "Port2", "Port3"],
 } as const satisfies Record<DeviceKind, readonly string[]>;
 
 /** 그 종류의 장비에 있는 포트 이름인지 */
@@ -488,7 +490,31 @@ export interface LbDevice extends DeviceBase {
   readonly config: LbConfig;
 }
 
-export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice | L3SwitchDevice | LbDevice;
+/**
+ * 인터넷 클라우드 구성 (T0.68). 가상의 ISP 망 — 설정하는 게 없다.
+ * 포트 순번 i에는 `1.0.0.{4i}/30` 링크망이 배정되어 클라우드는 `.{4i+1}`, 붙은 장비는 `.{4i+2}`를 쓴다
+ */
+export type CloudConfig = Record<string, never>;
+
+export interface CloudDevice extends DeviceBase {
+  readonly kind: "cloud";
+  readonly config: CloudConfig;
+}
+
+/** 클라우드 포트 순번(0~3)의 링크망. 마스크는 /30 (255.255.255.252) */
+export function cloudPortInfo(index: number): {
+  readonly network: string; readonly mask: string; readonly cloudIp: string; readonly peerIp: string;
+} {
+  const base = 4 * index;
+  return {
+    network: `1.0.0.${base}`,
+    mask: "255.255.255.252",
+    cloudIp: `1.0.0.${base + 1}`,
+    peerIp: `1.0.0.${base + 2}`,
+  };
+}
+
+export type Device = PcDevice | ServerDevice | SwitchDevice | RouterDevice | HubDevice | L3SwitchDevice | LbDevice | CloudDevice;
 
 /** PC 장비인지. 객체를 `PcDevice`로 좁힌다 */
 export function isPcDevice(device: Device | undefined): device is PcDevice {
@@ -513,6 +539,11 @@ export function isL3SwitchDevice(device: Device | undefined): device is L3Switch
 /** LB 장비인지. 객체를 `LbDevice`로 좁힌다 */
 export function isLbDevice(device: Device | undefined): device is LbDevice {
   return device !== undefined && device.kind === "lb";
+}
+
+/** 클라우드 장비인지. 객체를 `CloudDevice`로 좁힌다 */
+export function isCloudDevice(device: Device | undefined): device is CloudDevice {
+  return device !== undefined && device.kind === "cloud";
 }
 
 /** 링크. 방향이 없고 서로 다른 두 장비를 잇는다 */

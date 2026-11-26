@@ -17,13 +17,14 @@ import type {
   Trace,
   TraceSummary,
 } from "@ping9/shared";
-import { errorInfo, isPcDevice, isServerDevice } from "@ping9/shared";
+import { errorInfo, isCloudDevice, isPcDevice, isServerDevice } from "@ping9/shared";
 
 import { PC_PORT, PcModel } from "./devices/pc/pc-model";
 import { SERVER_PORT, ServerModel } from "./devices/server/server-model";
 import { deviceRun } from "./devices/link";
 import type { DeviceModel } from "./devices/model";
 import { HubModel } from "./devices/hub/hub-model";
+import { CloudModel } from "./devices/cloud/cloud-model";
 import { L3SwitchModel } from "./devices/l3switch/l3switch-model";
 import { LbModel } from "./devices/lb/lb-model";
 import { RouterModel } from "./devices/router/router-model";
@@ -140,6 +141,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
   const hubs = new Map<string, HubModel>();
   const l3switches = new Map<string, L3SwitchModel>();
   const lbs = new Map<string, LbModel>();
+  const clouds = new Map<string, CloudModel>();
   // 가장 최근 것이 앞. 최대 LIMITS.maxTraces개
   let traces: readonly StoredTrace[] = [];
   // 마지막 경로 교환 뒤의 RIP 경로. 다음 교환과 비교한다 (T11.3.1)
@@ -214,6 +216,15 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     return model;
   };
 
+  const cloudModel = (deviceId: string): CloudModel | undefined => {
+    let model = clouds.get(deviceId);
+    if (model === undefined && isCloudDevice(findDevice(getDocument(), deviceId))) {
+      model = new CloudModel(deviceId, getDocument);
+      clouds.set(deviceId, model);
+    }
+    return model;
+  };
+
   /** 실행을 시작할 때 앞 실행에서 남은 대기열과 응답 기록을 비운다 */
   const startModels = (): void => {
     for (const pc of pcs.values()) pc.startRun();
@@ -221,6 +232,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
     for (const router of routers.values()) router.startRun();
     for (const l3 of l3switches.values()) l3.startRun();
     for (const lb of lbs.values()) lb.startRun();
+    for (const cloud of clouds.values()) cloud.startRun();
   };
 
   /** 이번 실행에 쓸 PC·Server·Switch·Router·Hub 모델 */
@@ -233,6 +245,7 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       else if (device.kind === "hub") models.set(device.id, hubModel(device.id)!);
       else if (device.kind === "l3switch") models.set(device.id, l3switchModel(device.id)!);
       else if (device.kind === "lb") models.set(device.id, lbModel(device.id)!);
+      else if (device.kind === "cloud") models.set(device.id, cloudModel(device.id)!);
       else models.set(device.id, switchModel(device.id)!);
     }
     return models;
@@ -318,6 +331,11 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       pcs.clear();
       routers.clear();
       switches.clear();
+      servers.clear();
+      hubs.clear();
+      l3switches.clear();
+      lbs.clear();
+      clouds.clear();
       traces = [];
       lastRipRoutes = new Map();
     },
@@ -360,6 +378,12 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
         const before = model.macTable();
         model.onConfigChanged({ previous, document });
         changed ||= model.macTable().length !== before.length;
+      }
+      for (const [deviceId, model] of clouds) {
+        const before = model.arpTable();
+        if (findDevice(document, deviceId)?.kind !== "cloud") { clouds.delete(deviceId); changed ||= before.length > 0; continue; }
+        model.onConfigChanged();
+        changed ||= model.arpTable().length !== before.length;
       }
       return changed;
     },
@@ -503,6 +527,10 @@ export function createRuntime(getDocument: () => TopologyDocument): Runtime {
       for (const [deviceId, model] of switches) {
         const view = views[deviceId];
         if (view?.kind === "switch") views[deviceId] = { ...view, macTable: model.macTable() };
+      }
+      for (const [deviceId, model] of clouds) {
+        const view = views[deviceId];
+        if (view?.kind === "cloud") views[deviceId] = { ...view, arpTable: model.arpTable() };
       }
       return views;
     },

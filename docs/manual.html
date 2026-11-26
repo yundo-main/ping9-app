@@ -87,6 +87,7 @@
     <li><a href="#l3switch">L3 Switch</a></li>
     <li><a href="#lb">Load Balancer</a></li>
     <li><a href="#router">Router</a></li>
+    <li><a href="#cloud">Cloud</a></li>
   </ul>
 </nav>
 
@@ -272,6 +273,22 @@
     <li><code>useradd &lt;u&gt; -p &lt;비밀번호&gt;</code> + <code>systemctl start ssh</code> — SSH 켜기</li>
   </ul>
   <div class="note">라우터 주소로 온 패킷은 라우터가 자기 자신에게 온 것으로 받습니다 — 열린 서비스(SSH·NTP 없음)가 없으면 거절됩니다.</div>
+</section>
+
+<section id="cloud">
+  <h2>Cloud <span class="badge">WAN</span></h2>
+  <p class="dim">가상의 인터넷 — 1.0.0.0/8을 /30으로 자른 라우터 망이 안에 들어 있다고 보는 장비입니다.</p>
+  <ul>
+    <li>포트는 Port0–Port3 네 개. 순번 i의 포트에는 <code>1.0.0.{4i}/30</code> 링크망이 고정 배정됩니다 — 클라우드 쪽이 <code>.{4i+1}</code>, 붙는 장비가 <code>.{4i+2}</code></li>
+    <li>붙는 장비(주로 라우터)의 인터페이스를 그 포트의 <code>.{4i+2}/30</code>로, 경로의 다음 홉을 <code>.{4i+1}</code>로 잡으면 포트 사이를 라우팅해 줍니다 — 어느 포트의 상대 주소든 목적지가 되면 그 포트로 전달</li>
+    <li>설정과 콘솔이 없습니다 — 허브처럼 배치만 하면 됩니다. 인스펙터에 포트별 링크망이 보입니다</li>
+    <li>클라우드 포트 주소(<code>.{4i+1}</code>)로의 ping에는 직접 응답하고, TTL을 줄여 전달합니다 — traceroute에서 한 홉으로 보입니다</li>
+  </ul>
+  <pre>예: R1 gi0/0 ── Cloud Port0     R2 gi0/0 ── Cloud Port1
+<span class="p">R1(config)#</span> ip address 1.0.0.2 255.255.255.252    <span class="dim">← Port0의 상대 주소</span>
+<span class="p">R1(config)#</span> ip route 192.168.2.0 255.255.255.0 1.0.0.1   <span class="dim">← 클라우드 쪽이 다음 홉</span>
+<span class="p">R2(config)#</span> ip address 1.0.0.6 255.255.255.252    <span class="dim">← Port1의 상대 주소</span></pre>
+  <div class="note">라우터끼리 클라우드를 경유할 때는 각자가 자기 포트의 /30 상대 주소를 쓰고, 다른 쪽 네트워크로 가는 정적 경로의 다음 홉을 자기 포트의 클라우드 주소(<code>.{4i+1}</code>)로 잡습니다.</div>
 </section>
 
 </div>

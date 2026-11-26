@@ -47,6 +47,7 @@ export function isAdminUp(device: Device, port: string): boolean {
     case "lb":
       return device.config.interfaces[port]?.adminUp ?? false;
     case "hub":
+    case "cloud":
       return true;
   }
 }

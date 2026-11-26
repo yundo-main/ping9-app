@@ -1,7 +1,7 @@
 // 오른쪽 속성 패널. 시안의 selectDevice가 만드는 마크업과 클래스를 따른다.
 // 구성 값은 스냅샷의 Document에서, 포트 상태와 테이블은 스냅샷의 views에서 읽는다 (AD-7).
 
-import { LIMITS, filterOf, isPcDevice, isServerDevice, shortPortName } from "@ping9/shared";
+import { LIMITS, cloudPortInfo, filterOf, isPcDevice, isServerDevice, portIndex, shortPortName } from "@ping9/shared";
 import type { Command, DeviceKind, DispatchResult, PortView, RouteChangeView, Snapshot, TopologyDocument } from "@ping9/shared";
 import type { ReactNode } from "react";
 
@@ -17,13 +17,21 @@ import { SwitchMacTable, SwitchVlanList } from "./switch-inspector";
 import { SwitchPortTag, trunkAllowedText } from "./switch-port-tag";
 import { VpnSettings } from "./vpn-settings";
 
-const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "L2 Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB" };
+const KIND_LABEL: Readonly<Record<DeviceKind, string>> = { pc: "PC", server: "Server", switch: "L2 Switch", router: "Router", hub: "Hub", l3switch: "L3 Switch", lb: "LB", cloud: "Cloud" };
 
 /** 링크 반대쪽 장비의 이름. 링크가 없으면 undefined */
 function peerName(document: TopologyDocument, deviceId: string, port: PortView): string | undefined {
   const link = document.links.find((candidate) => candidate.id === port.linkId);
   const peer = link?.ends.find((end) => end.deviceId !== deviceId);
   return document.devices.find((device) => device.id === peer?.deviceId)?.name;
+}
+
+/** 클라우드 포트의 링크망과 붙은 장비 — "1.0.0.0/30 · PC1" */
+function cloudPortText(document: TopologyDocument, deviceId: string, port: PortView): string {
+  const index = portIndex("cloud", port.name);
+  const network = index < 0 ? "1.0.0.0/8" : `${cloudPortInfo(index).network}/30`;
+  const peer = peerName(document, deviceId, port);
+  return peer === undefined ? `${network} · 연결 없음` : `${network} · ${peer}`;
 }
 
 export function Inspector({
@@ -116,7 +124,7 @@ export function Inspector({
           <span className="ip">
             {(device.kind === "switch" || (device.kind === "l3switch" && device.config.ports[port.name]?.routed !== true)
               ? trunkAllowedText(device.config, port.name) : undefined) ??
-              peerName(document, device.id, port) ??
+              (device.kind === "cloud" ? cloudPortText(document, device.id, port) : peerName(document, device.id, port)) ??
               "연결 없음"}
           </span>
         </div>

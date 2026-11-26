@@ -276,6 +276,7 @@ function checkDeviceConfig(device: ParsedDevice, path: string): ErrorInfo | null
     case "lb":
       return checkLbConfig(device.id, device.config, path);
     case "hub":
+    case "cloud":
       return null;
   }
 }

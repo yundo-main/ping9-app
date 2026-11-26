@@ -46,6 +46,7 @@ function usesIp(device: Device, ip: string): boolean {
       return Object.values(device.config.interfaces).some((iface) => iface.ip === ip);
     case "switch":
     case "hub":
+    case "cloud":
       return false;
   }
 }

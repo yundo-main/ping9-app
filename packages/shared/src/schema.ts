@@ -178,6 +178,7 @@ const deviceSchema = z.discriminatedUnion("kind", [
   z.object({ ...deviceBase, kind: z.literal("hub"), config: hubConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("l3switch"), config: l3SwitchConfigSchema }),
   z.object({ ...deviceBase, kind: z.literal("lb"), config: lbConfigSchema }),
+  z.object({ ...deviceBase, kind: z.literal("cloud"), config: hubConfigSchema }),
 ]);
 
 const linkSchema = z.object({

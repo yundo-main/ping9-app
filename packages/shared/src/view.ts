@@ -112,6 +112,13 @@ export interface HubView {
   readonly ports: readonly PortView[];
 }
 
+/** 클라우드의 표시용 값 (T0.68). 고정 /30 링크망은 `cloudPortInfo`로 계산하고, 여기에는 배운 ARP만 있다 */
+export interface CloudView {
+  readonly kind: "cloud";
+  readonly ports: readonly PortView[];
+  readonly arpTable: readonly ArpEntryView[];
+}
+
 /** L3 인터페이스(SVI 또는 라우티드 포트)의 표시용 값 (T0.33) */
 export interface L3InterfaceView {
   readonly name: string;
@@ -178,7 +185,7 @@ export interface LbView {
   readonly bindings: readonly LbBindingView[];
 }
 
-export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView | L3SwitchView | LbView;
+export type DeviceView = PcView | ServerView | SwitchView | RouterView | HubView | L3SwitchView | LbView | CloudView;
 
 /** `Simulator.getSnapshot()`이 돌려주는 값. 변경 불가능한 단순 자료다 */
 export interface Snapshot {

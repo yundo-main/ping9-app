@@ -55,6 +55,9 @@ export function computeViews(document: TopologyDocument): Record<string, DeviceV
           interfaces: l3InterfaceStates(device.config, ports),
         };
         break;
+      case "cloud":
+        views[device.id] = { kind: "cloud", ports, arpTable: [] };
+        break;
       case "lb":
         views[device.id] = {
           kind: "lb", ports, bindings: [],
