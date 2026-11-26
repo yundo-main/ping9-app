@@ -137,6 +137,14 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
           {ready && (
             <EditorApp key={lesson.id}
               features={{ fileActions: false, crumb: false }}
+              aboutDesc="네트워크 진도별 학습도구 — PING9 엔진 위의 커리큘럼·과제·자동 채점"
+              aboutExtra={
+                <section>
+                  <h3>교육용 웹</h3>
+                  <p>PING9 Edu — 레슨·자동 채점·학급 관리</p>
+                  <p className="about-url">ping9-edu.vercel.app</p>
+                </section>
+              }
               onActions={(menuActions) => { actions.current = menuActions; }}
               topbarStart={
                 <div className="edu-tb">
@@ -167,7 +175,7 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
                     <span className="edu-tb-user" title={session.guest ? "게스트" : session.email}>
                       <a className="edu-tb-btn" href="#/dashboard">대시보드</a>
                       {session.guest ? "게스트" : session.email}
-                      <button type="button" className="edu-tb-btn" onClick={() => void signOut()}>로그아웃</button>
+                      <button type="button" className="edu-tb-btn" onClick={() => { void signOut(); window.location.hash = "#/login"; }}>로그아웃</button>
                     </span>
                   )}
                   {session === null && <a className="edu-tb-btn" href="#/login">로그인</a>}

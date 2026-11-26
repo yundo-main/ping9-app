@@ -2,9 +2,16 @@
 // 도움말 창 아래의 "PING9에 관하여" 링크로 연다. Esc·바깥 클릭은 공유 뒷판이 담당한다.
 
 import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import logo from "../assets/logo.png";
 
-export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
+export function AboutDialog({ onClose, desc, extra }: {
+  readonly onClose: () => void;
+  /** 제품별 한 줄 설명 — 없으면 시뮬레이터 설명 (E6.7) */
+  readonly desc?: string | undefined;
+  /** 제품별 추가 크레딧 섹션 — 크레딧 목록 끝에 붙는다 (E6.7) */
+  readonly extra?: ReactNode;
+}) {
   const close = useRef<HTMLButtonElement>(null);
   useEffect(() => close.current?.focus(), []);
   return (
@@ -17,7 +24,7 @@ export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
         <div className="about-body">
           <img className="about-logo" src={logo} alt="" />
           <p className="about-app">PING9 <span className="about-ver">1.0.0</span></p>
-          <p className="about-desc">네트워크 장비를 배치하고 CLI로 설정해 통신을 실습하는 네트워크 시뮬레이터</p>
+          <p className="about-desc">{desc ?? "네트워크 장비를 배치하고 CLI로 설정해 통신을 실습하는 네트워크 시뮬레이터"}</p>
           <div className="about-credits">
             <section>
               <h3>원본 프로젝트</h3>
@@ -30,6 +37,7 @@ export function AboutDialog({ onClose }: { readonly onClose: () => void }) {
               <p>jarrod kim — Tauri로 이식 (Windows·macOS)</p>
               <p className="about-url">github.com/yundo-main/ping9-app</p>
             </section>
+            {extra}
           </div>
         </div>
       </div>

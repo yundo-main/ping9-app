@@ -36,6 +36,12 @@ export function App() {
     window.location.hash = lesson === null ? "#/lessons" : `/lesson/${lesson.id}`;
   };
 
+  // 로그아웃하면 첫 화면(로그인)으로 돌아간다 — 머물던 화면이 세션을 요구할 수 있으므로
+  const logout = () => {
+    void signOut();
+    window.location.hash = "#/login";
+  };
+
   const list = (
     <main className="edu">
       <div className="edu-top">
@@ -45,7 +51,7 @@ export function App() {
         </div>
         {sessionReady && (session === null
           ? <a className="edu-login-link" href="#/login">로그인</a>
-          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.guest ? "게스트" : session.email}<button onClick={() => void signOut()}>로그아웃</button></p>)}
+          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.guest ? "게스트" : session.email}<button onClick={logout}>로그아웃</button></p>)}
       </div>
       <LessonList lessons={LESSONS} passed={passed} onPick={openLesson} />
     </main>
@@ -70,11 +76,11 @@ export function App() {
       if (session.role === "teacher") {
         return <TeacherDashboard session={session} lessons={LESSONS}
           onBack={() => { window.location.hash = "#/lessons"; }}
-          onSignOut={() => void signOut()} />;
+          onSignOut={logout} />;
       }
       return <Dashboard session={session} lessons={LESSONS} passed={passed} onPick={openLesson}
         onBack={() => { window.location.hash = "#/lessons"; }}
-        onSignOut={() => void signOut()} />;
+        onSignOut={logout} />;
     }
     return null;
   }

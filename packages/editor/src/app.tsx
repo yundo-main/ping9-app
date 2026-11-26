@@ -96,9 +96,13 @@ export interface EditorAppProps {
   readonly topbarStart?: ReactNode;
   /** 상단 막대 오른쪽 버튼열 앞에 끼우는 셸 콘텐츠 (E6.5) */
   readonly topbarEnd?: ReactNode;
+  /** "PING9에 관하여"의 한 줄 설명 — 없으면 시뮬레이터 설명 (E6.7) */
+  readonly aboutDesc?: string | undefined;
+  /** "PING9에 관하여" 크레딧에 붙는 제품별 섹션 (E6.7) */
+  readonly aboutExtra?: ReactNode;
 }
 
-export function EditorApp({ download, onActions, features, topbarStart, topbarEnd }: EditorAppProps) {
+export function EditorApp({ download, onActions, features, topbarStart, topbarEnd, aboutDesc, aboutExtra }: EditorAppProps) {
   const snapshot = useSnapshot();
   const { document } = snapshot;
   const [ui, dispatch] = useReducer(uiReducer, INITIAL_UI_STATE);
@@ -709,7 +713,7 @@ export function EditorApp({ download, onActions, features, topbarStart, topbarEn
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined}
         onReset={() => simulator.resetSimulation()} />
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onAbout={() => { setHelpOpen(false); setAboutOpen(true); }} />}
-      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} desc={aboutDesc} extra={aboutExtra} />}
       {cloudInside !== null && snapshot.views[cloudInside]?.kind === "cloud" &&
         <CloudInsideDialog document={document} deviceId={cloudInside}
           view={snapshot.views[cloudInside] as Extract<typeof snapshot.views[string], { kind: "cloud" }>}
