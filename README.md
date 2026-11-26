@@ -43,7 +43,7 @@ pnpm 모노레포. 의존 방향은 `web → engine → shared`, `web → shared
 | `scripts/` | `desktop-release.mjs`(dmg 수집), `check-secrets.mjs`(비밀값 검사), `update-landing-history.mjs`(랜딩 히스토리 생성) |
 | `deploy/` | `desktop-release` 산출물(dmg·manifest). gitignore 대상 |
 | `.github/workflows/` | `ci.yml`(check), `desktop-release.yml`, `web-pages.yml`(Pages 배포) |
-| `vercel.json` | 예전 Vercel 배포의 잔재 — 지금은 쓰지 않는 예비 설정 |
+| `edu/app/vercel.json` | Vercel 배포 설정 — **Vercel 관련 내용은 전부 edu에서 진행**한다 |
 
 ### `packages/shared/src/` 세부 역할
 

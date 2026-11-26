@@ -12,7 +12,7 @@ PING9 시뮬레이터 코어(`packages/shared` + `packages/engine`) 위에 올�
 | 성격 | PING9 기반 네트워크 교육 솔루션 — 본체는 "자유 실습 도구", Edu는 "정답이 있는 수업 도구" |
 | 경계 | `edu/* → packages/*` 방향으로만 의존. `apps/web` 코드는 import하지 않는다 |
 | 배포 | Vercel 별도 프로젝트. 저장소는 공유하므로 엔진 개선이 자동 반영된다 |
-| 인증/DB | **Google 소셜 로그인 확정** — Supabase Auth의 Google provider. DB는 Supabase Postgres — 학생·교사 역할 구분 |
+| 인증/DB | **Supabase Auth** — 이메일·비밀번호 로그인(기본 구현) + Google 소셜 로그인(추후 provider 설정). DB는 Supabase Postgres — 학생·교사 역할 구분 |
 
 ## 2. 단계 (Milestone)
 
@@ -112,7 +112,7 @@ edu/
 ## 5. 열린 질문
 
 - ✅ 사용자 로그인 **필요**로 확정 — 학생·교사 역할 구분이 E5의 전제
-- ✅ 인증 방식 확정 — **Google 소셜 로그인, Supabase Auth** (Google provider + Supabase Postgres 한 묶음). Google Cloud Console에서 OAuth 클라이언트를 만들어 Supabase에 등록해야 한다
+- ✅ 인증 방식 확정 — **Supabase Auth**: 이메일·비밀번호 로그인 구현(E4.1). Google 소셜 로그인도 같은 Supabase Auth로, provider를 켜면 기존 버튼이 그대로 동작한다 — Google Cloud Console의 OAuth 클라이언트 등록은 추후 진행
 - ❓ 로그인 없는 미리보기를 허용하는가 — 과제 링크만으로 실습할지, 로그인 강제인지
 - ❓ 레슨 콘텐츠는 코드에 박는가(TS 파일, 버전 관리) DB에 넣는가(교사가 화면에서 제작)? — 1단계는 코드 내장, 교사 제작은 E5 이후
 - ❓ 학생의 자유 실습도 Edu에 허용하는가, 아니면 과제 모드만인가? — 자유 실습은 본체로 보내는 게 역할 분리에 맞다

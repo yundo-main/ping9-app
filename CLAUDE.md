@@ -3,7 +3,7 @@
 네트워크 장비를 배치·연결하고 CLI로 설정해 통신을 실습하는 네트워크 시뮬레이터. `TL-cg11/PING9`(3인 팀 프로젝트)를 fork해 1인으로 진행하는 데스크톱 앱 + 웹 서비스 버전.
 
 - 저장소: https://github.com/yundo-main/ping9-app. 2026-11-24에 옮겼고, 그 전의 저장소는 `TL-cg11/PING9` (옛 PR이 거기 있음).
-- 배포: 두 갈래다. Tauri 데스크톱 앱 — `pnpm desktop:release`가 `deploy/<버전>/`에 dmg/exe를 모으고 릴리스에 올린다 (docs/task-logs/T0.24-remove-vercel.md, T17.1·T17.2). 웹 — `web-pages.yml` 워크플로가 main push마다 GitHub Pages에 배포한다: 랜딩 `https://yundo-main.github.io/ping9-app/`, 앱 `…/app/` (docs/task-logs/T0.63-github-pages-app.md). Vercel은 예비로 `vercel.json`만 남겨 뒀다 (T0.62).
+- 배포: 두 갈래다. Tauri 데스크톱 앱 — `pnpm desktop:release`가 `deploy/<버전>/`에 dmg/exe를 모으고 릴리스에 올린다 (docs/task-logs/T0.24-remove-vercel.md, T17.1·T17.2). 웹 — `web-pages.yml` 워크플로가 main push마다 GitHub Pages에 배포한다: 랜딩 `https://yundo-main.github.io/ping9-app/`, 앱 `…/app/` (docs/task-logs/T0.63-github-pages-app.md). Vercel은 이제 **PING9 Edu(`edu/app`)**의 것이다 — 예전 ping9-app용 `vercel.json`은 걷어냈다.
 - DB: 없다. 과거 Vercel 배포 시절의 Neon `ping9-db`는 더 이상 쓰지 않고 코드에서도 쓰지 않는다.
 - 계획 문서: [docs/project-plan/README.md](docs/project-plan/README.md) — 문서의 "PacketTracer WEB"은 이 프로젝트의 옛 이름
 - 작업 단위 상세: [docs/project-plan/04-tasks/](docs/project-plan/04-tasks/)
