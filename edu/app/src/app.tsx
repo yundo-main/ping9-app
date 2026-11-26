@@ -1,6 +1,7 @@
 // PING9 Edu — 네트워크 진도별 학습도구 (별도 Vercel 프로젝트).
 // 본체 코드(apps/web)는 import하지 않고 packages의 엔진·editor·edu-core만 쓴다 (edu/README.md 경계 규칙).
-// 화면 전환은 해시 라우팅 — `#/lesson/<id>`·`#/login`·`#/signup`
+// 화면 전환은 해시 라우팅 — `#/lesson/<id>`·`#/lessons`·`#/login`·`#/signup`·`#/dashboard`
+// 로그인한 사용자의 홈은 대시보드: 루트로 오면 대시보드로 보내고 레슨 목록은 `#/lessons`에 둔다
 
 import { LESSONS, type Lesson } from "@ping9/edu-core";
 import type { Session } from "@supabase/supabase-js";
@@ -27,14 +28,29 @@ export function App() {
   }, []);
 
   const openLesson = (lesson: Lesson | null) => {
-    window.location.hash = lesson === null ? "" : `/lesson/${lesson.id}`;
+    window.location.hash = lesson === null ? "#/lessons" : `/lesson/${lesson.id}`;
   };
+
+  const list = (
+    <main className="edu">
+      <div className="edu-top">
+        <div>
+          <h1>PING9 Edu</h1>
+          <p className="sub">네트워크 진도별 학습도구 — 단원을 골라 실습하고 자동 채점까지 받습니다</p>
+        </div>
+        {sessionReady && (session === null
+          ? <a className="edu-login-link" href="#/login">로그인</a>
+          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.user.email}<button onClick={() => void signOut()}>로그아웃</button></p>)}
+      </div>
+      <LessonList lessons={LESSONS} passed={passed} onPick={openLesson} />
+    </main>
+  );
 
   if (route === "#/login" || route === "#/signup") {
     return (
       <AuthPage
         mode={route === "#/signup" ? "signup" : "login"}
-        onBack={() => { window.location.hash = ""; }}
+        onBack={() => { window.location.hash = "#/lessons"; }}
         onDone={() => { window.location.hash = "#/dashboard"; }}
       />
     );
@@ -47,9 +63,13 @@ export function App() {
     }
     if (session !== null) {
       return <Dashboard session={session} lessons={LESSONS} passed={passed} onPick={openLesson}
-        onBack={() => { window.location.hash = ""; }} />;
+        onBack={() => { window.location.hash = "#/lessons"; }} />;
     }
     return null;
+  }
+
+  if (route === "#/lessons") {
+    return list;
   }
 
   const match = LESSON_HASH.exec(route);
@@ -69,18 +89,10 @@ export function App() {
     );
   }
 
-  return (
-    <main className="edu">
-      <div className="edu-top">
-        <div>
-          <h1>PING9 Edu</h1>
-          <p className="sub">네트워크 진도별 학습도구 — 단원을 골라 실습하고 자동 채점까지 받습니다</p>
-        </div>
-        {sessionReady && (session === null
-          ? <a className="edu-login-link" href="#/login">로그인</a>
-          : <p className="edu-user"><a className="edu-login-link" href="#/dashboard">대시보드</a>{session.user.email}<button onClick={() => void signOut()}>로그아웃</button></p>)}
-      </div>
-      <LessonList lessons={LESSONS} passed={passed} onPick={openLesson} />
-    </main>
-  );
+  // 루트(`""`·`#`·`#/`)와 알 수 없는 해시 — 로그인한 사용자는 대시보드가 홈
+  if (sessionReady && session !== null) {
+    window.location.hash = "#/dashboard";
+    return null;
+  }
+  return list;
 }
