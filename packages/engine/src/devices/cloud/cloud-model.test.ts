@@ -35,7 +35,7 @@ async function open(): Promise<Simulator> {
 describe("인터넷 클라우드 (T0.68)", () => {
   test("포트마다 1.0.0.0/8을 자른 /30 링크망이 고정 배정된다", () => {
     expect(cloudPortInfo(0)).toEqual({ network: "1.0.0.0", mask: "255.255.255.252", cloudIp: "1.0.0.1", peerIp: "1.0.0.2" });
-    expect(cloudPortInfo(3)).toEqual({ network: "1.0.0.12", mask: "255.255.255.252", cloudIp: "1.0.0.13", peerIp: "1.0.0.14" });
+    expect(cloudPortInfo(2)).toEqual({ network: "1.0.0.8", mask: "255.255.255.252", cloudIp: "1.0.0.9", peerIp: "1.0.0.10" });
   });
 
   test("붙은 PC 둘 사이를 TTL을 줄여 전달한다", async () => {
