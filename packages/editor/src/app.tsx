@@ -77,14 +77,22 @@ export interface MenuActions {
   readonly redo: () => void;
 }
 
+/** 셸이 끄고 켤 수 있는 화면 기능 (E6.4). 빠진 항목은 켜진 것으로 본다 */
+export interface EditorFeatures {
+  /** 상단 막대의 내보내기·가져오기 버튼. false면 그리지 않는다 */
+  readonly fileActions?: boolean;
+}
+
 export interface EditorAppProps {
   /** 파일 저장 — 없으면 브라우저 다운로드. Tauri 앱은 저장 창 구현을 넘긴다 */
   readonly download?: (fileName: string, text: string) => Promise<void>;
   /** 데스크톱 메뉴 액션을 받을 콜백. 브라우저는 넘기지 않는다 */
   readonly onActions?: (actions: MenuActions) => void;
+  /** 화면 기능 스위치 — edu 같은 임베디드 셸이 본체 UI의 일부를 끌 때 쓴다 */
+  readonly features?: EditorFeatures | undefined;
 }
 
-export function EditorApp({ download, onActions }: EditorAppProps) {
+export function EditorApp({ download, onActions, features }: EditorAppProps) {
   const snapshot = useSnapshot();
   const { document } = snapshot;
   const [ui, dispatch] = useReducer(uiReducer, INITIAL_UI_STATE);
@@ -685,7 +693,10 @@ export function EditorApp({ download, onActions }: EditorAppProps) {
 
   return (
     <div className={`app mode-${mode}`}>
-      <TopBar name={topologyName} fileName={sourceFile} onRename={setTopologyName} onExport={exportTopology} onImport={(file) => void importTopology(file)} mode={mode} onModeChange={changeMode}
+      <TopBar name={topologyName} fileName={sourceFile} onRename={setTopologyName}
+        onExport={features?.fileActions === false ? undefined : exportTopology}
+        onImport={features?.fileActions === false ? undefined : (file) => void importTopology(file)}
+        mode={mode} onModeChange={changeMode}
         onHelp={() => setHelpOpen(true)} onAbout={() => setAboutOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined}
         onReset={() => simulator.resetSimulation()} />

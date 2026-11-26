@@ -2,5 +2,5 @@
 // editor는 Tauri를 모른다: 파일 저장·메뉴 같은 플랫폼 동작은 EditorApp의 prop으로 받는다.
 
 export { EditorApp } from "./app";
-export type { EditorAppProps, MenuActions } from "./app";
+export type { EditorAppProps, EditorFeatures, MenuActions } from "./app";
 export { TOPOLOGY_NAME, simulator, useSnapshot } from "./simulator";

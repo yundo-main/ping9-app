@@ -22,3 +22,4 @@ PING9 Edu의 작업 단위(Task) 기록 — 본체의 `docs/task-logs/`(T-시리
 | E6.1 레슨 콘텐츠 + 토폴로지 썸네일 + UX 계획 | [E6.1-lessons-grid-ux-plan.md](E6.1-lessons-grid-ux-plan.md) | 콘텐츠 / 화면 | jarrod | main 직접 커밋 |
 | E6.2 핑구 테마 + 도트 그리드 | [E6.2-pingu-theme.md](E6.2-pingu-theme.md) | 화면 | jarrod | main 직접 커밋 |
 | E6.3 designed-to-scale UX 적용 — 난이도·목표·강조박스 | [E6.3-dts-ux.md](E6.3-dts-ux.md) | 콘텐츠 / 화면 | jarrod | main 직접 커밋 |
+| E6.4 features seam + edu 파일 버튼 통합 | [E6.4-file-actions-seam.md](E6.4-file-actions-seam.md) | 화면 / 코어 | jarrod | main 직접 커밋 |

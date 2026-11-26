@@ -33,10 +33,10 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
   readonly fileName?: string | null;
   /** 이름을 고친다 (T0.16). 없으면 이름을 글자로만 보인다 */
   readonly onRename?: ((name: string) => void) | undefined;
-  /** 지금 토폴로지를 파일로 받는다 (T7.1.1) */
-  readonly onExport: () => void;
-  /** 고른 파일을 가져온다 (T7.1.2) */
-  readonly onImport: (file: File) => void;
+  /** 지금 토폴로지를 파일로 받는다 (T7.1.1). 없으면 내보내기 버튼을 그리지 않는다 (E6.4) */
+  readonly onExport?: (() => void) | undefined;
+  /** 고른 파일을 가져온다 (T7.1.2). 없으면 가져오기 버튼을 그리지 않는다 (E6.4) */
+  readonly onImport?: ((file: File) => void) | undefined;
   readonly mode: Mode;
   readonly onModeChange: (mode: Mode) => void;
   /** 시뮬레이션 모드에서만 준다. 없으면 멈춤·속도를 그리지 않는다 */
@@ -73,21 +73,29 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
         {onRename === undefined ? <span className="name">{name}</span> : <TopologyName name={name} onRename={onRename} />}
         {fileName != null && <span className="file-src" title="가져온 파일">{fileName}</span>}
       </div>
-      <div className="file-actions">
-        <button type="button" className="ghost" onClick={onExport}>
-          ⤓ 내보내기
-        </button>
-        <button type="button" className="ghost" onClick={() => fileInput.current?.click()}>
-          ⤒ 가져오기
-        </button>
-        <input ref={fileInput} type="file" accept={IMPORT_ACCEPT} hidden aria-label="가져올 파일"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            // 같은 파일을 다시 골라도 change가 오게 비운다
-            event.currentTarget.value = "";
-            if (file !== undefined) onImport(file);
-          }} />
-      </div>
+      {(onExport !== undefined || onImport !== undefined) && (
+        <div className="file-actions">
+          {onExport !== undefined && (
+            <button type="button" className="ghost" onClick={onExport}>
+              ⤓ 내보내기
+            </button>
+          )}
+          {onImport !== undefined && (
+            <>
+              <button type="button" className="ghost" onClick={() => fileInput.current?.click()}>
+                ⤒ 가져오기
+              </button>
+              <input ref={fileInput} type="file" accept={IMPORT_ACCEPT} hidden aria-label="가져올 파일"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  // 같은 파일을 다시 골라도 change가 오게 비운다
+                  event.currentTarget.value = "";
+                  if (file !== undefined) onImport(file);
+                }} />
+            </>
+          )}
+        </div>
+      )}
       <div className="spacer" />
       {mode === "simulation" && sim !== undefined && (
         <div className="sim-controls">

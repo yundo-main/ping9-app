@@ -2,7 +2,7 @@
 // 학생은 본체와 같은 화면에서 장비를 고치고, "채점하기"가 grader로 완료 조건을 평가한다 (E3.3)
 
 import { grade, type GradeResult, type Lesson } from "@ping9/edu-core";
-import { EditorApp, simulator } from "@ping9/editor";
+import { EditorApp, simulator, type MenuActions } from "@ping9/editor";
 import { useEffect, useRef, useState } from "react";
 import type { EduSession } from "./auth";
 import { checkLabel } from "./check-label";
@@ -30,6 +30,9 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
   const [briefOpen, setBriefOpen] = useState(true);
   const [step, setStep] = useState(0);
   const running = useRef(false);
+  // EditorApp이 노출하는 파일 동작 — 플레이어 바의 내보내기·가져오기 버튼이 이걸 부른다 (E6.4)
+  const actions = useRef<MenuActions | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // 레슨 진입 시 시작 토폴로지를 올린다 — EditorApp은 스냅샷을 구독하므로 먼저 load하면 그 상태로 그린다
   useEffect(() => {
@@ -66,6 +69,18 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
           {lesson.level !== undefined && <i className={`edu-level lvl-${lesson.level}`}>{LEVEL_LABELS[lesson.level] ?? lesson.level}</i>}
           {lesson.minutes !== undefined && <span className="edu-minutes">~{lesson.minutes}분</span>}
         </div>
+        <button type="button" className="edu-brief-toggle" onClick={() => actions.current?.exportTopology()}>
+          ⤓ 내보내기
+        </button>
+        <button type="button" className="edu-brief-toggle" onClick={() => fileInput.current?.click()}>
+          ⤒ 가져오기
+        </button>
+        <input ref={fileInput} type="file" accept=".json,application/json" hidden aria-label="가져올 파일"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file !== undefined) void actions.current?.importTopology(file);
+          }} />
         <button type="button" className="edu-brief-toggle" onClick={() => setBriefOpen((open) => !open)}>
           {briefOpen ? "과제 닫기" : "과제 보기"}
         </button>
@@ -146,7 +161,11 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
           </aside>
         )}
         <div className="edu-player-sim">
-          {ready && <EditorApp key={lesson.id} />}
+          {ready && (
+            <EditorApp key={lesson.id}
+              features={{ fileActions: false }}
+              onActions={(menuActions) => { actions.current = menuActions; }} />
+          )}
         </div>
       </div>
     </div>

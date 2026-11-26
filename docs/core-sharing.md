@@ -28,7 +28,8 @@
 | seam | 어디 | 제품이 하는 일 |
 |---|---|---|
 | `download` prop | EditorApp | 파일 저장 구현 (web: Tauri 저장 창, edu: 생략→브라우저 다운로드) |
-| `onActions` prop | EditorApp | 데스크톱 메뉴 액션 연결 (web만 사용) |
+| `onActions` prop | EditorApp | 파일·메뉴 동작(`exportTopology`·`importTopology`·`newTopology` 등)을 셸에 노출 (web: Tauri 메뉴, edu: 플레이어 바 버튼) |
+| `features` prop | EditorApp | 화면 조각 on/off — `fileActions:false`면 상단 막대의 내보내기·가져오기를 그리지 않는다 (E6.4, edu가 자체 버튼으로 대체) |
 | `simulator` 싱글턴 | editor | 제품이 Document를 `load`해 시작 상태를 정한다 (edu: 레슨의 `startDocument`) |
 | `Simulator` 인터페이스 | engine | 채점기·도구가 콘솔을 치고 스냅샷을 읽는다 (edu-core의 `grade`) |
 | `editor.css` | editor | 화면 스타일 — 제품이 자기 CSS로 필요한 부분만 오버라이드 |
@@ -51,7 +52,7 @@
 
 | 제안 | 용도 |
 |---|---|
-| `EditorApp`의 `features` prop | edu에서 파일 메뉴·팔레트 일부를 끄는 등 화면 조각 on/off — 지금은 없다 |
+| `features`에 플래그 추가 | 팔레트·모드 탭 등 다른 화면 조각 on/off — 지금은 `fileActions`만 있다 |
 | `createEditorSimulator()` | 화면마다 독립 시뮬레이터 — 지금은 싱글턴 `simulator`로 둘 다 충분 |
 | `editor`의 재생·터미널 부품을 개별 export | edu가 화면 일부만 재조합하고 싶을 때 — 지금은 전체 EditorApp만 쓴다 |
 
