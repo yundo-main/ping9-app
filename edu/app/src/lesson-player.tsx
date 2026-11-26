@@ -61,33 +61,6 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
 
   return (
     <div className="edu-player">
-      <header className="edu-player-bar">
-        <button type="button" className="edu-back" onClick={onExit}>← 목록</button>
-        <div className="edu-player-title">
-          <span className="edu-player-unit">{UNIT_TITLES[lesson.unit] ?? lesson.unit}</span>
-          <b>{lesson.title}</b>
-          {lesson.level !== undefined && <i className={`edu-level lvl-${lesson.level}`}>{LEVEL_LABELS[lesson.level] ?? lesson.level}</i>}
-          {lesson.minutes !== undefined && <span className="edu-minutes">~{lesson.minutes}분</span>}
-        </div>
-        <button type="button" className="edu-brief-toggle" onClick={() => actions.current?.exportTopology()}>
-          ⤓ 내보내기
-        </button>
-        <button type="button" className="edu-brief-toggle" onClick={() => fileInput.current?.click()}>
-          ⤒ 가져오기
-        </button>
-        <input ref={fileInput} type="file" accept=".json,application/json" hidden aria-label="가져올 파일"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            event.currentTarget.value = "";
-            if (file !== undefined) void actions.current?.importTopology(file);
-          }} />
-        <button type="button" className="edu-brief-toggle" onClick={() => setBriefOpen((open) => !open)}>
-          {briefOpen ? "과제 닫기" : "과제 보기"}
-        </button>
-        <button type="button" className="edu-grade" onClick={() => void gradeNow()} disabled={grading}>
-          {grading ? "채점 중…" : "채점하기"}
-        </button>
-      </header>
       <div className={`edu-player-body${briefOpen ? "" : " brief-closed"}`}>
         {briefOpen && (
           <aside className="edu-brief">
@@ -163,8 +136,35 @@ export function LessonPlayer({ lesson, nextLesson, session, onExit, onPassed, on
         <div className="edu-player-sim">
           {ready && (
             <EditorApp key={lesson.id}
-              features={{ fileActions: false }}
-              onActions={(menuActions) => { actions.current = menuActions; }} />
+              features={{ fileActions: false, crumb: false }}
+              onActions={(menuActions) => { actions.current = menuActions; }}
+              topbarStart={
+                <div className="edu-tb">
+                  <button type="button" className="edu-tb-back" onClick={onExit}>← 목록</button>
+                  <span className="edu-tb-unit">{UNIT_TITLES[lesson.unit] ?? lesson.unit}</span>
+                  <b className="edu-tb-title">{lesson.title}</b>
+                  {lesson.level !== undefined && <i className={`edu-level lvl-${lesson.level}`}>{LEVEL_LABELS[lesson.level] ?? lesson.level}</i>}
+                  {lesson.minutes !== undefined && <span className="edu-tb-minutes">~{lesson.minutes}분</span>}
+                </div>
+              }
+              topbarEnd={
+                <div className="edu-tb">
+                  <button type="button" className="edu-tb-btn" onClick={() => actions.current?.exportTopology()}>⤓ 내보내기</button>
+                  <button type="button" className="edu-tb-btn" onClick={() => fileInput.current?.click()}>⤒ 가져오기</button>
+                  <input ref={fileInput} type="file" accept=".json,application/json" hidden aria-label="가져올 파일"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = "";
+                      if (file !== undefined) void actions.current?.importTopology(file);
+                    }} />
+                  <button type="button" className="edu-tb-btn" onClick={() => setBriefOpen((open) => !open)}>
+                    {briefOpen ? "과제 닫기" : "과제 보기"}
+                  </button>
+                  <button type="button" className="edu-grade" onClick={() => void gradeNow()} disabled={grading}>
+                    {grading ? "채점 중…" : "채점하기"}
+                  </button>
+                </div>
+              } />
           )}
         </div>
       </div>

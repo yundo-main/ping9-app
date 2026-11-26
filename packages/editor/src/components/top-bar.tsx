@@ -4,6 +4,7 @@
 // 시뮬레이션일 때만 그 왼쪽에 멈춤·속도가 붙는다 (T0.15 시안 A안).
 
 import { useRef } from "react";
+import type { ReactNode } from "react";
 
 import type { Mode } from "../mode";
 import { SPEEDS } from "../sim-clock";
@@ -27,10 +28,16 @@ export interface SimControls {
   readonly onSpeed: (speed: Speed) => void;
 }
 
-export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onModeChange, sim, onReset, onHelp, onAbout }: {
+export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onModeChange, sim, onReset, onHelp, onAbout, start, end, crumb = true }: {
   readonly name: string;
   /** 가져온 파일의 이름. 새 토폴로지면 없다 (T0.61) */
   readonly fileName?: string | null;
+  /** false면 토폴로지 이름·파일명 영역(crumb)을 그리지 않는다 (E6.5) */
+  readonly crumb?: boolean;
+  /** 브랜드와 crumb 사이에 끼우는 셸 전용 콘텐츠 (E6.5) */
+  readonly start?: ReactNode;
+  /** spacer 뒤, 오른쪽 버튼열 앞에 끼우는 셸 전용 콘텐츠 (E6.5) */
+  readonly end?: ReactNode;
   /** 이름을 고친다 (T0.16). 없으면 이름을 글자로만 보인다 */
   readonly onRename?: ((name: string) => void) | undefined;
   /** 지금 토폴로지를 파일로 받는다 (T7.1.1). 없으면 내보내기 버튼을 그리지 않는다 (E6.4) */
@@ -68,11 +75,14 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
           {brand}
         </button>
       )}
-      <div className="crumb">
-        <span className="sep">/</span>
-        {onRename === undefined ? <span className="name">{name}</span> : <TopologyName name={name} onRename={onRename} />}
-        {fileName != null && <span className="file-src" title="가져온 파일">{fileName}</span>}
-      </div>
+      {start}
+      {crumb && (
+        <div className="crumb">
+          <span className="sep">/</span>
+          {onRename === undefined ? <span className="name">{name}</span> : <TopologyName name={name} onRename={onRename} />}
+          {fileName != null && <span className="file-src" title="가져온 파일">{fileName}</span>}
+        </div>
+      )}
       {(onExport !== undefined || onImport !== undefined) && (
         <div className="file-actions">
           {onExport !== undefined && (
@@ -97,6 +107,7 @@ export function TopBar({ name, fileName, onRename, onExport, onImport, mode, onM
         </div>
       )}
       <div className="spacer" />
+      {end}
       {mode === "simulation" && sim !== undefined && (
         <div className="sim-controls">
           {sim.clock.paused ? (

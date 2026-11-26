@@ -113,19 +113,16 @@ body { margin: 0; font-family: var(--sans); color: var(--ink); min-width: 0; ove
 .edu-card.done { border-color: var(--green-3); }
 
 /* ── 레슨 플레이어 ── */
-.edu-player { display: grid; grid-template-rows: 52px 1fr; height: 100vh; overflow: hidden; background: var(--paper); }
-/* 플레이어 바 — 아래 EditorApp의 .topbar와 같은 sky 그라데이션을 이어 받아
-   펭귄 로고 막대와 한 덩어리로 보이게 한다 (E6.5) */
-.edu-player-bar { display: flex; align-items: center; gap: 14px; padding: 0 14px; background: linear-gradient(90deg, #0b4fc4, #3b8ef0); color: #fff; }
-.edu-player-bar .edu-back { color: #d3e6fc; }
-.edu-player-bar .edu-back:hover { color: #fff; }
-.edu-player-bar .edu-player-unit { color: var(--green); }
-.edu-player-bar .edu-minutes { color: #d3e6fc; }
-.edu-player-bar .edu-brief-toggle { border: 1px solid #ffffff4d; background: #ffffff1f; color: #fff; }
-.edu-player-bar .edu-brief-toggle:hover { background: #ffffff38; color: #fff; border-color: #ffffff4d; }
-.edu-player-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1; }
-.edu-player-title b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.edu-player-unit { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.edu-player { display: grid; grid-template-rows: minmax(0, 1fr); height: 100vh; overflow: hidden; background: var(--paper); }
+/* topbar 안에 끼는 edu 슬롯 — 별도 행 대신 본체 막대 안으로 들어가 한 행으로 합쳐진다 (E6.5) */
+.edu-tb { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.edu-tb-back { border: none; background: none; color: #d3e6fc; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 6px 0; white-space: nowrap; }
+.edu-tb-back:hover { color: #fff; }
+.edu-tb-unit { font-size: 11.5px; color: var(--green); white-space: nowrap; }
+.edu-tb-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.edu-tb-minutes { font-size: 11px; color: #d3e6fc; white-space: nowrap; }
+.edu-tb-btn { border: 1px solid #ffffff4d; background: #ffffff1f; color: #fff; border-radius: 10px; font: inherit; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; white-space: nowrap; }
+.edu-tb-btn:hover { background: #ffffff38; }
 .edu-grade { padding: 7px 18px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--green); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; box-shadow: var(--pop-shadow); }
 .edu-grade:hover { background: var(--green-2); }
 .edu-grade:disabled { opacity: .55; cursor: default; }

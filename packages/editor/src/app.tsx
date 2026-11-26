@@ -5,7 +5,7 @@ import { EMPTY_DOCUMENT, errorInfo, osOf, pingRoundKind, shortPortName } from "@
 import type { ErrorInfo, PortRef, Position, TopologyDocument } from "@ping9/shared";
 import type { PaletteKind } from "./canvas-interaction";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 
 import { Canvas, cableLength } from "./components/canvas";
 import { ConfirmDialog } from "./components/confirm-dialog";
@@ -81,6 +81,8 @@ export interface MenuActions {
 export interface EditorFeatures {
   /** 상단 막대의 내보내기·가져오기 버튼. false면 그리지 않는다 */
   readonly fileActions?: boolean;
+  /** 상단 막대의 토폴로지 이름·파일명 영역. false면 그리지 않는다 (E6.5) */
+  readonly crumb?: boolean;
 }
 
 export interface EditorAppProps {
@@ -90,9 +92,13 @@ export interface EditorAppProps {
   readonly onActions?: (actions: MenuActions) => void;
   /** 화면 기능 스위치 — edu 같은 임베디드 셸이 본체 UI의 일부를 끌 때 쓴다 */
   readonly features?: EditorFeatures | undefined;
+  /** 상단 막대 브랜드 옆에 끼우는 셸 콘텐츠 (E6.5 — edu가 자체 헤더를 여기 넣어 한 행으로 합친다) */
+  readonly topbarStart?: ReactNode;
+  /** 상단 막대 오른쪽 버튼열 앞에 끼우는 셸 콘텐츠 (E6.5) */
+  readonly topbarEnd?: ReactNode;
 }
 
-export function EditorApp({ download, onActions, features }: EditorAppProps) {
+export function EditorApp({ download, onActions, features, topbarStart, topbarEnd }: EditorAppProps) {
   const snapshot = useSnapshot();
   const { document } = snapshot;
   const [ui, dispatch] = useReducer(uiReducer, INITIAL_UI_STATE);
@@ -696,6 +702,8 @@ export function EditorApp({ download, onActions, features }: EditorAppProps) {
       <TopBar name={topologyName} fileName={sourceFile} onRename={setTopologyName}
         onExport={features?.fileActions === false ? undefined : exportTopology}
         onImport={features?.fileActions === false ? undefined : (file) => void importTopology(file)}
+        crumb={features?.crumb !== false}
+        start={topbarStart} end={topbarEnd}
         mode={mode} onModeChange={changeMode}
         onHelp={() => setHelpOpen(true)} onAbout={() => setAboutOpen(true)}
         sim={mode === "simulation" ? { clock: clockState, onPause: clock.pause, onResume: clock.resume, onSpeed: clock.setSpeed } : undefined}

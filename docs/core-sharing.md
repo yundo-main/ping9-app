@@ -29,7 +29,8 @@
 |---|---|---|
 | `download` prop | EditorApp | 파일 저장 구현 (web: Tauri 저장 창, edu: 생략→브라우저 다운로드) |
 | `onActions` prop | EditorApp | 파일·메뉴 동작(`exportTopology`·`importTopology`·`newTopology` 등)을 셸에 노출 (web: Tauri 메뉴, edu: 플레이어 바 버튼) |
-| `features` prop | EditorApp | 화면 조각 on/off — `fileActions:false`면 상단 막대의 내보내기·가져오기를 그리지 않는다 (E6.4, edu가 자체 버튼으로 대체) |
+| `features` prop | EditorApp | 화면 조각 on/off — `fileActions:false`(내보내기·가져오기), `crumb:false`(토폴로지 이름) (E6.4·E6.5) |
+| `topbarStart`/`topbarEnd` props | EditorApp | 상단 막대 안에 끼우는 셸 콘텐츠 슬롯 — edu가 자체 헤더(목록·제목·버튼)를 여기 넣어 본체 막대와 한 행으로 합친다 (E6.5) |
 | `simulator` 싱글턴 | editor | 제품이 Document를 `load`해 시작 상태를 정한다 (edu: 레슨의 `startDocument`) |
 | `Simulator` 인터페이스 | engine | 채점기·도구가 콘솔을 치고 스냅샷을 읽는다 (edu-core의 `grade`) |
 | `editor.css` | editor | 화면 스타일 — 제품이 자기 CSS로 필요한 부분만 오버라이드 |
