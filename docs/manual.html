@@ -279,21 +279,21 @@
   <h2>Cloud <span class="badge">WAN</span></h2>
   <p class="dim">가상의 인터넷 — 1.0.0.0/8을 /30으로 자른 라우터 망이 안에 들어 있다고 보는 장비입니다. 내부는 RIP로 동작해 붙은 라우터들의 네트워크를 서로 연결해 줍니다.</p>
   <ul>
-    <li>포트는 FastEthernet0–2 세 개. 순번 i의 포트에는 <code>1.0.0.{4i}/30</code> 링크망이 고정 배정됩니다 — 클라우드 쪽이 <code>.{4i+1}</code>, 붙는 장비가 <code>.{4i+2}</code></li>
+    <li>포트는 Port0–Port5 여섯 개. 순번 i의 포트에는 <code>1.0.0.{4i}/30</code> 링크망이 고정 배정됩니다 — 클라우드 쪽이 <code>.{4i+1}</code>, 붙는 장비가 <code>.{4i+2}</code></li>
     <li><b>RIP 스피커</b>: 라우터에서 <code>router rip</code>을 켜고 <code>network</code>를 넣으면, 클라우드가 광고된 네트워크를 배워 다른 포트로 다시 광고합니다 — 반대편 라우터는 정적 경로 없이도 배웁니다</li>
     <li>클라우드 포트 주소(<code>.{4i+1}</code>)로의 ping에는 직접 응답하고, TTL을 줄여 전달합니다 — traceroute에서 한 홉으로 보입니다</li>
     <li>설정과 콘솔이 없습니다 — 인스펙터에 포트별 링크망과 배운 경로(라우팅 테이블)가 보입니다</li>
   </ul>
-  <pre>예: R1 gi0/0 ── Cloud FastEthernet0     R2 gi0/0 ── Cloud FastEthernet1
-<span class="p">R1(config)#</span> ip address 1.0.0.2 255.255.255.252    <span class="dim">← FastEthernet0의 상대 주소</span>
+  <pre>예: R1 gi0/0 ── Cloud Port0     R2 gi0/0 ── Cloud Port1
+<span class="p">R1(config)#</span> ip address 1.0.0.2 255.255.255.252    <span class="dim">← Port0의 상대 주소</span>
 <span class="p">R1(config)#</span> router rip
 <span class="p">R1(config-router)#</span> network 1.0.0.0        <span class="dim">← 클라우드 쪽 링크가 RIP에 참여</span>
 <span class="p">R1(config-router)#</span> network 192.168.1.0    <span class="dim">← 내 LAN을 광고</span>
-<span class="p">R2(config)#</span> ip address 1.0.0.6 255.255.255.252    <span class="dim">← FastEthernet1의 상대 주소</span>
+<span class="p">R2(config)#</span> ip address 1.0.0.6 255.255.255.252    <span class="dim">← Port1의 상대 주소</span>
 <span class="p">R2(config)#</span> router rip
 <span class="p">R2(config-router)#</span> network 1.0.0.0
 <span class="p">R2(config-router)#</span> network 192.168.2.0</pre>
-  <div class="note">이 설정만으로 R1↔R2의 LAN끼리 통합니다 — 클라우드가 192.168.1.0/24를 FastEthernet0에서 배워 FastEthernet1로, 192.168.2.0/24를 반대로 다시 광고하기 때문입니다. RIP를 켜지 않은 라우터는 자기 /30 링크 주소까지만 닿습니다.</div>
+  <div class="note">이 설정만으로 R1↔R2의 LAN끼리 통합니다 — 클라우드가 192.168.1.0/24를 Port0에서 배워 Port1로, 192.168.2.0/24를 반대로 다시 광고하기 때문입니다. RIP를 켜지 않은 라우터는 자기 /30 링크 주소까지만 닿습니다.</div>
 </section>
 
 </div>

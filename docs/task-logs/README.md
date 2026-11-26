@@ -179,3 +179,4 @@ Task 하나를 진행할 때마다 이 폴더에 기록 문서를 **새로** 만
 | T0.70 클라우드 내부 구조 창: 에지 라우터 K4 메시·/30 링크·배운 경로 SVG 팝업 (계획에 없는 새 ID) | [T0.70-cloud-inside-dialog.md](T0.70-cloud-inside-dialog.md) | 화면 | jarrod | main 직접 커밋 |
 | T0.71 클라우드 포트 3개 + 내부 창에 1.0.0.0/8·엣지 IP 표시 (계획에 없는 새 ID) | [T0.71-cloud-3ports.md](T0.71-cloud-3ports.md) | 화면·공통 | jarrod | main 직접 커밋 |
 | T0.72 클라우드 포트 이름을 FastEthernet0–2로 (계획에 없는 새 ID) | [T0.72-cloud-fastethernet.md](T0.72-cloud-fastethernet.md) | 공통·화면 | jarrod | main 직접 커밋 |
+| T0.73 클라우드 포트 6개 + 우선경로 규칙 확인, 내부 창 원형 동적 배치 (계획에 없는 새 ID) | [T0.73-cloud-6ports.md](T0.73-cloud-6ports.md) | 공통·화면 | jarrod | main 직접 커밋 |

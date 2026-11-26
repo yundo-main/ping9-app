@@ -38,7 +38,7 @@ export const PORT_NAMES = {
   // LB (T0.34). 리눅스 기반이라 포트 이름이 ethN이다
   lb: ["eth0", "eth1"],
   // 인터넷 클라우드 (T0.68). 포트별로 1.0.0.0/8을 자른 /30 링크망이 고정 배정된다
-  cloud: ["FastEthernet0", "FastEthernet1", "FastEthernet2"],
+  cloud: ["Port0", "Port1", "Port2", "Port3", "Port4", "Port5"],
 } as const satisfies Record<DeviceKind, readonly string[]>;
 
 /** 그 종류의 장비에 있는 포트 이름인지 */
