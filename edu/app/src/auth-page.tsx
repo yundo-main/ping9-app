@@ -4,7 +4,7 @@
 
 import logoUrl from "@ping9/editor/assets/logo.png";
 import { lazy, Suspense, useState } from "react";
-import { signInAsGuest, signInWithEmail, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
+import { signInAsGuest, signInWithEmail, signInWithGithub, signInWithGoogle, signUpWithEmail, supabase } from "./auth";
 
 const Penguin3D = lazy(() => import("./penguin-3d").then((module) => ({ default: module.Penguin3D })));
 
@@ -94,6 +94,8 @@ export function AuthPage({ mode, onDone }: {
             <div className="edu-auth-divider"><span>또는</span></div>
             <button type="button" className="edu-google" disabled={busy}
               onClick={() => void run(signInWithGoogle, "Google로 이동합니다")}>Google로 계속</button>
+            <button type="button" className="edu-google" disabled={busy}
+              onClick={() => void run(signInWithGithub, "GitHub로 이동합니다")}>GitHub로 계속</button>
             {guest}
             {message !== null && <p className="edu-login-note">{message}</p>}
             <p className="edu-auth-switch">

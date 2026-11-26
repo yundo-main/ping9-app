@@ -89,12 +89,20 @@ export function signUpWithEmail(email: string, password: string, meta: SignUpMet
   }));
 }
 
-export function signInWithGoogle(): Promise<string | null> {
+function signInWithProvider(provider: "google" | "github"): Promise<string | null> {
   if (supabase === undefined) return Promise.resolve("로그인이 아직 설정되지 않았어요");
   return call(supabase.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: { redirectTo: window.location.origin },
-  }).then(result => result, () => ({ error: { message: "Google 로그인을 시작하지 못했어요" } })));
+  }).then(result => result, () => ({ error: { message: "소셜 로그인을 시작하지 못했어요" } })));
+}
+
+export function signInWithGoogle(): Promise<string | null> {
+  return signInWithProvider("google");
+}
+
+export function signInWithGithub(): Promise<string | null> {
+  return signInWithProvider("github");
 }
 
 /** 표시 이름 변경 — user_metadata를 고치고 새 세션을 돌려준다 */
