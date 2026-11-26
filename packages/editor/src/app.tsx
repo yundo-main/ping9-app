@@ -83,6 +83,8 @@ export interface EditorFeatures {
   readonly fileActions?: boolean;
   /** 상단 막대의 토폴로지 이름·파일명 영역. false면 그리지 않는다 (E6.5) */
   readonly crumb?: boolean;
+  /** 팔레트 도구 아이콘을 3D 스프라이트로 바꾼다 (E6.10 — edu). three가 지연 로딩된다 */
+  readonly icons3d?: boolean;
 }
 
 export interface EditorAppProps {
@@ -721,6 +723,7 @@ export function EditorApp({ download, onActions, features, topbarStart, topbarEn
       <main className={`work${side.dragging ? " side-dragging" : ""}`} style={{ gridTemplateColumns: `76px minmax(0, 1fr) ${side.width}px` }}>
         {side.handle}
         <Palette deviceCount={document.devices.length} linkCount={document.links.length} cableActive={cable.active}
+          icons3d={features?.icons3d === true}
           onConnect={() => { setCable(cable.active ? CABLE_OFF : CABLE_READY); setSelectActive(false); setConnectionMessage(null); setActionError(null); }}
           onDeviceDragStart={(kind, cliStyle) => { setDragKind(kind); setDragCliStyle(cliStyle ?? "ios"); setCable(CABLE_OFF); setSelectActive(false); setConnectionMessage(null); }}
           dragCancel={dragCancel} zoneRef={paletteRef} />

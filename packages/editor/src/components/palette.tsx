@@ -4,12 +4,15 @@
 
 import { LIMITS } from "@ping9/shared";
 import type { PaletteKind } from "../canvas-interaction";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import type { ReactNode, RefObject } from "react";
 
 import type { DragCancelState } from "../canvas-interaction";
 import { DeviceIcon } from "./device-icons";
 import type { RouterCliStyle } from "./device-icons";
+
+// 3D 아이콘은 three를 끌어오므로 지연 로딩한다 (E6.10). features.icons3d가 켜진 셸만 이 모듈을 요청한다
+const DeviceIcon3D = lazy(() => import("./device-icon-3d").then((module) => ({ default: module.DeviceIcon3D })));
 
 /** 목록 아래의 안내 한 줄. 평소(idle)에는 비우고, 끌기 취소 중에만 취소하는 방법을 알린다 (T0.50) */
 const NOTE: Readonly<Record<DragCancelState, string>> = {
@@ -31,7 +34,7 @@ const TIPS: Readonly<Record<PaletteKind, string>> = {
 };
 
 export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = false, selectActive = false, onSelectTool, onDeviceDragStart,
-  dragCancel = "idle", zoneRef }: {
+  dragCancel = "idle", zoneRef, icons3d = false }: {
   readonly deviceCount: number;
   readonly linkCount?: number;
   readonly onConnect: () => void;
@@ -43,6 +46,8 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
   /** 새 장비 끌기와 취소 영역의 상태 (T0.12) */
   readonly dragCancel?: DragCancelState;
   readonly zoneRef?: RefObject<HTMLElement | null>;
+  /** 도구 아이콘을 3D 스프라이트로 바꾼다 (E6.10 — edu의 features.icons3d) */
+  readonly icons3d?: boolean;
 }) {
   const used = Math.min(100, (deviceCount / LIMITS.maxDevices) * 100);
   const full = deviceCount >= LIMITS.maxDevices;
@@ -57,9 +62,19 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
         event.preventDefault();
         onDeviceDragStart?.(kind, cliStyle);
       }}>
-      <DeviceIcon kind={kind} cliStyle={cliStyle} />{label}
+      {icon(kind, cliStyle)}{label}
     </button>
   );
+
+  /** 아이콘 한 조각 — icons3d면 지연 로딩되는 3D 스프라이트, 아니면 기존 SVG */
+  function icon(kind: PaletteKind, cliStyle?: RouterCliStyle): ReactNode {
+    if (!icons3d) return <DeviceIcon kind={kind} cliStyle={cliStyle} />;
+    return (
+      <Suspense fallback={<DeviceIcon kind={kind} cliStyle={cliStyle} />}>
+        <DeviceIcon3D kind={kind} />
+      </Suspense>
+    );
+  }
 
   return (
     <aside ref={zoneRef} className={dragCancel === "idle" ? "palette" : `palette cancel-${dragCancel}`}>
@@ -74,7 +89,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
           data-tip="올리거나 눌러 스위치 종류를 고릅니다" disabled={full}
           onPointerDown={e => { if (e.pointerType !== "mouse") { e.preventDefault(); setSwitchesOpen(open => !open); } }}
           onClick={e => { if (e.detail === 0) setSwitchesOpen(open => !open); }}>
-          <DeviceIcon kind="switch" hideLayerBadge />Switch
+          {icon("switch")}Switch
         </button>
         {switchesOpen && (
           <div className="switch-flyout" role="group" aria-label="스위치·허브 종류">
@@ -93,7 +108,7 @@ export function Palette({ deviceCount, linkCount = 0, onConnect, cableActive = f
           data-tip="올리거나 눌러 라우터 CLI 형식을 고릅니다" disabled={full}
           onPointerDown={e => { if (e.pointerType !== "mouse") { e.preventDefault(); setRoutersOpen(open => !open); } }}
           onClick={e => { if (e.detail === 0) setRoutersOpen(open => !open); }}>
-          <DeviceIcon kind="router" hideLayerBadge />Router
+          {icon("router")}Router
         </button>
         {routersOpen && (
           <div className="switch-flyout" role="group" aria-label="라우터 CLI 형식">

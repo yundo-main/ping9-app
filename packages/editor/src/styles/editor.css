@@ -90,6 +90,7 @@ button.brand:hover .tile img { filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)) br
 .tool[data-tip]:hover:not(:disabled)::after, .tool[data-tip]:focus-visible::after, .palette h4[data-tip]:hover::after { opacity: 1; }
 /* 목록의 도구 네모는 작게 (T0.23) */
 .tool svg { width: 20px; height: 20px; }
+.tool .icon3d { width: 30px; height: 30px; } /* 3D 스프라이트는 디테일이 많아 좀 더 크게 (E6.10) */
 .tool:is(button) { cursor: pointer; color: inherit; }
 .tool:is(button):hover:not(:disabled) { border-color: var(--sky-500); background: var(--ice-100); }
 .tool:is(button):focus-visible { outline: 2px solid var(--sky-700); outline-offset: 2px; }
